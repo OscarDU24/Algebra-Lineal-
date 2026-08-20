@@ -92,4 +92,6 @@ def programa_matrices():
         else:
             print("Opción inválida. Por favor, seleccione un número del 1 al 4.")
 
+# Ejecutar el programa
+if __name__ == "__main__":
     programa_matrices()
