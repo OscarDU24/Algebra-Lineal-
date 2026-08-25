@@ -25,3 +25,4 @@ class InterfazMatriz(ABC):
     @abstractmethod
     def sumar_fila_escalada(self, matriz, fila1, fila2, escalar):
         pass
+        pass
