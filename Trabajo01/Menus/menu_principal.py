@@ -1,59 +1,89 @@
+# ==========================================================
+# CLASE MENÚ PRINCIPAL
+# Controla la interacción principal con el usuario y permite
+# acceder a las diferentes funciones del programa.
+# ==========================================================
+
 class MenuPrincipal:
+
+    # ======================================================
+    # CONSTRUCTOR
+    # Recibe la matriz, el DAO y el menú de operaciones para
+    # permitir que todos trabajen sobre la misma matriz.
+    # ======================================================
     def __init__(self, matriz, dao, menu_operaciones):
         self.matriz = matriz
         self.dao = dao
         self.menu_operaciones = menu_operaciones
-    # --------------------------------------------------
-    # VALIDADORES
-    # --------------------------------------------------
+
+    # ======================================================
+    # VALIDAR ENTEROS
+    # Solicita al usuario un valor entero y repite la entrada
+    # hasta recibir un dato válido.
+    # ======================================================
     def solicitar_entero(self, mensaje):
-        """
-        Solicita un número entero.
-        """
         while True:
             try:
                 return int(input(mensaje))
             except ValueError:
-                print("Ingrese únicamente un valor entero.")
+                print(
+                    "Ingrese únicamente un valor entero."
+                )
+
+    # ======================================================
+    # VALIDAR NÚMEROS
+    # Permite introducir números enteros o decimales.
+    # Los valores que no sean válidos son rechazados para
+    # evitar errores durante la ejecución del programa.
+    # ======================================================
 
     def solicitar_numero(self, mensaje):
-        """
-        Solicita un número entero o decimal.
-        """
         while True:
             try:
                 valor = float(input(mensaje))
-                # Si el decimal realmente representa un entero,
-                # lo almacenamos como int.
                 if valor.is_integer():
                     return int(valor)
                 return valor
             except ValueError:
                 print(
-                    "Ingrese únicamente un número entero "
-                    "o decimal."
+                    "Ingrese únicamente un número "
+                    "entero o decimal."
                 )
 
+    # ======================================================
+    # VALIDAR ENTEROS POSITIVOS
+    # Solicita un número entero mayor que cero. Se utiliza
+    # principalmente para definir las dimensiones de la
+    # matriz.
+    # ======================================================
     def solicitar_entero_positivo(self, mensaje):
-        """
-        Solicita un entero mayor que cero.
-        """
         while True:
             valor = self.solicitar_entero(mensaje)
             if valor > 0:
                 return valor
-            print("Ingrese únicamente valores positivos.")
+            print(
+                "Ingrese únicamente valores positivos."
+            )
 
-    # --------------------------------------------------
-    # OPCIONES DEL MENÚ
-    # --------------------------------------------------
+    # ======================================================
+    # MOSTRAR MATRIZ
+    # Comprueba si existe una matriz y posteriormente muestra
+    # todos los valores almacenados en ella.
+    # ======================================================
     def mostrar_matriz(self):
         print("\nMatriz:")
         if self.matriz.filas == 0:
-            print("La matriz todavía no ha sido creada.")
+            print(
+                "La matriz todavía no ha sido creada."
+            )
             return
         self.matriz.mostrar()
 
+    # ======================================================
+    # DEFINIR TAMAÑO
+    # Solicita al usuario la cantidad de filas y columnas
+    # para crear una nueva matriz vacía.
+    # ======================================================
     def definir_tamano(self):
         print("\n--- Definir tamaño de la matriz ---")
         filas = self.solicitar_entero_positivo(
@@ -69,12 +99,19 @@ class MenuPrincipal:
         print("\nMatriz creada correctamente.")
         self.matriz.mostrar()
 
+    # ======================================================
+    # INSERTAR VALORES
+    # Recorre cada posición de la matriz y solicita al usuario
+    # un número entero o decimal para almacenarlo mediante
+    # el DAO.
+    # ======================================================
     def insertar_valores(self):
         if self.matriz.filas == 0:
             print(
                 "Primero debe definir el tamaño de la matriz."
             )
             return
+
         print("\n--- Insertar valores ---")
         for i in range(self.matriz.filas):
             for j in range(self.matriz.columnas):
@@ -88,8 +125,15 @@ class MenuPrincipal:
                     j,
                     valor
                 )
-        print("\nValores insertados correctamente.")
+        print(
+            "\nValores insertados correctamente."
+        )
 
+    # ======================================================
+    # CONSULTAR VALOR
+    # Solicita una fila y una columna y muestra el valor
+    # almacenado en la posición indicada.
+    # ======================================================
     def consultar_valor(self):
         if not self.matriz.esta_completa():
             print(
@@ -97,6 +141,7 @@ class MenuPrincipal:
                 "Por favor inserte todos los valores primero."
             )
             return
+
         print("\n--- Consultar valor ---")
         fila = self.solicitar_entero(
             f"Ingrese el número de fila "
@@ -120,9 +165,13 @@ class MenuPrincipal:
             print(
                 "Índice fuera del rango de la matriz."
             )
-    # --------------------------------------------------
-    # MENÚ PRINCIPAL
-    # --------------------------------------------------
+
+    # ======================================================
+    # EJECUTAR MENÚ PRINCIPAL
+    # Mantiene el menú activo hasta que el usuario seleccione
+    # la opción de salida y permite acceder a todas las
+    # funcionalidades principales del programa.
+    # ======================================================
     def ejecutar(self):
         while True:
             print("\nMenú de opciones:")
@@ -138,23 +187,23 @@ class MenuPrincipal:
 
             if opcion == "1":
                 self.mostrar_matriz()
-                
+
             elif opcion == "2":
                 self.definir_tamano()
-                
+
             elif opcion == "3":
                 self.insertar_valores()
-                
+
             elif opcion == "4":
                 self.consultar_valor()
-                
+
             elif opcion == "5":
                 self.menu_operaciones.ejecutar()
-                
+
             elif opcion == "6":
                 print("Saliendo del programa.")
                 break
-            
+
             else:
                 print(
                     "Opción inválida. "
