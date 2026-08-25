@@ -1,1 +1,18 @@
-Todo IA :)
+# Estructuración Inicial del Backend (18/08/2026 hasta 25/08/2026)
+
+Tomando en cuenta las indicaciones provistas por el docente, se estructuró un programa
+que puede realizar las siguientes funciones:
+
+1. Establecer el tamaño de una matriz en base a n:m n x m.
+2. Poder Consultar los valores que se encuentran en una posición específica de la matriz.
+3. Mostrar La matriz completa.
+4. Realizar operaciones elementales de matrices.
+5. Validadores que impiden el fallo del programa.
+
+Cosas a mejorar tomando en cuenta las orientaciones dadas el 25/08/2026
+
+1. Él sistema de hacer automáticamente las operaciones elementales
+2. Cuando se hagan dichas operaciones el usuario debe decidir si llega hasta Gauss o Gauss-Jordan
+3. Evitar usar Librerías NumPy, SciPy o funciones integradas de álgebra lineal de math.
+4. El programa debe construirse utilizando únicamente Python estándar (listas anidadas, condicionales if/else, bucles for/while y funciones). 
+5. Agregar comentarios al código.
