@@ -1,1 +1,34 @@
-Todo IA :)
+Matate Oscar
+
+1. Propósito del Proyecto: 
+
+Este programa interactivo resuelve sistemas de ecuaciones lineales de la forma $Ax = b$ aplicando el método de eliminación de Gauss-Jordan (eliminación por filas con pivoteo parcial). 
+
+Está diseñado con un enfoque educativo, cumpliendo estrictamente con la restricción de no utilizar librerías de álgebra lineal como NumPy o SciPy, empleando únicamente Python estándar.
+
+2. Arquitectura y Módulos
+
+El proyecto aplica el principio de Separación de Responsabilidades y se divide en tres archivos:
+
+entradas.py (Módulo de Interfaz y Validación): Contiene funciones robustas que usan bloques try-except para garantizar que el usuario ingrese el tipo de dato correcto (enteros o flotantes) sin que el programa colapse. También incluye la lógica de renderizado visual de la matriz en consola.
+
+resolucion.py (Núcleo Matemático): Contiene el algoritmo de Gauss-Jordan. Realiza el pivoteo parcial (para evitar divisiones por cero y reducir errores de redondeo), la normalización de filas, la eliminación hacia adelante y hacia atrás, y la posterior clasificación y comprobación matemática del sistema.
+
+main.py (Controlador Principal): Es el punto de entrada del programa. Coordina el flujo de datos: solicita la información a través de entradas.py, la envía a resolucion.py para su procesamiento, y presenta los resultados finales.
+
+3. Clasificación de Sistemas:
+
+El núcleo matemático es capaz de identificar e imprimir explícitamente tres escenarios:
+
+Sistema Consistente Determinado: Encuentra y despliega la solución única.
+
+Sistema Consistente Indeterminado: Detecta si hay menos ecuaciones efectivas que variables (infinitas soluciones).
+
+Sistema Inconsistente: Detecta contradicciones matemáticas (filas de ceros igualadas a un valor distinto de cero).
+
+4. Instrucciones de Ejecución
+Guarde los tres archivos (entradas.py, resolucion.py y main.py) en la misma carpeta.
+
+Abra una terminal o consola de comandos en esa carpeta.
+
+Ejecute el comando: python main.py
