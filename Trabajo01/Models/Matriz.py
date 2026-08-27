@@ -1,15 +1,11 @@
 # ==========================================================
 # CLASE MATRIZ
-# Representa la estructura de una matriz mediante una lista
-# anidada y almacena su cantidad de filas y columnas.
+# Representa la matriz aumentada del sistema de ecuaciones
+# mediante una lista anidada. La última columna corresponde
+# al vector de términos independientes.
 # ==========================================================
 
 class Matriz:
-
-    # ======================================================
-    # CONSTRUCTOR
-    # Inicializa una matriz sin tamaño definido.
-    # ======================================================
     def __init__(self):
         self.filas = 0
         self.columnas = 0
@@ -17,8 +13,8 @@ class Matriz:
 
     # ======================================================
     # DEFINIR TAMAÑO
-    # Crea una matriz vacía utilizando la cantidad de filas
-    # y columnas indicada por el usuario.
+    # Crea una matriz vacía con la cantidad de filas y
+    # columnas indicada.
     # ======================================================
     def definir_tamano(self, filas, columnas):
         self.filas = filas
@@ -27,27 +23,30 @@ class Matriz:
         for i in range(filas):
             fila = []
             for j in range(columnas):
-                fila.append(None)
+                fila.append(0)
             self.valores.append(fila)
 
     # ======================================================
-    # VALIDAR MATRIZ
-    # Comprueba si la matriz ya contiene valores en todas
-    # sus posiciones.
+    # MATRIZ COMPLETA
+    # Comprueba si la matriz ya contiene los datos necesarios
+    # para trabajar con ella.
     # ======================================================
     def esta_completa(self):
         if self.filas == 0 or self.columnas == 0:
             return False
-        for fila in self.valores:
-            for valor in fila:
-                if valor is None:
-                    return False
         return True
 
     # ======================================================
     # MOSTRAR MATRIZ
-    # Recorre las filas de la matriz y muestra sus valores.
+    # Muestra la matriz aumentada separando visualmente los
+    # coeficientes de los términos independientes.
     # ======================================================
     def mostrar(self):
-        for fila in self.valores:
-            print(fila)
+        if self.filas == 0:
+            print("La matriz todavía no ha sido creada.")
+            return
+        for i in range(self.filas):
+            fila = self.valores[i]
+            coeficientes = fila[:-1]
+            independiente = fila[-1]
+            print(f"{coeficientes} | {independiente}")
