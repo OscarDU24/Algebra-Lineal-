@@ -2,6 +2,17 @@
 # Backend
 #-------------------------------------------
 
+# Función para resolver con método de Gauss
+# Toma la matriz como elemento y devuelve la matriz resuelta
+def gauss(matrix):
+    # Implementar código
+    return matrix
+
+# Ditto, pero con Gauss Jordan
+def gauss_jordan(matrix):
+    # Ditto
+    return matrix
+
 # Función de renderizado de la matriz
 # Muestra cada uno de los elementos de la matriz organizados por filas y columnas
 def render_matrix(matrix):

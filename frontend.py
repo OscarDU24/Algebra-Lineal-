@@ -20,6 +20,40 @@ def scr_render_matrix(matrix):
     print("Pulse Enter para continuar...", end="")
     input()
 
+# Pantalla de muestra de la matriz: Renderiza todos los elementos de la matriz
+def scr_reduce(matrix):
+    os.system("clear")
+    hr()
+    print("Reducir la matriz")
+    hr()
+    b.render_matrix(matrix)
+    hr()
+    print("1. Por Gauss")
+    print("2. Por Gauss Jordan")
+    print("3. Cancelar")
+    hr()
+    
+    print("Seleccione un número: ", end="")
+    while True:
+        opcion = b.int_input()
+        if opcion == 1:
+            matrix = b.gauss(matrix)
+            break
+        if opcion == 2:
+            matrix = b.gauss_jordan(matrix)
+            break
+        if opcion == 3:
+            return
+            break
+        else:
+            print("Error: Entrada inválida: ", end="")
+    os.system("clear")
+    hr()
+    print("Matriz reducida")
+    hr()
+    print("Pulse enter para continuar...", end="")
+    input()
+
 # Pantalla de creación de la matriz: Configuración inicial del programa
 def scr_create_matrix():
     hr()
@@ -43,7 +77,7 @@ def scr_create_matrix():
             print("Error: Número de columnas inválido. Intente de nuevo:", end="")
 
 
-    return create_matrix()
+    return b.create_matrix(row, col)
 
 # Menú de actualización de elementos: Modifica el valor del elemento row x col de una matriz 
 def scr_update_cell(matrix, row, col):
@@ -108,7 +142,8 @@ def scr_main():
         hr()
         print("1. Ver toda la matriz")
         print("2. Seleccionar un elemento")
-        print("3. Salir")
+        print("3. Reducir la matriz")
+        print("4. Salir")
         hr()
         print("Ingrese un número de opción: ", end='')
 
@@ -119,6 +154,8 @@ def scr_main():
         elif opcion == 2:
             scr_select_cell(matrix)
         elif opcion == 3:
+            scr_reduce(matrix)
+        elif opcion == 4:
             break
         else:
             print("La opción introducida no existe")
