@@ -16,3 +16,29 @@ Cosas a mejorar tomando en cuenta las orientaciones dadas el 25/08/2026
 3. Evitar usar Librerías NumPy, SciPy o funciones integradas de álgebra lineal de math.
 4. El programa debe construirse utilizando únicamente Python estándar (listas anidadas, condicionales if/else, bucles for/while y funciones). 
 5. Agregar comentarios al código.
+
+# Reformas para el merge (26/08/2026 hasta 28/08/2026)
+
+Tomando en cuenta las orientaciones provistas por el docente, se comenzó con la reestructuración del programa para adaptarlo al nuevo propósito de resolver sistemas de ecuaciones lineales mediante métodos matriciales.
+
+Durante esta etapa se plantearon las siguientes reformas:
+
+Tomando en cuenta las nuevas orientaciones provistas por el docente, se comenzó a reestructurar el programa para adaptarlo a la resolución de sistemas de ecuaciones lineales mediante métodos matriciales. Se modificó el funcionamiento de la matriz para que pueda representar una matriz aumentada A|b, donde se almacenan los coeficientes de las variables y los términos independientes de cada ecuación.
+
+Se estableció que el usuario pueda indicar desde la consola el número de ecuaciones y el número de variables que tendrá el sistema, permitiendo trabajar con diferentes tamaños de matrices.Se modificó el ingreso de valores para que el programa acepte tanto números enteros como números decimales en los coeficientes y términos independientes.
+
+Se planteó la incorporación de un proceso automático de eliminación por filas, con el objetivo de que el programa pueda realizar las operaciones necesarias para resolver el sistema sin que el usuario tenga que realizarlas manualmente.
+
+También se incorporó la clasificación del sistema dependiendo del resultado obtenido, permitiendo identificar si presenta una solución única, infinitas soluciones o si no presenta solución.
+
+El programa deberá mostrar la matriz aumentada inicial y los cambios realizados durante el proceso de eliminación, permitiendo observar de manera ordenada los pasos utilizados para resolver el sistema.
+
+Se agregó como parte del proceso la obtención de los valores de las variables cuando el sistema presente una solución única.
+
+También se planteó una etapa de verificación, en la cual los valores obtenidos serán sustituidos en el sistema original para comprobar automáticamente que la solución encontrada sea correcta.
+
+La estructura del proyecto continúa organizada mediante los paquetes Models, Dao y Menus, agregando el paquete Services para separar la lógica correspondiente al proceso de eliminación y resolución de los sistemas.
+
+Se mantiene la restricción de no utilizar las librerías NumPy, SciPy ni funciones integradas de álgebra lineal, utilizando únicamente las herramientas estándar de Python, como listas anidadas, condicionales, ciclos y funciones.
+
+Finalmente, se deberán realizar pruebas con los tres casos solicitados por el docente: un sistema con solución única, un sistema con infinitas soluciones y un sistema inconsistente o sin solución.
