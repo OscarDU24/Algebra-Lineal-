@@ -1,0 +1,27 @@
+# Caché de Python
+__pycache__/
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caché de herramientas de Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Entornos virtuales
+venv/
+.venv/
+env/
+
+# Archivos temporales
+*.tmp
+*.temp
+
+# Archivos de configuración de Visual Studio Code
+.vscode/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
