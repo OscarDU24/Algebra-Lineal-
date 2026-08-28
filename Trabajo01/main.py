@@ -1,32 +1,36 @@
 # ==========================================================
-# IMPORTACIÓN DE CLASES
-# Se importan las clases necesarias para construir la matriz,
-# acceder a sus datos, ejecutar la eliminación y mostrar
-# el menú principal.
+# PROGRAMA PRINCIPAL
+# Punto de entrada de la aplicación. Se encarga únicamente
+# de crear los objetos principales e iniciar el menú.
 # ==========================================================
 
 from Models.Matriz import Matriz
 from Dao.matriz_dao import MatrizDAO
-from Services.eliminacion import Eliminacion
 from Menus.menu_principal import MenuPrincipal
+
 
 # ==========================================================
 # FUNCIÓN PRINCIPAL
-# Crea los objetos del programa y los relaciona entre sí
-# antes de ejecutar el menú principal.
+# Inicializa el modelo, el DAO y el menú principal.
 # ==========================================================
 
 def main():
+
     matriz = Matriz()
     dao = MatrizDAO()
-    eliminacion = Eliminacion(matriz)
-    menu = MenuPrincipal(matriz, dao, eliminacion)
+
+    menu = MenuPrincipal(
+        matriz,
+        dao
+    )
+
     menu.ejecutar()
 
+
 # ==========================================================
-# PUNTO DE ENTRADA
-# Ejecuta la función principal cuando el archivo es iniciado
-# directamente.
+# INICIO DEL PROGRAMA
+# Ejecuta main() cuando este archivo es ejecutado como
+# módulo principal.
 # ==========================================================
 
 if __name__ == "__main__":

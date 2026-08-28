@@ -1,22 +1,16 @@
 # ==========================================================
-# IMPORTACIÓN DE LA LIBRERÍA ESTÁNDAR
-# ABC permite crear una clase abstracta que establece los
-# métodos que deberá implementar el DAO.
+# INTERFAZ DE MATRIZ
+# Define las operaciones básicas que debe proporcionar el
+# acceso a los datos de una matriz.
 # ==========================================================
 
-from abc import ABC, abstractmethod
+class InterfazMatriz:
 
-# ==========================================================
-# INTERFAZ DE LA MATRIZ
-# Define las operaciones básicas para insertar y consultar
-# información de la matriz.
-# ==========================================================
+    def guardar(self, matriz):
+        raise NotImplementedError
 
-class InterfazMatriz(ABC):
-    @abstractmethod
-    def insertar_valor(self, matriz, fila, columna, valor):
-        pass
+    def obtener(self):
+        raise NotImplementedError
 
-    @abstractmethod
-    def consultar_valor(self, matriz, fila, columna):
-        pass
+    def limpiar(self):
+        raise NotImplementedError
