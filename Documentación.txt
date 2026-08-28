@@ -1,34 +1,54 @@
-Matate Oscar
+================================================================================
+          DOCUMENTACIÓN Y HISTORIAL DE VERSIONES - PROYECTO INTEGRADOR
+================================================================================
 
-1. Propósito del Proyecto: 
+INFORMACIÓN DEL PROYECTO
+--------------------------------------------------------------------------------
+Institución: UNIVERSIDAD AMERICANA
+Facultad: Facultad de Ingeniería y Arquitectura (FIA)
+Asignatura: Álgebra Lineal (MTM0120)
+Carrera: Ingeniería en Sistemas de Información
+Fecha de registro: 28 de agosto de 2026
+Proyecto: Calculadora de Álgebra Lineal (Programa 1)
 
-Este programa interactivo resuelve sistemas de ecuaciones lineales de la forma $Ax = b$ aplicando el método de eliminación de Gauss-Jordan (eliminación por filas con pivoteo parcial). 
+VERSIÓN ACTUAL: v1.0.0 (Versión Base de Consola - Estructura MVC)
+--------------------------------------------------------------------------------
+ESTADO DE LA ARQUITECTURA:
+El proyecto se ha reestructurado separando la lógica matemática de la interfaz de 
+usuario en consola. Esto prepara el código para una futura migración a una 
+aplicación de escritorio (GUI).
 
-Está diseñado con un enfoque educativo, cumpliendo estrictamente con la restricción de no utilizar librerías de álgebra lineal como NumPy o SciPy, empleando únicamente Python estándar.
+ARCHIVOS DEL SISTEMA:
+1. logica_matematica.py : Contiene los algoritmos puros sin interacciones de 
+   consola (cero prints/inputs).
+2. validaciones.py      : Filtra y maneja los errores de tipeo del usuario.
+3. main_consola.py      : Ejecuta el flujo principal, interactúa con el usuario 
+   e imprime los resultados formateados.
 
-2. Arquitectura y Módulos
+CARACTERÍSTICAS Y MÉTODOS MATEMÁTICOS IMPLEMENTADOS:
+- Eliminación de Gauss (Clásico): Se implementó la eliminación por filas haciendo 
+  ceros únicamente debajo del pivote principal, adaptándose a la restricción 
+  académica estricta de la rúbrica.
+- Sustitución hacia atrás: Algoritmo añadido para encontrar el valor de las 
+  variables una vez obtenida la matriz triangular superior.
+- Pivoteo Parcial: Integrado para evitar divisiones por cero y reducir errores 
+  de redondeo (precisión flotante configurada con tolerancia 1e-9).
+- Clasificación Automática: El sistema evalúa la matriz escalonada y determina si 
+  es Consistente Determinado, Indeterminado o Inconsistente.
+- Comprobación de Ecuaciones: Verificación matemática automática del resultado en 
+  las ecuaciones originales.
 
-El proyecto aplica el principio de Separación de Responsabilidades y se divide en tres archivos:
+RESTRICCIONES CUMPLIDAS:
+- Uso exclusivo de Python estándar (listas anidadas, if/else, for/while).
+- No se utilizan librerías externas (NumPy, SciPy).
 
-entradas.py (Módulo de Interfaz y Validación): Contiene funciones robustas que usan bloques try-except para garantizar que el usuario ingrese el tipo de dato correcto (enteros o flotantes) sin que el programa colapse. También incluye la lógica de renderizado visual de la matriz en consola.
-
-resolucion.py (Núcleo Matemático): Contiene el algoritmo de Gauss-Jordan. Realiza el pivoteo parcial (para evitar divisiones por cero y reducir errores de redondeo), la normalización de filas, la eliminación hacia adelante y hacia atrás, y la posterior clasificación y comprobación matemática del sistema.
-
-main.py (Controlador Principal): Es el punto de entrada del programa. Coordina el flujo de datos: solicita la información a través de entradas.py, la envía a resolucion.py para su procesamiento, y presenta los resultados finales.
-
-3. Clasificación de Sistemas:
-
-El núcleo matemático es capaz de identificar e imprimir explícitamente tres escenarios:
-
-Sistema Consistente Determinado: Encuentra y despliega la solución única.
-
-Sistema Consistente Indeterminado: Detecta si hay menos ecuaciones efectivas que variables (infinitas soluciones).
-
-Sistema Inconsistente: Detecta contradicciones matemáticas (filas de ceros igualadas a un valor distinto de cero).
-
-4. Instrucciones de Ejecución
-Guarde los tres archivos (entradas.py, resolucion.py y main.py) en la misma carpeta.
-
-Abra una terminal o consola de comandos en esa carpeta.
-
-Ejecute el comando: python main.py
+================================================================================
+                            HOJA DE RUTA (ROADMAP)
+================================================================================
+PRÓXIMOS CAMBIOS PLANIFICADOS (v2.0+):
+[ ] 1. Integración de interfaz gráfica (GUI): Migrar 'main_consola.py' a un 
+       entorno visual de escritorio (ej. Tkinter o PyQt) para facilitar el uso.
+[ ] 2. Selector de Métodos: Añadir un botón o menú que permita al usuario 
+       alternar libremente entre el método de "Gauss Clásico" y "Gauss-Jordan".
+[ ] 3. Exportación de resultados: Permitir que los pasos generados por la lógica 
+       matemática se puedan guardar en un archivo de texto o PDF desde la GUI.
