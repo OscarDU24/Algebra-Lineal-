@@ -19,26 +19,28 @@ Cosas a mejorar tomando en cuenta las orientaciones dadas el 25/08/2026
 
 # Reformas para el merge (26/08/2026 hasta 28/08/2026)
 
-Tomando en cuenta las orientaciones provistas por el docente, se comenzó con la reestructuración del programa para adaptarlo al nuevo propósito de resolver sistemas de ecuaciones lineales mediante métodos matriciales.
+1. Tomando en cuenta las nuevas orientaciones provistas por el docente, se comenzó a reestructurar el programa para adaptarlo a la resolución de sistemas de ecuaciones lineales mediante métodos matriciales. Se modificó el funcionamiento de la matriz para que pueda representar una matriz aumentada A|b, donde se almacenan los coeficientes de las variables y los términos independientes de cada ecuación.
 
-Durante esta etapa se plantearon las siguientes reformas:
+2. Se estableció que el usuario pueda indicar desde la consola el número de ecuaciones y el número de variables que tendrá el sistema, permitiendo trabajar con diferentes tamaños de matrices.Se modificó el ingreso de valores para que el programa acepte tanto números enteros como números decimales en los coeficientes y términos independientes.
 
-Tomando en cuenta las nuevas orientaciones provistas por el docente, se comenzó a reestructurar el programa para adaptarlo a la resolución de sistemas de ecuaciones lineales mediante métodos matriciales. Se modificó el funcionamiento de la matriz para que pueda representar una matriz aumentada A|b, donde se almacenan los coeficientes de las variables y los términos independientes de cada ecuación.
+3. Se planteó la incorporación de un proceso automático de eliminación por filas, con el objetivo de que el programa pueda realizar las operaciones necesarias para resolver el sistema sin que el usuario tenga que realizarlas manualmente.
 
-Se estableció que el usuario pueda indicar desde la consola el número de ecuaciones y el número de variables que tendrá el sistema, permitiendo trabajar con diferentes tamaños de matrices.Se modificó el ingreso de valores para que el programa acepte tanto números enteros como números decimales en los coeficientes y términos independientes.
+4. También se incorporó la clasificación del sistema dependiendo del resultado obtenido, permitiendo identificar si presenta una solución única, infinitas soluciones o si no presenta solución.
 
-Se planteó la incorporación de un proceso automático de eliminación por filas, con el objetivo de que el programa pueda realizar las operaciones necesarias para resolver el sistema sin que el usuario tenga que realizarlas manualmente.
+5. El programa deberá mostrar la matriz aumentada inicial y los cambios realizados durante el proceso de eliminación, permitiendo observar de manera ordenada los pasos utilizados para resolver el sistema. Se agregó como parte del proceso la obtención de los valores de las variables cuando el sistema presente una solución única.
 
-También se incorporó la clasificación del sistema dependiendo del resultado obtenido, permitiendo identificar si presenta una solución única, infinitas soluciones o si no presenta solución.
+6. También se planteó una etapa de verificación, en la cual los valores obtenidos serán sustituidos en el sistema original para comprobar automáticamente que la solución encontrada sea correcta. La estructura del proyecto continúa organizada mediante los paquetes Models, Dao y Menus, agregando el paquete Services para separar la lógica correspondiente al proceso de eliminación y resolución de los sistemas.
 
-El programa deberá mostrar la matriz aumentada inicial y los cambios realizados durante el proceso de eliminación, permitiendo observar de manera ordenada los pasos utilizados para resolver el sistema.
+7. Se mantiene la restricción de no utilizar las librerías NumPy, SciPy ni funciones integradas de álgebra lineal, utilizando únicamente las herramientas estándar de Python, como listas anidadas, condicionales, ciclos y funciones. Finalmente, se deberán realizar pruebas con los tres casos solicitados por el docente: un sistema con solución única, un sistema con infinitas soluciones y un sistema inconsistente o sin solución.
 
-Se agregó como parte del proceso la obtención de los valores de las variables cuando el sistema presente una solución única.
+# cambios en la infraestructura (28/08/2026)
 
-También se planteó una etapa de verificación, en la cual los valores obtenidos serán sustituidos en el sistema original para comprobar automáticamente que la solución encontrada sea correcta.
-
-La estructura del proyecto continúa organizada mediante los paquetes Models, Dao y Menus, agregando el paquete Services para separar la lógica correspondiente al proceso de eliminación y resolución de los sistemas.
-
-Se mantiene la restricción de no utilizar las librerías NumPy, SciPy ni funciones integradas de álgebra lineal, utilizando únicamente las herramientas estándar de Python, como listas anidadas, condicionales, ciclos y funciones.
-
-Finalmente, se deberán realizar pruebas con los tres casos solicitados por el docente: un sistema con solución única, un sistema con infinitas soluciones y un sistema inconsistente o sin solución.
+1. Se reestructuró el proyecto para separar correctamente los modelos, DAO, servicios y menús.
+2. Se trasladó la lógica de eliminación al archivo Services/logica_Matematica.py, separándola de la interacción con el usuario.
+3. Se incorporaron los métodos de Gauss y Gauss-Jordan para la resolución de sistemas de ecuaciones lineales.
+4. Se agregó la clasificación automática de los sistemas en solución única, infinitas soluciones o sistema inconsistente.
+5. Se agregó la verificación automática de las soluciones mediante sustitución en el sistema original.
+6. Se modificó la entrada de datos para permitir enteros, decimales y fracciones simples.
+7. Se reorganizó main.py como punto de entrada principal del programa, dejando los menús y la lógica matemática en archivos independientes.
+8. Se mantuvo el uso exclusivo de Python estándar, sin utilizar NumPy, SciPy ni funciones externas de álgebra lineal.
+9. Se preparó la estructura para facilitar el merge con las ramas del equipo y una futura migración a una interfaz gráfica.
