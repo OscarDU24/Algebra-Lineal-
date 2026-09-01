@@ -1,1 +1,337 @@
-Todo IA :)
+UNIVERSIDAD AMERICANA (UAM)
+Facultad de Ingenieria y Arquitectura (FIA)
+Asignatura: Algebra Lineal
+Explicacion Linea por Linea del Codigo
+Calculadora de Sistemas de Ecuaciones Lineales por Eliminacion por Filas (paquete lineal)
+Este documento recorre, funcion por funcion y linea por linea, el codigo final del proyecto (main.py y el paquete lineal). Cada bloque de codigo (fondo gris, fuente monoespaciada) esta seguido de su explicacion en texto normal.
+1. entrada.py
+1.1 leer_entero_positivo(mensaje)
+def leer_entero_positivo(mensaje):
+Define una funcion que recibe un texto (mensaje) para mostrarlo al pedir el dato.
+    while True:
+Bucle infinito: sigue pidiendo el dato hasta que el usuario ingrese algo valido (es la forma estandar de "reintentar hasta acertar").
+        entrada = input(mensaje).strip()
+Muestra el mensaje, espera lo que el usuario escriba, y .strip() le quita espacios en blanco sobrantes al inicio/final.
+        try:
+            valor = int(entrada)
+Intenta convertir el texto a numero entero. Si el usuario escribio algo que no es un numero (ej. "abc"), esto lanza un error.
+            if valor > 0:
+                return valor
+Si la conversion funciono y el numero es mayor a cero, lo devuelve y la funcion termina ahi (rompe el while True).
+            print("Error: el valor debe ser un entero mayor que 0.")
+Si convirtio bien pero el numero es 0 o negativo, avisa el error y el while vuelve a empezar (pide de nuevo).
+        except ValueError:
+            print("Error: debe ingresar un numero entero valido.")
+Si int(entrada) fallo (no era un numero), captura ese error especifico y muestra un mensaje, sin que el programa se caiga. El while vuelve a pedir.
+1.2 leer_flotante(mensaje)
+def leer_flotante(mensaje):
+    while True:
+        entrada = input(mensaje).strip()
+        try:
+            return float(entrada)
+        except ValueError:
+            print("Error: debe ingresar un numero valido (ej. 5, -3.2, 0.25).")
+Misma logica que la anterior, pero acepta decimales y negativos (float en vez de int), y no exige que sea positivo (los coeficientes de un sistema si pueden ser negativos).
+1.3 leer_dimensiones()
+def leer_dimensiones():
+    print("\n--- 1. Dimensiones del sistema ---")
+    m = leer_entero_positivo("Ingrese el numero de ecuaciones (m): ")
+    n = leer_entero_positivo("Ingrese el numero de variables (n): ")
+    return m, n
+Imprime un titulo, reutiliza leer_entero_positivo para pedir m (numero de ecuaciones) y n (numero de variables), y devuelve ambos como una tupla (m, n).
+1.4 construir_matriz_aumentada(m, n)
+def construir_matriz_aumentada(m, n):
+    print("\n--- 2. Ingreso de coeficientes y terminos independientes ---")
+    matriz = []
+Empieza con una lista vacia que ira acumulando las filas.
+    for i in range(m):
+        print(f"\nEcuacion {i + 1}:")
+        fila = []
+Por cada una de las m ecuaciones, crea una lista vacia fila (el i + 1 es solo para mostrarlo "Ecuacion 1" en vez de "Ecuacion 0", ya que range empieza en 0).
+        for j in range(n):
+            coef = leer_flotante(f"  Coeficiente de x{j + 1}: ")
+            fila.append(coef)
+Por cada una de las n variables, pide su coeficiente y lo agrega a fila.
+        indep = leer_flotante(f"  Termino independiente b{i + 1}: ")
+        fila.append(indep)
+Al final de la fila, pide el termino independiente (el numero despues del =) y lo agrega tambien; por eso la fila queda de tamano n + 1.
+        matriz.append(fila)
+    return matriz
+Agrega la fila completa a la matriz general, y cuando termina el bucle de las m filas, la devuelve.
+1.5 leer_metodo()
+def leer_metodo():
+    print("\n" + "-" * 60)
+"-" * 60 repite el guion 60 veces; es una linea decorativa.
+    print("Seleccione el metodo de eliminacion por filas a utilizar:")
+    print("  1. Gauss           (forma escalonada + sustitucion hacia atras)")
+    print("  2. Gauss-Jordan    (forma escalonada reducida, solucion directa)")
+    print("-" * 60)
+Muestra el menu de opciones.
+    while True:
+        opcion = input("Ingrese 1 o 2: ").strip()
+        if opcion == "1":
+            return "gauss"
+        if opcion == "2":
+            return "gauss_jordan"
+        print("Opcion invalida. Intente de nuevo.")
+Pide la opcion como texto y la compara contra "1" o "2" (son strings, no numeros, por eso no hace falta int() aqui). Devuelve un texto interno ("gauss" o "gauss_jordan") que el resto del programa usara para decidir que algoritmo aplicar. Si no es ni "1" ni "2", avisa y vuelve a preguntar.
+2. visualizacion.py
+2.1 copiar_matriz(matriz)
+def copiar_matriz(matriz):
+    return [fila[:] for fila in matriz]
+Esto es una comprension de lista: recorre cada fila dentro de matriz y para cada una hace fila[:], que crea una copia nueva de esa fila (no la misma referencia en memoria). Es necesario porque en Python, si haces nueva = matriz sin esto, nueva y matriz apuntarian al mismo objeto, y modificar una modificaria la otra sin querer.
+2.2 imprimir_matriz(matriz, titulo)
+def imprimir_matriz(matriz, titulo=""):
+    if titulo:
+        print(f"\n{titulo}")
+titulo="" es un valor por defecto (si no se pasa nada, es un texto vacio). if titulo: en Python es False cuando el string esta vacio, asi que solo imprime el titulo si realmente se paso uno.
+    columnas = len(matriz[0])
+Toma el largo de la primera fila para saber cuantas columnas tiene la matriz (asume que todas las filas tienen el mismo largo, lo cual siempre es cierto aqui).
+    for fila in matriz:
+        print("  | ", end="")
+Por cada fila, imprime el inicio de una barra vertical. end="" evita el salto de linea automatico de print, para poder seguir imprimiendo en la misma linea.
+        for j in range(columnas - 1):
+            print(f"{fila[j]:9.4f} ", end="")
+Imprime cada coeficiente (todas las columnas excepto la ultima, que es el termino independiente). :9.4f es formato: numero decimal con 4 cifras despues del punto, ocupando un ancho total de 9 caracteres (para que todo quede alineado en columnas visualmente).
+        print(f"| {fila[-1]:9.4f} |")
+fila[-1] es el ultimo elemento (el termino independiente). Lo imprime con una barra antes y despues, cerrando la fila y ahora si con salto de linea normal (print por defecto).
+3. eliminacion.py
+from .visualizacion import copiar_matriz
+El punto antes de visualizacion significa "importar desde el mismo paquete" (importacion relativa). Trae la funcion copiar_matriz de ese otro archivo.
+TOLERANCIA = 1e-9
+Constante: umbral para tratar numeros casi-cero como cero, por errores de redondeo en float.
+3.1 eliminacion_por_filas(matriz_original, modo)
+def eliminacion_por_filas(matriz_original, modo="gauss"):
+    matriz = copiar_matriz(matriz_original)
+Trabaja sobre una copia, nunca sobre matriz_original directamente, para no alterar la matriz que el usuario ingreso (se necesitara intacta despues, en la verificacion).
+    filas = len(matriz)
+    columnas = len(matriz[0])
+    variables = columnas - 1
+Guarda cuantas filas (m) y columnas totales tiene. variables es n: las columnas menos 1 (se resta la columna del termino independiente).
+    pasos = [("Matriz aumentada inicial", copiar_matriz(matriz))]
+Crea una lista pasos que arranca con una tupla: (descripcion del paso, una copia de la matriz en ese momento). Esto es lo que luego permite mostrarle al usuario el proceso completo.
+    columnas_pivote = []
+    fila_pivote = 0
+columnas_pivote guardara que columnas lograron tener un pivote. fila_pivote es un contador que indica en que fila estamos posicionados para poner el proximo pivote (empieza en la fila 0).
+    for col in range(variables):
+        if fila_pivote >= filas:
+            break
+Recorre columna por columna (cada columna representa una variable). Si ya no quedan filas disponibles para poner mas pivotes (fila_pivote llego al total de filas), corta el bucle: ya no se puede seguir.
+        fila_max = fila_pivote
+        for r in range(fila_pivote + 1, filas):
+            if abs(matriz[r][col]) > abs(matriz[fila_max][col]):
+                fila_max = r
+Esto es el pivoteo parcial: empieza asumiendo que la fila actual (fila_pivote) tiene el mejor candidato, y recorre las filas de abajo comparando valores absolutos. Si encuentra uno mayor, actualiza fila_max a esa fila. Al terminar el bucle, fila_max es la fila con el coeficiente mas grande (en valor absoluto) de esa columna, entre las filas restantes.
+        if abs(matriz[fila_max][col]) < TOLERANCIA:
+            continue
+Si ni el mejor candidato supera la tolerancia, esa columna no tiene ningun valor util como pivote (toda esa columna, desde fila_pivote hacia abajo, es practicamente cero). continue salta directamente a la siguiente columna, sin tocar fila_pivote ni columnas_pivote; esta es la variable que queda "libre".
+        if fila_max != fila_pivote:
+            matriz[fila_pivote], matriz[fila_max] = matriz[fila_max], matriz[fila_pivote]
+Si el mejor candidato no es la fila donde ya estamos posicionados, intercambia ambas filas completas. Esta es la sintaxis de Python para intercambiar dos variables sin necesitar una variable temporal.
+            pasos.append((
+                f"Intercambio de fila {fila_pivote + 1} con fila {fila_max + 1}",
+                copiar_matriz(matriz)
+            ))
+Registra ese intercambio como un paso mas, guardando una copia del estado actual de la matriz.
+        if modo == "gauss_jordan":
+A partir de aqui se bifurca el comportamiento segun el metodo elegido.
+            valor_pivote = matriz[fila_pivote][col]
+            for c in range(col, columnas):
+                matriz[fila_pivote][c] /= valor_pivote
+(Solo Gauss-Jordan) Guarda el valor del pivote, y divide toda la fila pivote (desde la columna actual en adelante) entre ese valor. Esto hace que el pivote mismo quede en exactamente 1. Empieza en col, no en 0, porque las columnas anteriores a col ya son cero en esta fila (no hace falta tocarlas).
+            pasos.append((
+                f"F{fila_pivote + 1} = F{fila_pivote + 1} / {valor_pivote:.4f}",
+                copiar_matriz(matriz)
+            ))
+Registra ese paso con una descripcion tipo "F1 = F1 / 2.0000".
+            for r in range(filas):
+                if r != fila_pivote and abs(matriz[r][col]) > TOLERANCIA:
+(Sigue en Gauss-Jordan) Recorre todas las filas (range(filas), no solo las de abajo), salvo la fila pivote misma, y solo actua si esa fila todavia tiene un valor distinto de cero en la columna actual (si ya es cero, no hay nada que hacer, evita trabajo innecesario).
+                    factor = matriz[r][col]
+                    for c in range(col, columnas):
+                        matriz[r][c] -= factor * matriz[fila_pivote][c]
+factor es el valor a eliminar. Como la fila pivote ya tiene un 1 en la columna col (por la normalizacion de arriba), restar factor veces la fila pivote hace que esa posicion quede en cero. Esto se aplica a toda la fila, desde col en adelante.
+                    pasos.append((
+                        f"F{r + 1} = F{r + 1} - ({factor:.4f}) * F{fila_pivote + 1}",
+                        copiar_matriz(matriz)
+                    ))
+Registra el paso de eliminacion con su descripcion algebraica.
+        else:
+            for r in range(fila_pivote + 1, filas):
+                if abs(matriz[r][col]) > TOLERANCIA:
+(Solo Gauss, rama else) Aqui solo recorre las filas debajo del pivote (fila_pivote + 1 en adelante); a diferencia de Gauss-Jordan, nunca toca las filas de arriba.
+                    factor = matriz[r][col] / matriz[fila_pivote][col]
+Aqui si hace falta dividir explicitamente entre matriz[fila_pivote][col], porque a diferencia de Gauss-Jordan, el pivote no fue normalizado a 1 en este modo.
+                    for c in range(col, columnas):
+                        matriz[r][c] -= factor * matriz[fila_pivote][c]
+                    pasos.append((
+                        f"F{r + 1} = F{r + 1} - ({factor:.4f}) * F{fila_pivote + 1}",
+                        copiar_matriz(matriz)
+                    ))
+Misma mecanica de eliminacion y registro de paso que antes.
+        columnas_pivote.append(col)
+        fila_pivote += 1
+Al terminar de procesar la columna (haya sido Gauss o Gauss-Jordan), se registra que esa columna si obtuvo un pivote, y se avanza el contador de fila para la proxima columna.
+    return matriz, pasos, columnas_pivote
+Al terminar de recorrer todas las columnas, devuelve tres cosas: la matriz ya transformada, el historial completo de pasos, y la lista de que columnas tuvieron pivote.
+4. clasificacion.py
+TOLERANCIA = 1e-9
+Nota: esta es una constante independiente de la de eliminacion.py; mismo valor, pero definida por separado en cada archivo.
+4.1 clasificar_sistema(matriz_resultado, columnas_pivote)
+def clasificar_sistema(matriz_resultado, columnas_pivote):
+    filas = len(matriz_resultado)
+    columnas = len(matriz_resultado[0])
+    variables = columnas - 1
+    rango = len(columnas_pivote)
+rango es simplemente cuantas columnas lograron tener pivote; este es el concepto de "rango de la matriz" en algebra lineal, expresado en codigo.
+    for i in range(filas):
+        coeficientes_nulos = all(abs(matriz_resultado[i][j]) < TOLERANCIA for j in range(variables))
+all(...) devuelve True solo si todos los elementos cumplen la condicion. Aqui revisa, fila por fila, si todos los coeficientes (todas las columnas excepto la ultima) son practicamente cero.
+        termino_no_nulo = abs(matriz_resultado[i][-1]) > TOLERANCIA
+Revisa si el termino independiente de esa misma fila no es cero.
+        if coeficientes_nulos and termino_no_nulo:
+            return "Sistema Inconsistente"
+Si ambas cosas son ciertas a la vez (fila tipo 0 0 ... 0 | k con k distinto de cero), eso matematicamente significa "0 = k", una contradiccion. El sistema no tiene solucion, y la funcion termina ahi devolviendo ese resultado.
+    if rango == variables:
+        return "Sistema Consistente Determinado"
+    return "Sistema Consistente Indeterminado"
+Si ninguna fila fue contradictoria, se compara el rango contra el numero de variables: si son iguales, hay una unica solucion; si el rango es menor, sobran variables libres (infinitas soluciones).
+5. solucion.py
+5.1 sustitucion_hacia_atras(matriz_ref, n)
+def sustitucion_hacia_atras(matriz_ref, n):
+    x = [0.0] * n
+Crea una lista de n ceros: el espacio donde se iran guardando los valores de x1, x2, ..., xn (empezando en 0.0 como marcador, luego se sobrescribe cada posicion).
+    for i in range(n - 1, -1, -1):
+range(n-1, -1, -1) cuenta hacia atras: desde n-1 hasta 0. Es decir, recorre las filas/variables de la ultima a la primera; de ahi el nombre "hacia atras".
+        suma = matriz_ref[i][n]
+Empieza con el termino independiente de esa fila (la columna n es justo la del termino independiente, ya que hay n columnas de coeficientes indexadas de 0 a n-1).
+        for j in range(i + 1, n):
+            suma -= matriz_ref[i][j] * x[j]
+Resta la contribucion de las variables que ya se calcularon (las que estan a la derecha de la diagonal, con indice mayor a i), multiplicadas por su coeficiente en esta fila.
+        x[i] = suma / matriz_ref[i][i]
+Despeja la variable actual dividiendo lo que quedo entre su propio coeficiente (el de la diagonal).
+    return x
+Al terminar de recorrer todas las filas de abajo hacia arriba, devuelve la lista completa de soluciones.
+5.2 extraer_solucion_rref(matriz_rref, n)
+def extraer_solucion_rref(matriz_rref, n):
+    return [matriz_rref[i][n] for i in range(n)]
+Como en Gauss-Jordan la matriz ya quedo en forma reducida (identidad a la izquierda), no hace falta ningun calculo: cada xi es simplemente el valor que quedo en la columna del termino independiente (columna n) de la fila i. Esta comprension de lista simplemente recolecta esos n valores.
+6. verificacion.py
+6.1 verificar_solucion(matriz_original, solucion, tolerancia_verificacion)
+def verificar_solucion(matriz_original, solucion, tolerancia_verificacion=1e-5):
+Nota la tolerancia distinta (1e-5) por defecto, mas permisiva que la de eliminacion, por la acumulacion de errores de redondeo en la solucion ya calculada.
+    filas = len(matriz_original)
+    variables = len(solucion)
+Cuenta filas del sistema original y cuantas variables hay (largo de la lista solucion).
+    for i in range(filas):
+        suma = 0.0
+        for j in range(variables):
+            suma += matriz_original[i][j] * solucion[j]
+Para cada ecuacion original, calcula el lado izquierdo sustituyendo los valores encontrados: a1*x1 + a2*x2 + ... + an*xn.
+        independiente = matriz_original[i][-1]
+        if abs(suma - independiente) > tolerancia_verificacion:
+            return False
+Compara ese resultado contra el termino independiente real de la ecuacion. Si la diferencia es mayor a la tolerancia permitida, la solucion no cuadra con esa ecuacion, y devuelve False inmediatamente (sin seguir revisando las demas).
+    return True
+Si paso por todas las ecuaciones sin fallar ninguna, confirma que la solucion es valida.
+7. __init__.py
+from .entrada import (
+    leer_dimensiones,
+    construir_matriz_aumentada,
+    leer_metodo,
+)
+from .visualizacion import imprimir_matriz, copiar_matriz
+from .eliminacion import eliminacion_por_filas
+from .clasificacion import clasificar_sistema
+from .solucion import sustitucion_hacia_atras, extraer_solucion_rref
+from .verificacion import verificar_solucion
+Trae todas las funciones publicas de cada submodulo hacia el "nivel superior" del paquete lineal. Sin esto, para usar leer_dimensiones desde main.py habria que escribir from lineal.entrada import leer_dimensiones (ruta completa); con este archivo, basta from lineal import leer_dimensiones.
+__all__ = [
+    "leer_dimensiones",
+    ...
+]
+Esta lista le dice explicitamente a Python (y a quien lea el codigo) cuales son las funciones que el paquete expone oficialmente como su interfaz publica. No es obligatorio, pero es buena practica documentarlo asi.
+8. main.py
+from lineal import (
+    leer_dimensiones,
+    construir_matriz_aumentada,
+    leer_metodo,
+    imprimir_matriz,
+    eliminacion_por_filas,
+    clasificar_sistema,
+    sustitucion_hacia_atras,
+    extraer_solucion_rref,
+    verificar_solucion,
+)
+Importa todo lo necesario, gracias al __init__.py, en una sola instruccion desde el paquete lineal (sin el punto delante, porque main.py esta fuera del paquete, no dentro).
+8.1 mostrar_portada()
+def mostrar_portada():
+    print("=" * 65)
+    print("      UNIVERSIDAD AMERICANA - FIA - ALGEBRA LINEAL")
+    print("   CALCULADORA DE SISTEMAS DE ECUACIONES LINEALES")
+    print("        Metodo: Gauss o Gauss-Jordan")
+    print("=" * 65)
+Solo imprime un encabezado decorativo, no tiene logica.
+8.2 resolver_un_sistema()
+def resolver_un_sistema():
+    m, n = leer_dimensiones()
+    matriz_original = construir_matriz_aumentada(m, n)
+    modo = leer_metodo()
+Pide todos los datos necesarios llamando a las funciones de entrada.py: dimensiones, la matriz, y el metodo elegido.
+    imprimir_matriz(matriz_original, "\nMatriz aumentada inicial [A | b]:")
+Muestra lo que el usuario acaba de ingresar, antes de procesarlo (para que pueda confirmar que lo escribio bien).
+    print("\n" + "=" * 65)
+    print("PROCESO DE ELIMINACION POR FILAS")
+    print("=" * 65)
+    matriz_resultado, pasos, columnas_pivote = eliminacion_por_filas(matriz_original, modo)
+Llama al algoritmo principal, pasandole la matriz original (que dentro de la funcion se copia, asi que aqui sigue intacta) y el modo elegido. Recibe de vuelta los tres valores explicados en la seccion 3.
+    for descripcion, matriz_paso in pasos[1:]:
+        imprimir_matriz(matriz_paso, f"\n>> {descripcion}:")
+pasos[1:] toma la lista de pasos sin el primero (que era solo la matriz inicial, ya mostrada arriba). Por cada paso restante, imprime su descripcion y como quedo la matriz en ese momento; esto es lo que le permite al usuario ver el proceso completo, paso a paso.
+    titulo_final = "Matriz escalonada reducida:" if modo == "gauss_jordan" else "Matriz escalonada:"
+    imprimir_matriz(matriz_resultado, f"\n{titulo_final}")
+Operador ternario: elige un titulo distinto segun el modo, y muestra la matriz final resultante.
+    clasificacion = clasificar_sistema(matriz_resultado, columnas_pivote)
+    print("\n" + "=" * 65)
+    print(f"RESULTADO: {clasificacion.upper()}")
+    print("=" * 65)
+Clasifica el sistema y muestra el resultado en mayusculas (.upper()) para destacarlo.
+    if clasificacion == "Sistema Consistente Determinado":
+        if modo == "gauss_jordan":
+            x = extraer_solucion_rref(matriz_resultado, n)
+        else:
+            x = sustitucion_hacia_atras(matriz_resultado, n)
+Solo si hay solucion unica, calcula los valores de x, usando el metodo de extraccion correcto segun como quedo la matriz.
+        print("\n--- Solucion unica ---")
+        for i in range(n):
+            print(f"  x{i + 1} = {x[i]:.6f}")
+Imprime cada variable con 6 decimales de precision.
+        es_correcta = verificar_solucion(matriz_original, x)
+        print("\n--- Verificacion en el sistema original ---")
+        if es_correcta:
+            print("Comprobacion exitosa: la solucion satisface todas las ecuaciones.")
+        else:
+            print("Advertencia: la solucion no pudo ser verificada correctamente.")
+Verifica la solucion contra la matriz original (sin transformar); por eso matriz_original sigue disponible, ya que nunca se modifico directamente. Informa si paso o no la verificacion.
+    elif clasificacion == "Sistema Consistente Indeterminado":
+        print("\nEl sistema tiene infinitas soluciones (existen variables libres).")
+        print(f"Variables con pivote (dependientes): {[f'x{c + 1}' for c in columnas_pivote]}")
+Si es indeterminado, no calcula ningun valor numerico (no tendria sentido, hay infinitas soluciones). En su lugar, informa cuales variables si quedaron determinadas (las que tienen pivote) mediante otra comprension de lista que convierte cada indice de columna en su nombre xN.
+    else:  # Sistema Inconsistente
+        print("\nEl sistema no tiene solucion.")
+        print("Se detecto una contradiccion del tipo 0 = k, con k distinto de cero.")
+Unico caso restante: sin solucion, explica por que.
+8.3 main()
+def main():
+    mostrar_portada()
+    while True:
+        resolver_un_sistema()
+        print("\n" + "-" * 65)
+        de_nuevo = input("Desea resolver otro sistema? (s/n): ").strip().lower()
+        if de_nuevo != "s":
+            print("\nFin del programa.")
+            break
+Muestra el encabezado una sola vez, y luego entra en un bucle que resuelve un sistema tras otro. .lower() convierte la respuesta a minusculas, asi que acepta tanto "s" como "S". Si la respuesta no es exactamente "s", termina el programa.
+if __name__ == "__main__":
+    main()
+Convencion estandar de Python: __name__ vale "__main__" solo cuando el archivo se ejecuta directamente (ej. python3 main.py), y no si se importa desde otro archivo. Asi, main() solo se dispara cuando corres este archivo como programa principal.
