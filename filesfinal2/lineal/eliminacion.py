@@ -28,6 +28,16 @@ def eliminacion_por_filas(matriz_original, modo="gauss"):
             if abs(matriz[r][col]) > abs(matriz[fila_max][col]):
                 fila_max = r
 
+
+
+
+
+
+
+
+
+
+
         # Si el mejor candidato es practicamente cero, esa columna
         # no tiene pivote (variable libre): se pasa a la siguiente.
         if abs(matriz[fila_max][col]) < TOLERANCIA:
