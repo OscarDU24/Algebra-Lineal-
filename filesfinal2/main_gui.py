@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from lineal import conversiones as conv
 
 # Importación de la lógica matemática del paquete lineal
 from lineal import (
@@ -39,6 +40,7 @@ class AppCalculadora(ctk.CTk):
         self.frame_sup = ctk.CTkFrame(self)
         self.frame_sup.pack(pady=10, padx=20, fill="x")
 
+        # Titulo
         lbl_titulo = ctk.CTkLabel(
             self.frame_sup, 
             text="Dimensiones:", 
@@ -46,24 +48,37 @@ class AppCalculadora(ctk.CTk):
         )
         lbl_titulo.pack(side="left", padx=10, pady=10)
 
+        # Filas (M)
         lbl_m = ctk.CTkLabel(self.frame_sup, text="Filas (m):")
         lbl_m.pack(side="left", padx=(10, 2))
         self.entry_m = ctk.CTkEntry(self.frame_sup, width=50)
         self.entry_m.insert(0, "3")
         self.entry_m.pack(side="left", padx=5)
 
+        # Variables/Columnas (N)
         lbl_n = ctk.CTkLabel(self.frame_sup, text="Variables (n):")
         lbl_n.pack(side="left", padx=(10, 2))
         self.entry_n = ctk.CTkEntry(self.frame_sup, width=50)
         self.entry_n.insert(0, "3")
         self.entry_n.pack(side="left", padx=5)
 
+        # Formato de números
+        
+        lbl_numform = ctk.CTkLabel(self.frame_sup, text="Formato de números: ")
+        lbl_numform.pack(side="left", padx=(10,2))
+        self.cb_numform = ctk.CTkComboBox(self.frame_sup, values=["Fracciones", "Decimales"], width=150)
+        self.cb_numform.pack(side="left", padx=5)
+
+        # Botón generar
+        
         btn_generar = ctk.CTkButton(
             self.frame_sup, 
             text="Generar Matriz", 
             command=self.generar_cuadricula_matriz
         )
         btn_generar.pack(side="left", padx=15)
+
+        # Botón limpiar
 
         btn_limpiar = ctk.CTkButton(
             self.frame_sup, 
@@ -154,22 +169,24 @@ class AppCalculadora(ctk.CTk):
                 if not val_str:
                     raise ValueError(f"La casilla en la fila {i + 1}, columna {j + 1} está vacía.")
                 try:
-                    val_num = float(val_str)
+                    val_num = conv.convertir_a_decimal(val_str)
                     fila_vals.append(val_num)
                 except ValueError:
                     raise ValueError(f"El valor '{val_str}' en la fila {i + 1}, columna {j + 1} no es válido.")
             matriz.append(fila_vals)
         return matriz
 
-    def _matriz_a_string(self, matriz):
+    def _matriz_a_string(self, matriz, formato):
         """Convierte una matriz en un bloque de texto alineado."""
         columnas = len(matriz[0])
         lineas = []
         for fila in matriz:
             str_fila = "  | "
             for j in range(columnas - 1):
-                str_fila += f"{fila[j]:9.4f} "
-            str_fila += f"| {fila[-1]:9.4f} |"
+                str_fila += f"{fila[j]:15.4f}".rstrip("0").rstrip(".")
+
+            str_termino_indp = f"{fila[-1]:15.4f}".rstrip("0").rstrip(".")
+            str_fila += f"| {str_termino_indp} |"
             lineas.append(str_fila)
         return "\n".join(lineas)
 
@@ -203,7 +220,7 @@ class AppCalculadora(ctk.CTk):
 
         for descripcion, matriz_paso in pasos[1:]:
             salida.append(f">> {descripcion}:")
-            salida.append(self._matriz_a_string(matriz_paso))
+            salida.append(self._matriz_a_string(matriz_paso, 'fr'))
             salida.append("")
 
         # Representación de ecuaciones algebraicas si se eligió Gauss
@@ -247,7 +264,7 @@ class AppCalculadora(ctk.CTk):
         else:
             salida.append("El sistema no tiene solución.")
             salida.append("Se detectó una contradicción del tipo 0 = k (con k distinto de 0).")
-
+            
         self._escribir_en_visor("\n".join(salida))
 
 

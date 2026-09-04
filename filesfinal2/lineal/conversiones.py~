@@ -1,0 +1,20 @@
+import fractions import fraction as fra
+
+# Codigo escrito por Charly B)
+# kdcar15@github.com
+
+def convertir_entrada_termino(entrada):
+    # Parsear el valor
+    value = value.strip()
+    try:
+        # Tratar de convertir a fraccion
+        return float(Fraction(value))
+    except ValueError:
+        # En caso de no poder hacerlo, tratar de convertir
+        # a decimal
+        try:
+            return float(value)
+        except: ValueError:
+            # En caso de no poder, se dice que la entrada no
+            # es un decimal ni una fraccion. Ergo, invalida.
+            return None
