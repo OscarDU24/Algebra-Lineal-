@@ -1,7 +1,23 @@
 from fractions import Fraction
 
-# Codigo escrito por Charly B)
-# kdcar15@github.com
+"""
+        XXXXXXXXXXXX
+      XX::::::::::::XX
+    XX::::::::::::::::XX        Código escrito por Charly
+    XX::::::::::::::::XX         - kdcar15@github.com -
+  XXXXXX::        ::XXXXXX
+  XXXX  XXXXXXXXXXXX  XXXX
+XX  XX                XX  XX
+XX        XX    XX        XX
+  XXXX    XX    XX   XXXXX
+  XXXXXX    ::::    XXXXXX
+XX    XXXXXXXXXXXXXXXX    XX
+XX    XXXXXXXXXXXXXXXX    XX
+  XXXXXX::::XXXX::::XXXXXX
+    XX::XXXX::::XXXX::XXX
+    XX::::::XXXX::::::XXX                       (C) 2025
+      XXXXXX    XXXXXX
+"""
 
 def convertir_a_decimal(entrada):
     # Parsear el valor
@@ -22,4 +38,8 @@ def convertir_a_decimal(entrada):
 def convertir_a_fraccion(entrada):
     
     numerador, denominador = entrada.as_integer_ratio()
-    return f"{numerador}/{denominador}"
+    if(denominador == 1):
+        return f"{numerador}"
+    
+    return f"{numerador}/{denominador}".rstrip("/1")
+

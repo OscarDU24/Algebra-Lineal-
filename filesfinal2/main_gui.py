@@ -62,13 +62,6 @@ class AppCalculadora(ctk.CTk):
         self.entry_n.insert(0, "3")
         self.entry_n.pack(side="left", padx=5)
 
-        # Formato de números
-        
-        lbl_numform = ctk.CTkLabel(self.frame_sup, text="Formato de números: ")
-        lbl_numform.pack(side="left", padx=(10,2))
-        self.cb_numform = ctk.CTkComboBox(self.frame_sup, values=["Fracciones", "Decimales"], width=150)
-        self.cb_numform.pack(side="left", padx=5)
-
         # Botón generar
         
         btn_generar = ctk.CTkButton(
@@ -108,6 +101,15 @@ class AppCalculadora(ctk.CTk):
             values=["Gauss", "Gauss-Jordan"]
         )
         self.opcion_metodo.pack(side="left", padx=(0, 10))
+        
+        # Formato de números
+        
+        self.opcion_numform = ctk.CTkOptionMenu(
+                subframe_acciones,
+                values=["Fracciones", "Decimales"],
+        )
+
+        self.opcion_numform.pack(side="left", padx=(0,10))
 
         btn_resolver = ctk.CTkButton(
             subframe_acciones, 
@@ -183,9 +185,16 @@ class AppCalculadora(ctk.CTk):
         for fila in matriz:
             str_fila = "  | "
             for j in range(columnas - 1):
-                str_fila += f"{fila[j]:15.4f}".rstrip("0").rstrip(".")
+                if formato == 'fr':
+                    str_fila += f"{conv.convertir_a_fraccion(fila[j])} "
+                else:
+                    str_fila += f"{fila[j]:15.4f}".rstrip("0").rstrip(".")
 
-            str_termino_indp = f"{fila[-1]:15.4f}".rstrip("0").rstrip(".")
+            if formato == 'fr':
+                str_termino_indp = f"{conv.convertir_a_fraccion(fila[-1])} "
+            else:
+                str_termino_indp = f"{fila[-1]:15.4f}".rstrip("0").rstrip(".")
+
             str_fila += f"| {str_termino_indp} |"
             lineas.append(str_fila)
         return "\n".join(lineas)
@@ -210,6 +219,9 @@ class AppCalculadora(ctk.CTk):
 
         metodo_gui = self.opcion_metodo.get()
         modo = "gauss_jordan" if metodo_gui == "Gauss-Jordan" else "gauss"
+        
+        formato_gui = self.opcion_numform.get()
+        formato = "fr" if formato_gui == "Fracciones" else "dc"
 
         matriz_resultado, pasos, columnas_pivote = eliminacion_por_filas(matriz_original, modo)
 
@@ -220,7 +232,7 @@ class AppCalculadora(ctk.CTk):
 
         for descripcion, matriz_paso in pasos[1:]:
             salida.append(f">> {descripcion}:")
-            salida.append(self._matriz_a_string(matriz_paso, 'fr'))
+            salida.append(self._matriz_a_string(matriz_paso, formato))
             salida.append("")
 
         # Representación de ecuaciones algebraicas si se eligió Gauss
