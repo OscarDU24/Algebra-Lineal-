@@ -191,18 +191,9 @@ class AppCalculadora(ctk.CTk):
             campos.append(f"X{i+1}")
         campos.append(f"TI")
         table.field_names = campos
+
         for i in matriz:
-            str_fila = []
-            for j in range(len(matriz[0])-1):
-                if formato == 'fr':
-                    str_fila.append(f"{conv.convertir_a_fraccion(i[j])}")
-                else:
-                    str_fila.append(f"{i[j]:0.4f}".rstrip("0").rstrip("."))
-            if formato == 'fr':
-                str_fila.append(f"{conv.convertir_a_fraccion(i[-1])}")
-            else:
-                str_fila.append(f"{i[-1]:0.4f}".rstrip("0").rstrip("."))   
-            table.add_row(str_fila)
+            table.add_row(i)
 
         return str(table)
         """
