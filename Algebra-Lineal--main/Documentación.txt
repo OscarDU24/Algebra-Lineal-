@@ -1,0 +1,50 @@
+1. Introducción y Objetivo del Proyecto
+
+El presente proyecto consiste en el desarrollo de una aplicación de escritorio diseñada para resolver Sistemas de Ecuaciones Lineales mediante los métodos de **Eliminación Gaussiana** y **Gauss-Jordan**.
+
+El objetivo principal es aplicar los conceptos matemáticos de Álgebra Lineal a través de la programación, construyendo desde cero los algoritmos de pivoteo, escalonamiento y despeje, sin depender de librerías matemáticas externas. Además, el sistema es capaz de clasificar las matrices evaluadas determinando si el sistema es Consistente Determinado (solución única), Consistente Indeterminado (infinitas soluciones) o Inconsistente (sin solución).
+
+2. Tecnologías y Requisitos
+
+* Lenguaje de Programación: Python 3.x
+* Interfaz Gráfica (GUI): `customtkinter` (Framework nativo basado en Tkinter para interfaces modernas).
+* Librerías Externas:** Ninguna orientada a matemáticas (todo el procesamiento de matrices, manejo de errores de punto flotante y listas bidimensionales fue desarrollado de forma nativa).
+
+3. Arquitectura del Software
+
+El proyecto se diseñó bajo un modelo de arquitectura modular que separa estrictamente la lógica de negocio (algoritmos matemáticos) de la capa de presentación (interfaz gráfica).
+
+La estructura de archivos es la siguiente:
+
+* `main_gui.py`: Archivo principal que orquesta la aplicación de escritorio y la interacción con el usuario.
+* `lineal/`: Paquete que contiene la lógica matemática segmentada en módulos:
+* `__init__.py`: Gestor de exportaciones del paquete.
+* `eliminacion.py`: Algoritmos de eliminación por filas y pivoteo.
+* `clasificacion.py`: Lógica para evaluar la consistencia del sistema (Teorema de Rouché-Frobenius).
+* `solucion.py`: Funciones de sustitución hacia atrás y extracción de variables.
+* `verificacion.py`: Comprobación del vector solución contra la matriz original.
+* `visualizacion.py` / `entrada.py`: Herramientas de formateo y manejo de entradas.
+
+
+
+4. Descripción del Módulo de Interfaz (`main_gui.py`)
+
+La interfaz gráfica se construyó instanciando la clase `AppCalculadora`, la cual hereda de `ctk.CTk`. La ventana está dividida lógicamente en tres áreas principales (Frames):
+
+A) Frame Superior (Controles de Dimensión):
+Permite al usuario definir el número de ecuaciones ($m$) y variables ($n$). Incluye botones funcionales para generar dinámicamente la cuadrícula de entrada y para limpiar los datos actuales.
+B) Frame Central (Matriz Dinámica):
+Contenedor con barra de desplazamiento (`CTkScrollableFrame`) que renderiza una matriz de widgets `CTkEntry` basándose en las dimensiones ingresadas. Separa visualmente la matriz de coeficientes ($A$) del vector de términos independientes ($b$) mediante un cambio de color en la última columna.
+C) Frame Inferior (Ejecución y Resultados):
+Contiene un menú desplegable para seleccionar el método de resolución (Gauss o Gauss-Jordan) y un área de texto de solo lectura (`CTkTextbox`) que simula una consola. Aquí se inyecta el registro detallado del paso a paso de las operaciones entre filas, la matriz escalonada final, la clasificación del sistema y la solución de las variables.
+
+5. Manejo de Errores y Robustez
+
+El sistema implementa validaciones para garantizar la estabilidad durante la ejecución:
+
+* Validación de Entradas Vacías o Inválidas: Si el usuario deja una celda en blanco o ingresa un carácter alfabético, la función `obtener_matriz_desde_gui()` levanta un `ValueError` que es capturado y mostrado como un mensaje de error seguro en el visor, evitando que la aplicación colapse.
+* Tolerancia de Punto Flotante: La lógica matemática subyacente maneja una tolerancia para evitar clasificar un número muy cercano a cero como un pivote válido, mitigando los errores inherentes de precisión en Python.
+
+6. Conclusión
+
+El desarrollo de esta calculadora demuestra una comprensión profunda tanto de los fundamentos del Álgebra Lineal como de las buenas prácticas de Ingeniería de Software. La separación en módulos permitió una transición limpia y sin fricciones desde una aplicación de consola a una interfaz gráfica completa, logrando un producto funcional, escalable y académicamente riguroso.
