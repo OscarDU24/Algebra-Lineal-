@@ -1,65 +1,73 @@
+# ============================================================
+# CONVERSIONES MATRICIALES
+# ============================================================
+
 from fractions import Fraction
 
 
 # ============================================================
-# CONVERSION DE ENTRADA A DECIMAL
+# CONVERTIR A DECIMAL
 # ============================================================
 
 def convertir_a_decimal(entrada):
-    """
-    Convierte una entrada textual a un numero decimal.
 
-    Acepta:
-        - Enteros
-        - Decimales
-        - Fracciones
-
-    Retorna:
-        float si la conversion es correcta.
-        None si la entrada no es valida.
-    """
-
-    entrada = entrada.strip()
+    entrada = str(
+        entrada
+    ).strip()
 
     try:
-        return float(Fraction(entrada))
 
-    except ValueError:
+        return float(
+            Fraction(entrada)
+        )
+
+    except (
+        ValueError,
+        ZeroDivisionError
+    ):
 
         try:
-            return float(entrada)
+
+            return float(
+                entrada
+            )
 
         except ValueError:
+
             return None
 
 
 # ============================================================
-# CONVERSION DE DECIMAL A FRACCION
+# CONVERTIR A FRACCION
 # ============================================================
 
 def convertir_a_fraccion(valor):
-    """
-    Convierte un numero decimal a una representacion
-    en forma de fraccion.
-    """
 
-    numerador, denominador = valor.as_integer_ratio()
+    fraccion = Fraction(
+        valor
+    ).limit_denominator(
+        10000
+    )
 
-    if denominador == 1:
-        return f"{numerador}"
+    if fraccion.denominator == 1:
 
-    return f"{numerador}/{denominador}"
+        return str(
+            fraccion.numerator
+        )
+
+    return (
+        f"{fraccion.numerator}/"
+        f"{fraccion.denominator}"
+    )
 
 
 # ============================================================
-# CONVERSION DE MATRIZ A FRACCIONES
+# MATRIZ A FRACCIONES
 # ============================================================
 
-def convertir_matriz_a_fracciones(matriz):
-    """
-    Convierte todos los valores de una matriz a texto
-    en forma de fraccion.
-    """
+def convertir_matriz_a_fracciones(
+    matriz
+):
 
     resultado = []
 
@@ -68,30 +76,57 @@ def convertir_matriz_a_fracciones(matriz):
         nueva_fila = []
 
         for valor in fila:
+
             nueva_fila.append(
-                convertir_a_fraccion(valor)
+                convertir_a_fraccion(
+                    valor
+                )
             )
 
-        resultado.append(nueva_fila)
+        resultado.append(
+            nueva_fila
+        )
 
     return resultado
 
 
 # ============================================================
-# CONVERSION DE VECTOR A FRACCIONES
+# VECTOR A FRACCIONES
 # ============================================================
 
-def convertir_vector_a_fracciones(vector):
-    """
-    Convierte todos los componentes de un vector
-    a texto en forma de fraccion.
-    """
+def convertir_vector_a_fracciones(
+    vector
+):
 
     resultado = []
 
     for valor in vector:
+
         resultado.append(
-            convertir_a_fraccion(valor)
+            convertir_a_fraccion(
+                valor
+            )
+        )
+
+    return resultado
+
+
+# ============================================================
+# VARIOS VECTORES A FRACCIONES
+# ============================================================
+
+def convertir_vectores_a_fracciones(
+    vectores
+):
+
+    resultado = []
+
+    for vector in vectores:
+
+        resultado.append(
+            convertir_vector_a_fracciones(
+                vector
+            )
         )
 
     return resultado

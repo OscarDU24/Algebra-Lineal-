@@ -1,29 +1,60 @@
-TOLERANCIA_VERIFICACION = 1e-5
+# ============================================================
+# VERIFICACION DE MATRICES Y VECTORES
+# ============================================================
+
+TOLERANCIA = 1e-9
 
 
 # ============================================================
 # VERIFICAR VECTOR
 # ============================================================
 
-def verificar_vector(
-    vector_obtenido,
-    vector_esperado,
-    tolerancia=TOLERANCIA_VERIFICACION
-):
-    """
-    Verifica que dos vectores sean iguales
-    dentro de una tolerancia.
-    """
+def verificar_vector(vector):
 
-    if len(vector_obtenido) != len(vector_esperado):
+    return (
+        vector is not None
+        and len(vector) > 0
+    )
+
+
+# ============================================================
+# VERIFICAR DIMENSIONES
+# ============================================================
+
+def verificar_dimensiones(
+    matriz,
+    vector
+):
+
+    if not matriz:
         return False
 
-    for i in range(len(vector_obtenido)):
+    if not verificar_vector(vector):
+        return False
+
+    columnas = len(matriz[0])
+
+    return len(vector) == columnas
+
+
+# ============================================================
+# VERIFICAR IGUALDAD DE VECTORES
+# ============================================================
+
+def verificar_propiedad(
+    izquierda,
+    derecha
+):
+
+    if len(izquierda) != len(derecha):
+        return False
+
+    for i in range(len(izquierda)):
 
         if abs(
-            vector_obtenido[i]
-            - vector_esperado[i]
-        ) > tolerancia:
+            izquierda[i]
+            - derecha[i]
+        ) > TOLERANCIA:
 
             return False
 
@@ -31,25 +62,19 @@ def verificar_vector(
 
 
 # ============================================================
-# VERIFICAR A*x = b
+# VERIFICAR Ax = b
 # ============================================================
 
-def verificar_ecuacion_matricial(
+def verificar_resultado(
     matriz,
     vector_x,
-    vector_b,
-    tolerancia=TOLERANCIA_VERIFICACION
+    vector_b
 ):
-    """
-    Comprueba que una solucion x satisfaga:
 
-        A*x = b
-    """
-
-    if len(matriz[0]) != len(vector_x):
-        return False
-
-    if len(matriz) != len(vector_b):
+    if not verificar_dimensiones(
+        matriz,
+        vector_x
+    ):
         return False
 
     resultado = []
@@ -60,32 +85,16 @@ def verificar_ecuacion_matricial(
 
         for j in range(len(vector_x)):
 
-            suma += fila[j] * vector_x[j]
+            suma += (
+                fila[j]
+                * vector_x[j]
+            )
 
-        resultado.append(suma)
+        resultado.append(
+            suma
+        )
 
-    return verificar_vector(
+    return verificar_propiedad(
         resultado,
-        vector_b,
-        tolerancia
-    )
-
-
-# ============================================================
-# VERIFICAR PROPIEDAD
-# ============================================================
-
-def verificar_propiedad(
-    vector_izquierda,
-    vector_derecha,
-    tolerancia=TOLERANCIA_VERIFICACION
-):
-    """
-    Verifica si dos resultados vectoriales son iguales.
-    """
-
-    return verificar_vector(
-        vector_izquierda,
-        vector_derecha,
-        tolerancia
+        vector_b
     )

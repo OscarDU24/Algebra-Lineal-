@@ -1,47 +1,41 @@
 # ============================================================
-# COPIAR MATRIZ
+# VISUALIZACION DE MATRICES Y VECTORES
 # ============================================================
 
-def copiar_matriz(matriz):
-    """
-    Crea una copia independiente de una matriz.
-    """
-
-    return [
-        fila[:]
-        for fila in matriz
-    ]
+from .conversionesMatriciales import convertir_a_fraccion
 
 
 # ============================================================
-# COPIAR VECTOR
+# FORMATEAR NUMERO
 # ============================================================
 
-def copiar_vector(vector):
-    """
-    Crea una copia independiente de un vector.
-    """
+def formatear_numero(
+    valor,
+    formato="Decimales"
+):
 
-    return vector[:]
+    if formato == "Fracciones":
+
+        return convertir_a_fraccion(
+            float(valor)
+        )
+
+    if abs(valor) < 1e-9:
+        valor = 0.0
+
+    return f"{valor:.4f}"
 
 
 # ============================================================
-# MATRIZ A STRING
+# MOSTRAR MATRIZ
 # ============================================================
 
 def matriz_a_string(
     matriz,
-    nombre="A"
+    formato="Decimales"
 ):
-    """
-    Convierte una matriz a una representacion textual.
-    """
 
-    lineas = []
-
-    lineas.append(
-        f"{nombre} ="
-    )
+    filas = []
 
     for fila in matriz:
 
@@ -50,292 +44,166 @@ def matriz_a_string(
         for valor in fila:
 
             valores.append(
-                f"{valor:9.4f}"
+                formatear_numero(
+                    valor,
+                    formato
+                )
             )
 
-        lineas.append(
-            "| "
-            + " ".join(valores)
-            + " |"
+        filas.append(
+            "[ "
+            + "   ".join(valores)
+            + " ]"
         )
 
-    return "\n".join(lineas)
+    return "\n".join(filas)
 
 
 # ============================================================
-# MATRIZ AUMENTADA A STRING
-# ============================================================
-
-def matriz_aumentada_a_string(
-    matriz,
-    nombre="Matriz aumentada"
-):
-    """
-    Convierte una matriz aumentada a texto,
-    colocando una separacion antes del termino independiente.
-    """
-
-    lineas = []
-
-    lineas.append(
-        f"{nombre} ="
-    )
-
-    columnas = len(matriz[0])
-
-    for fila in matriz:
-
-        parte_a = []
-
-        for j in range(columnas - 1):
-
-            parte_a.append(
-                f"{fila[j]:9.4f}"
-            )
-
-        independiente = (
-            f"{fila[-1]:9.4f}"
-        )
-
-        lineas.append(
-            "| "
-            + " ".join(parte_a)
-            + " | "
-            + independiente
-            + " |"
-        )
-
-    return "\n".join(lineas)
-
-
-# ============================================================
-# VECTOR A STRING
+# MOSTRAR VECTOR
 # ============================================================
 
 def vector_a_string(
     vector,
-    nombre="x"
+    nombre="v",
+    formato="Decimales"
 ):
-    """
-    Convierte un vector a una representacion vertical.
-    """
 
-    lineas = []
+    salida = [
+        f"{nombre} =",
+        "["
+    ]
 
-    lineas.append(
-        f"{nombre} ="
-    )
-
-    for componente in vector:
-
-        lineas.append(
-            f"| {componente:9.4f} |"
-        )
-
-    return "\n".join(lineas)
-
-
-# ============================================================
-# PRODUCTO MATRIZ-VECTOR A STRING
-# ============================================================
-
-def producto_matriz_vector_a_string(
-    matriz,
-    vector,
-    resultado,
-    pasos
-):
-    """
-    Genera una explicacion textual del producto A*x
-    utilizando la regla fila-vector.
-    """
-
-    salida = []
-
-    salida.append(
-        "========================================================="
-    )
-
-    salida.append(
-        "             PRODUCTO MATRIZ-VECTOR"
-    )
-
-    salida.append(
-        "========================================================="
-    )
-
-    salida.append("")
-
-    salida.append(
-        matriz_a_string(
-            matriz,
-            "A"
-        )
-    )
-
-    salida.append("")
-
-    salida.append(
-        vector_a_string(
-            vector,
-            "x"
-        )
-    )
-
-    salida.append("")
-
-    salida.append(
-        "--- REGLA FILA-VECTOR ---"
-    )
-
-    for paso in pasos:
+    for valor in vector:
 
         salida.append(
-            paso
+            "  "
+            + formatear_numero(
+                valor,
+                formato
+            )
         )
 
-    salida.append("")
-
-    salida.append(
-        vector_a_string(
-            resultado,
-            "Ax"
-        )
-    )
+    salida.append("]")
 
     return "\n".join(salida)
 
 
 # ============================================================
-# ECUACION VECTORIAL A STRING
+# VECTOR HORIZONTAL
+# ============================================================
+
+def vector_horizontal_a_string(
+    vector,
+    formato="Decimales"
+):
+
+    valores = []
+
+    for valor in vector:
+
+        valores.append(
+            formatear_numero(
+                valor,
+                formato
+            )
+        )
+
+    return (
+        "[ "
+        + ", ".join(valores)
+        + " ]"
+    )
+
+
+# ============================================================
+# MOSTRAR COLUMNAS
+# ============================================================
+
+def columnas_a_string(
+    matriz,
+    formato="Decimales"
+):
+
+    from .operacionesMatriciales import (
+        obtener_columnas
+    )
+
+    columnas = obtener_columnas(
+        matriz
+    )
+
+    salida = []
+
+    for i, columna in enumerate(columnas):
+
+        salida.append(
+            vector_a_string(
+                columna,
+                f"a{i + 1}",
+                formato
+            )
+        )
+
+    return "\n\n".join(
+        salida
+    )
+
+
+# ============================================================
+# NOMBRE DE OPERACION CON VECTORES
+# ============================================================
+
+def nombres_suma_vectores(
+    nombres
+):
+
+    return " + ".join(
+        nombres
+    )
+
+
+# ============================================================
+# ECUACION VECTORIAL
 # ============================================================
 
 def ecuacion_vectorial_a_string(
-    vectores,
+    nombres,
     escalares,
-    vector_b
+    formato="Decimales"
 ):
-    """
-    Genera una representacion textual de:
-
-        x1*a1 + x2*a2 + ... + xn*an = b
-    """
 
     terminos = []
 
-    for i in range(len(vectores)):
+    for i in range(len(nombres)):
 
-        if i < len(escalares):
+        escalar = formatear_numero(
+            escalares[i],
+            formato
+        )
 
-            escalar = escalares[i]
-
-            terminos.append(
-                f"({escalar:.4f})a{i + 1}"
-            )
-
-    izquierda = " + ".join(
-        terminos
-    )
+        terminos.append(
+            f"({escalar}){nombres[i]}"
+        )
 
     return (
-        f"{izquierda} = b\n\n"
-        + vector_a_string(
-            vector_b,
-            "b"
-        )
+        " + ".join(terminos)
+        + " = b"
     )
 
 
 # ============================================================
-# CONJUNTO SOLUCION A STRING
+# RESULTADO DE UNA OPERACION
 # ============================================================
 
-def conjunto_solucion_a_string(
-    informacion
+def resultado_a_string(
+    resultado,
+    nombre="b",
+    formato="Decimales"
 ):
-    """
-    Convierte la informacion del conjunto solucion
-    a texto.
-    """
 
-    tipo = informacion["tipo"]
-
-    salida = []
-
-    salida.append(
-        "--- CONJUNTO SOLUCIÓN ---"
+    return vector_a_string(
+        resultado,
+        nombre,
+        formato
     )
-
-    if tipo == "incompatible":
-
-        salida.append(
-            "El sistema es incompatible."
-        )
-
-        salida.append(
-            "No existe solución."
-        )
-
-        salida.append(
-            "S = ∅"
-        )
-
-    elif tipo == "unica":
-
-        solucion = informacion["solucion"]
-
-        valores = []
-
-        for valor in solucion:
-
-            valores.append(
-                f"{valor:.6f}"
-            )
-
-        salida.append(
-            "El sistema tiene una solución única."
-        )
-
-        salida.append("")
-
-        for i, valor in enumerate(solucion):
-
-            salida.append(
-                f"x{i + 1} = {valor:.6f}"
-            )
-
-        salida.append("")
-
-        salida.append(
-            "S = {("
-            + ", ".join(valores)
-            + ")}"
-        )
-
-    elif tipo == "infinitas":
-
-        salida.append(
-            "El sistema tiene infinitas soluciones."
-        )
-
-        salida.append("")
-
-        expresiones = informacion[
-            "expresiones"
-        ]
-
-        for variable in sorted(expresiones):
-
-            salida.append(
-                f"x{variable + 1} = "
-                f"{expresiones[variable]}"
-            )
-
-        salida.append("")
-
-        salida.append(
-            "El conjunto solución se expresa "
-            "mediante parámetros libres."
-        )
-
-    return "\n".join(salida)

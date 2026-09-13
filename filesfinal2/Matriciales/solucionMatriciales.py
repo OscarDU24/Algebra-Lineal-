@@ -3,50 +3,24 @@ from lineal.eliminacion import eliminacion_por_filas
 TOLERANCIA = 1e-9
 
 
-# ============================================================
-# CREAR MATRIZ AUMENTADA
-# ============================================================
-
 def crear_matriz_aumentada(matriz, vector_b):
-    """
-    Une A y b para formar la matriz aumentada [A | b].
-    """
 
-    if len(matriz) != len(vector_b):
-        raise ValueError(
-            "La cantidad de filas de A debe coincidir "
-            "con la dimension de b."
-        )
-
-    aumentada = []
+    matriz_aumentada = []
 
     for i in range(len(matriz)):
 
-        fila = matriz[i][:]
+        fila = list(matriz[i])
 
         fila.append(
             vector_b[i]
         )
 
-        aumentada.append(fila)
+        matriz_aumentada.append(fila)
 
-    return aumentada
+    return matriz_aumentada
 
-
-# ============================================================
-# CLASIFICAR SISTEMA
-# ============================================================
 
 def clasificar_sistema(matriz_aumentada):
-    """
-    Clasifica un sistema lineal como:
-
-        - unica
-        - infinitas
-        - incompatible
-
-    Utiliza la forma escalonada reducida.
-    """
 
     rref, pasos, pivotes = eliminacion_por_filas(
         matriz_aumentada,
@@ -58,38 +32,35 @@ def clasificar_sistema(matriz_aumentada):
 
     variables = columnas - 1
 
-    # --------------------------------------------------------
-    # Buscar contradicciones
-    # --------------------------------------------------------
+    rango_a = 0
+    rango_aumentada = 0
 
-    for i in range(filas):
+    for fila in rref:
 
-        todos_cero = True
+        tiene_coeficiente = False
 
         for j in range(variables):
 
-            if abs(rref[i][j]) >= TOLERANCIA:
-                todos_cero = False
+            if abs(fila[j]) > TOLERANCIA:
+
+                tiene_coeficiente = True
                 break
 
-        termino = rref[i][-1]
+        tiene_resultado = (
+            abs(fila[-1]) > TOLERANCIA
+        )
 
-        if todos_cero and abs(termino) >= TOLERANCIA:
+        if tiene_coeficiente:
+            rango_a += 1
 
-            return {
-                "tipo": "incompatible",
-                "rref": rref,
-                "pasos": pasos,
-                "pivotes": pivotes
-            }
+        if tiene_coeficiente or tiene_resultado:
+            rango_aumentada += 1
 
-    # --------------------------------------------------------
-    # Comparar pivotes con cantidad de variables
-    # --------------------------------------------------------
+    if rango_a < rango_aumentada:
 
-    cantidad_pivotes = len(pivotes)
+        tipo = "incompatible"
 
-    if cantidad_pivotes == variables:
+    elif rango_a == variables:
 
         tipo = "unica"
 
@@ -97,201 +68,189 @@ def clasificar_sistema(matriz_aumentada):
 
         tipo = "infinitas"
 
-    return {
-        "tipo": tipo,
-        "rref": rref,
-        "pasos": pasos,
-        "pivotes": pivotes
-    }
+    return (
+        tipo,
+        rref,
+        pasos,
+        rango_a,
+        rango_aumentada
+    )
 
 
-# ============================================================
-# OBTENER SOLUCION UNICA
-# ============================================================
-
-def obtener_solucion_unica(
-    rref,
-    cantidad_variables
-):
-    """
-    Extrae la solucion cuando el sistema tiene
-    una unica solucion.
-    """
+def obtener_solucion_unica(rref):
 
     solucion = []
 
-    for i in range(cantidad_variables):
+    for fila in rref:
 
         solucion.append(
-            rref[i][-1]
+            fila[-1]
         )
 
     return solucion
 
 
-# ============================================================
-# OBTENER VARIABLES LIBRES
-# ============================================================
+def obtener_variables_libres(rref):
 
-def obtener_variables_libres(
-    pivotes,
-    cantidad_variables
-):
-    """
-    Obtiene los indices correspondientes a las
-    variables libres.
-    """
+    variables = len(rref[0]) - 1
 
-    variables_libres = []
+    pivotes = []
 
-    for j in range(cantidad_variables):
+    for fila in rref:
 
-        if j not in pivotes:
+        for j in range(variables):
 
-            variables_libres.append(j)
+            if abs(fila[j] - 1) < TOLERANCIA:
 
-    return variables_libres
+                es_pivote = True
+
+                for k in range(j):
+
+                    if abs(fila[k]) > TOLERANCIA:
+
+                        es_pivote = False
+                        break
+
+                if es_pivote:
+                    pivotes.append(j)
+
+                break
+
+    libres = []
+
+    for i in range(variables):
+
+        if i not in pivotes:
+            libres.append(i)
+
+    return libres
 
 
-# ============================================================
-# PARAMETRIZAR SOLUCION INFINITA
-# ============================================================
+def parametrizar_solucion(rref):
 
-def parametrizar_solucion(
-    rref,
-    pivotes,
-    cantidad_variables
-):
-    """
-    Obtiene una representacion parametrica del conjunto
-    solucion cuando existen infinitas soluciones.
+    variables = len(rref[0]) - 1
 
-    Ejemplo:
-
-        x1 = 2 - x3
-        x2 = 5
-        x3 = t
-
-    """
-
-    variables_libres = obtener_variables_libres(
-        pivotes,
-        cantidad_variables
+    libres = obtener_variables_libres(
+        rref
     )
 
     parametros = {}
 
-    for indice, variable in enumerate(
-        variables_libres
-    ):
+    for i, variable in enumerate(libres):
 
         parametros[variable] = (
-            f"t{indice + 1}"
+            f"t{i + 1}"
         )
 
-    expresiones = {}
+    expresiones = [
+        None
+    ] * variables
 
-    # --------------------------------------------------------
-    # Asignar directamente las variables libres
-    # --------------------------------------------------------
+    for i in libres:
 
-    for variable in variables_libres:
+        expresiones[i] = parametros[i]
 
-        expresiones[variable] = parametros[variable]
+    for fila in rref:
 
-    # --------------------------------------------------------
-    # Obtener las variables pivote
-    # --------------------------------------------------------
+        pivote = None
 
-    for fila, columna_pivote in enumerate(pivotes):
+        for j in range(variables):
 
-        expresion = f"{rref[fila][-1]:.6f}"
+            if abs(
+                fila[j] - 1
+            ) < TOLERANCIA:
 
-        for variable in variables_libres:
+                pivote = j
+                break
 
-            coeficiente = rref[fila][variable]
+        if pivote is None:
+            continue
+
+        expresion = (
+            str(fila[-1])
+        )
+
+        for libre in libres:
+
+            coeficiente = fila[libre]
 
             if abs(coeficiente) < TOLERANCIA:
                 continue
 
-            parametro = parametros[variable]
+            parametro = parametros[libre]
 
-            if coeficiente > 0:
+            if coeficiente < 0:
 
                 expresion += (
-                    f" - {coeficiente:.6f}"
-                    f"{parametro}"
+                    f" + {abs(coeficiente)}{parametro}"
                 )
 
             else:
 
                 expresion += (
-                    f" + {abs(coeficiente):.6f}"
-                    f"{parametro}"
+                    f" - {coeficiente}{parametro}"
                 )
 
-        expresiones[columna_pivote] = expresion
+        expresiones[pivote] = expresion
 
-    return expresiones, variables_libres
+    return expresiones, parametros
 
-
-# ============================================================
-# CONJUNTO SOLUCION
-# ============================================================
 
 def obtener_conjunto_solucion(
     matriz,
     vector_b
 ):
-    """
-    Analiza completamente el sistema:
-
-        A*x = b
-
-    y devuelve la informacion correspondiente
-    al conjunto solucion.
-    """
 
     matriz_aumentada = crear_matriz_aumentada(
         matriz,
         vector_b
     )
 
-    informacion = clasificar_sistema(
+    (
+        tipo,
+        rref,
+        pasos,
+        rango_a,
+        rango_aumentada
+    ) = clasificar_sistema(
         matriz_aumentada
     )
 
-    tipo = informacion["tipo"]
-
-    cantidad_variables = len(matriz[0])
+    informacion = {
+        "tipo": tipo,
+        "rref": rref,
+        "pasos": pasos,
+        "rango_a": rango_a,
+        "rango_aumentada": rango_aumentada,
+        "variables_libres": [],
+        "solucion": None,
+        "parametrizacion": None
+    }
 
     if tipo == "unica":
 
-        solucion = obtener_solucion_unica(
-            informacion["rref"],
-            cantidad_variables
-        )
-
-        informacion["solucion"] = solucion
-
-    elif tipo == "infinitas":
-
-        expresiones, variables_libres = (
-            parametrizar_solucion(
-                informacion["rref"],
-                informacion["pivotes"],
-                cantidad_variables
+        informacion["solucion"] = (
+            obtener_solucion_unica(
+                rref
             )
         )
 
-        informacion["expresiones"] = expresiones
+    elif tipo == "infinitas":
 
-        informacion["variables_libres"] = (
-            variables_libres
+        (
+            expresiones,
+            parametros
+        ) = parametrizar_solucion(
+            rref
         )
 
-    else:
+        informacion["variables_libres"] = (
+            list(parametros.keys())
+        )
 
-        informacion["solucion"] = None
+        informacion["parametrizacion"] = (
+            expresiones,
+            parametros
+        )
 
     return informacion
