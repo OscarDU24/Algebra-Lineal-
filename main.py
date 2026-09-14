@@ -1,5 +1,5 @@
 import tkinter as tk
-from ui.dashboard import Dashboard 
+from core.ui.dashboard import Dashboard 
 
 def main():
     root = tk.Tk()

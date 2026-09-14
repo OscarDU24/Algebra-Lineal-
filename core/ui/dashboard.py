@@ -123,17 +123,23 @@ class Dashboard:
         self.lbl_estado.config(text="Módulo activo: Matrices individuales")
         print("Abriendo módulo de Matrices...")
         self.root.withdraw()
-        from ui.vista_matriz import VistaMatriz
+        from core.ui.vista_matriz import VistaMatriz
         ventana = VistaMatriz(self.root)
 
     def abrir_vectores(self):
         self.lbl_estado.config(text="Módulo activo: Operaciones vectoriales")
         print("Abriendo módulo de Vectores...")
+        self.root.withdraw()
+        from core.ui.vista_vector import VistaVector
+        ventana = VistaVector(self.root)
 
     def abrir_ec_matriciales(self):
         self.lbl_estado.config(text="Módulo activo: Ecuaciones matriciales")
         print("Abriendo módulo de Ecuaciones Matriciales...")
-
+        self.root.withdraw()
+        from core.ui.vista_matricial import VistaMatricial
+        ventana = VistaMatricial(self.root)
+        
     def proximamente(self):
         messagebox.showinfo("Próximamente", "Este módulo aún está en desarrollo.")
 

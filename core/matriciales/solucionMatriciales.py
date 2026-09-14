@@ -1,4 +1,4 @@
-from lineal.eliminacion import eliminacion_por_filas
+from core.lineal.eliminacion import eliminacion_por_filas
 
 TOLERANCIA = 1e-9
 
