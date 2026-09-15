@@ -13,9 +13,7 @@ def formatear_numero(
     valor,
     formato="Decimales"
 ):
-
     if formato == "Fracciones":
-
         return convertir_a_fraccion(
             float(valor)
         )
@@ -34,15 +32,15 @@ def matriz_a_string(
     matriz,
     formato="Decimales"
 ):
+    if not matriz:
+        return ""
 
     filas = []
 
     for fila in matriz:
-
         valores = []
 
         for valor in fila:
-
             valores.append(
                 formatear_numero(
                     valor,
@@ -68,6 +66,8 @@ def vector_a_string(
     nombre="v",
     formato="Decimales"
 ):
+    if not vector:
+        return ""
 
     salida = [
         f"{nombre} =",
@@ -75,7 +75,6 @@ def vector_a_string(
     ]
 
     for valor in vector:
-
         salida.append(
             "  "
             + formatear_numero(
@@ -97,11 +96,12 @@ def vector_horizontal_a_string(
     vector,
     formato="Decimales"
 ):
+    if not vector:
+        return ""
 
     valores = []
 
     for valor in vector:
-
         valores.append(
             formatear_numero(
                 valor,
@@ -124,7 +124,6 @@ def columnas_a_string(
     matriz,
     formato="Decimales"
 ):
-
     from .operacionesMatriciales import (
         obtener_columnas
     )
@@ -136,7 +135,6 @@ def columnas_a_string(
     salida = []
 
     for i, columna in enumerate(columnas):
-
         salida.append(
             vector_a_string(
                 columna,
@@ -157,7 +155,6 @@ def columnas_a_string(
 def nombres_suma_vectores(
     nombres
 ):
-
     return " + ".join(
         nombres
     )
@@ -172,11 +169,9 @@ def ecuacion_vectorial_a_string(
     escalares,
     formato="Decimales"
 ):
-
     terminos = []
 
     for i in range(len(nombres)):
-
         escalar = formatear_numero(
             escalares[i],
             formato
@@ -193,17 +188,230 @@ def ecuacion_vectorial_a_string(
 
 
 # ============================================================
-# RESULTADO DE UNA OPERACION
+# RESULTADO DE UNA OPERACION VECTORIAL
 # ============================================================
 
-def resultado_a_string(
+def resultado_vector_a_string(
     resultado,
     nombre="b",
     formato="Decimales"
 ):
-
     return vector_a_string(
         resultado,
         nombre,
         formato
+    )
+
+
+# ============================================================
+# RESULTADO DE UNA OPERACION MATRICIAL
+# ============================================================
+
+def resultado_matriz_a_string(
+    resultado,
+    nombre="Resultado",
+    formato="Decimales"
+):
+    return (
+        f"{nombre} =\n"
+        + matriz_a_string(
+            resultado,
+            formato
+        )
+    )
+
+
+# ============================================================
+# MOSTRAR DOS MATRICES
+# ============================================================
+
+def matrices_a_string(
+    matriz_a,
+    matriz_b,
+    formato="Decimales"
+):
+    salida = []
+
+    salida.append(
+        "A ="
+    )
+
+    salida.append(
+        matriz_a_string(
+            matriz_a,
+            formato
+        )
+    )
+
+    salida.append("")
+
+    salida.append(
+        "B ="
+    )
+
+    salida.append(
+        matriz_a_string(
+            matriz_b,
+            formato
+        )
+    )
+
+    return "\n".join(
+        salida
+    )
+
+
+# ============================================================
+# MOSTRAR PRODUCTO DE MATRICES
+# ============================================================
+
+def producto_matrices_a_string(
+    matriz_a,
+    matriz_b,
+    resultado,
+    formato="Decimales"
+):
+    salida = []
+
+    salida.append(
+        "A ="
+    )
+
+    salida.append(
+        matriz_a_string(
+            matriz_a,
+            formato
+        )
+    )
+
+    salida.append("")
+
+    salida.append(
+        "B ="
+    )
+
+    salida.append(
+        matriz_a_string(
+            matriz_b,
+            formato
+        )
+    )
+
+    salida.append("")
+
+    salida.append(
+        "A × B ="
+    )
+
+    salida.append(
+        matriz_a_string(
+            resultado,
+            formato
+        )
+    )
+
+    return "\n".join(
+        salida
+    )
+
+
+# ============================================================
+# MOSTRAR OPERACION MATRIZ + MATRIZ
+# ============================================================
+
+def operacion_matrices_a_string(
+    matriz_a,
+    matriz_b,
+    resultado,
+    operador="+",
+    formato="Decimales"
+):
+    salida = []
+
+    salida.append(
+        "A ="
+    )
+
+    salida.append(
+        matriz_a_string(
+            matriz_a,
+            formato
+        )
+    )
+
+    salida.append("")
+
+    salida.append(
+        f"B ="
+    )
+
+    salida.append(
+        matriz_a_string(
+            matriz_b,
+            formato
+        )
+    )
+
+    salida.append("")
+
+    salida.append(
+        f"A {operador} B ="
+    )
+
+    salida.append(
+        matriz_a_string(
+            resultado,
+            formato
+        )
+    )
+
+    return "\n".join(
+        salida
+    )
+
+
+# ============================================================
+# MOSTRAR MATRIZ POR ESCALAR
+# ============================================================
+
+def matriz_escalar_a_string(
+    matriz,
+    escalar,
+    resultado,
+    formato="Decimales"
+):
+    salida = []
+
+    salida.append(
+        "A ="
+    )
+
+    salida.append(
+        matriz_a_string(
+            matriz,
+            formato
+        )
+    )
+
+    salida.append("")
+
+    salida.append(
+        f"c = {formatear_numero(escalar, formato)}"
+    )
+
+    salida.append("")
+
+    salida.append(
+        "cA ="
+    )
+
+    salida.append(
+        matriz_a_string(
+            resultado,
+            formato
+        )
+    )
+
+    return "\n".join(
+        salida
     )
