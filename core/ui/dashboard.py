@@ -57,9 +57,9 @@ class Dashboard:
         self.crear_tarjeta(0, 2, "Ecuaciones matriciales", self.abrir_ec_matriciales)
 
         # Fila 1
-        self.crear_tarjeta(1, 0, "Ecuaciones Lineales /\nIndependencia lineal", self.proximamente)
-        self.crear_tarjeta(1, 1, "Cálculo de Límites", self.proximamente)
-        self.crear_tarjeta(1, 2, "Sistemas numéricos", self.proximamente)
+        self.crear_tarjeta(1, 0, "Ecuaciones Lineales /\nIndependencia lineal", self.abrir_sistemas)
+        self.crear_tarjeta(1, 1, "Cálculo de Límites", self.abrir_limites)
+        self.crear_tarjeta(1, 2, "Sistemas numéricos", self.abrir_sistemas_numericos)
 
         # ==========================================
         # BARRA DE ESTADO INFERIOR
@@ -139,6 +139,27 @@ class Dashboard:
         self.root.withdraw()
         from core.ui.vista_matricial import VistaMatricial
         ventana = VistaMatricial(self.root)
+
+    def abrir_sistemas(self):
+        self.lbl_estado.config(text="Módulo activo: Sistemas e Independencia")
+        print("Abriendo módulo de Sistemas...")
+        self.root.withdraw()
+        from core.ui.vista_sistemas import VistaSistemas
+        ventana = VistaSistemas(self.root)
+    
+    def abrir_limites(self):
+        self.lbl_estado.config(text="Módulo activo: Cálculo de Límites")
+        print("Abriendo módulo de Límites...")
+        self.root.withdraw()
+        from core.ui.vista_limites import VistaLimites
+        ventana = VistaLimites(self.root)
+
+    def abrir_sistemas_numericos(self):
+        self.lbl_estado.config(text="Módulo activo: Sistemas Numéricos")
+        print("Abriendo módulo de Sistemas Numéricos...")
+        self.root.withdraw()
+        from core.ui.vista_numerica import VistaSistemasNumericos
+        ventana = VistaSistemasNumericos(self.root)   
         
     def proximamente(self):
         messagebox.showinfo("Próximamente", "Este módulo aún está en desarrollo.")

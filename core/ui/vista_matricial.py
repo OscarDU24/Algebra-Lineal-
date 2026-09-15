@@ -22,7 +22,7 @@ ctk.set_default_color_theme("blue")
 # CLASE PRINCIPAL
 # ============================================================
 
-class AppCalculadoraMatriciales(ctk.CTkToplevel):
+class VistaMatricial(ctk.CTkToplevel):
 
     def __init__(self, master=None):
         super().__init__(master)
@@ -559,10 +559,8 @@ class AppCalculadoraMatriciales(ctk.CTkToplevel):
 # EJECUCION INDEPENDIENTE (PRUEBA)
 # ============================================================
 
-VistaMatricial = AppCalculadoraMatriciales
-
 if __name__ == "__main__":
     app = ctk.CTk()
     app.withdraw()  # Oculta la ventana principal temporalmente si se prueba directo
-    ventana_matriciales = AppCalculadoraMatriciales(app)
+    ventana_matriciales = VistaMatricial(app)
     app.mainloop()
