@@ -1,41 +1,61 @@
 # ============================================================
-# CALCULADORA DE MATRICES Y VECTORES
+# CALCULADORA DE OPERACIONES MATRICIALES
 # ============================================================
 
 import customtkinter as ctk
+
 import Matriciales.operacionesMatriciales as op
+import Matriciales.conversionesMatriciales as conv
+import Matriciales.solucionMatriciales as sol
 import Matriciales.visualizacionMatriciales as vis
 
 
 # ============================================================
-# CONFIGURACION GENERAL
+# CONFIGURACION DE LA INTERFAZ
 # ============================================================
 
-ctk.set_appearance_mode("dark")
+ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
 
 
 # ============================================================
-# APLICACION PRINCIPAL
+# CLASE PRINCIPAL
 # ============================================================
 
 class AppCalculadoraMatriciales(ctk.CTk):
 
+    # ========================================================
+    # INICIALIZAR APLICACION
+    # ========================================================
+
     def __init__(self):
+
         super().__init__()
 
-        self.title("Calculadora de Operaciones Matriciales")
-        self.geometry("1100x800")
-        self.minsize(950, 700)
+        self.title(
+            "Calculadora de Operaciones Matriciales - FIA UAM"
+        )
+
+        self.geometry(
+            "980x780"
+        )
+
+        self.minsize(
+            900,
+            700
+        )
 
         self.matriz_a_entries = []
         self.matriz_b_entries = []
-        self.vector_entries = []
+        self.vector_x_entries = []
+        self.vector_b_entries = []
 
-        self.controles_superiores = {}
+        self.controles = {}
 
         self.crear_interfaz()
+
         self.cambiar_operacion()
+
 
     # ========================================================
     # INTERFAZ PRINCIPAL
@@ -43,35 +63,37 @@ class AppCalculadoraMatriciales(ctk.CTk):
 
     def crear_interfaz(self):
 
-        # ----------------------------------------------------
-        # TITULO
-        # ----------------------------------------------------
-
-        self.titulo = ctk.CTkLabel(
+        self.lbl_titulo = ctk.CTkLabel(
             self,
             text="Calculadora de Operaciones Matriciales",
-            font=ctk.CTkFont(size=24, weight="bold")
+            font=ctk.CTkFont(
+                size=24,
+                weight="bold"
+            )
         )
 
-        self.titulo.pack(pady=(15, 10))
-
-        # ----------------------------------------------------
-        # FRAME SUPERIOR
-        # ----------------------------------------------------
-
-        self.frame_configuracion = ctk.CTkFrame(self)
-        self.frame_configuracion.pack(
-            fill="x",
-            padx=15,
-            pady=5
+        self.lbl_titulo.pack(
+            pady=(15, 10)
         )
 
+
         # ----------------------------------------------------
-        # FRAME DINAMICO DE CONFIGURACION
+        # CONTROLES SUPERIORES
         # ----------------------------------------------------
+
+        self.frame_sup = ctk.CTkFrame(
+            self
+        )
+
+        self.frame_sup.pack(
+            pady=5,
+            padx=20,
+            fill="x"
+        )
+
 
         self.frame_controles = ctk.CTkFrame(
-            self.frame_configuracion,
+            self.frame_sup,
             fg_color="transparent"
         )
 
@@ -81,372 +103,243 @@ class AppCalculadoraMatriciales(ctk.CTk):
             pady=10
         )
 
+
         # ----------------------------------------------------
-        # FRAME CENTRAL
+        # AREA CENTRAL
         # ----------------------------------------------------
 
-        self.frame_entrada = ctk.CTkScrollableFrame(
+        self.frame_centro = ctk.CTkScrollableFrame(
             self,
             label_text="Datos de entrada"
         )
 
-        self.frame_entrada.pack(
+        self.frame_centro.pack(
+            pady=10,
+            padx=20,
             fill="both",
-            expand=True,
-            padx=15,
-            pady=10
+            expand=True
         )
 
+
         # ----------------------------------------------------
-        # FRAME INFERIOR
+        # CONTROLES INFERIORES
         # ----------------------------------------------------
 
-        self.frame_operaciones = ctk.CTkFrame(self)
-        self.frame_operaciones.pack(
-            fill="x",
-            padx=15,
-            pady=(5, 15)
+        self.frame_inf = ctk.CTkFrame(
+            self
         )
 
-        # ----------------------------------------------------
-        # TIPO DE OPERACION
-        # ----------------------------------------------------
-
-        self.label_operacion = ctk.CTkLabel(
-            self.frame_operaciones,
-            text="Tipo de operación:"
+        self.frame_inf.pack(
+            pady=(5, 15),
+            padx=20,
+            fill="x"
         )
 
-        self.label_operacion.grid(
+        self.crear_controles_inferiores()
+
+
+    # ========================================================
+    # CONTROLES INFERIORES
+    # ========================================================
+
+    def crear_controles_inferiores(self):
+
+        # ----------------------------------------------------
+        # MENU DE OPERACION
+        # ----------------------------------------------------
+
+        self.opcion_operacion = ctk.CTkOptionMenu(
+            self.frame_inf,
+            values=[
+                "A + B",
+                "A - B",
+                "cA",
+                "A × B",
+                "A × x → b",
+                "Resolver Ax = b"
+            ],
+            command=self.cambiar_operacion,
+            width=180
+        )
+
+        self.opcion_operacion.grid(
             row=0,
             column=0,
             padx=10,
             pady=10
         )
 
-        operaciones = [
-            "A + B",
-            "A - B",
-            "cA",
-            "A × B",
-            "A × u",
-            "A(u + v)",
-            "A(u + v + ...)",
-            "u + v",
-            "c(u)",
-            "A(cu)",
-            "A(u + v) = Au + Av",
-            "A(cu) = c(Au)",
-            "Combinación lineal",
-            "Mostrar columnas de A"
-        ]
-
-        self.menu_operacion = ctk.CTkOptionMenu(
-            self.frame_operaciones,
-            values=operaciones,
-            command=self.cambiar_operacion
-        )
-
-        self.menu_operacion.grid(
-            row=0,
-            column=1,
-            padx=10,
-            pady=10
-        )
-
-        # ----------------------------------------------------
-        # ESCALAR
-        # ----------------------------------------------------
-
-        self.label_escalar = ctk.CTkLabel(
-            self.frame_operaciones,
-            text="Escalar:"
-        )
-
-        self.entry_escalar = ctk.CTkEntry(
-            self.frame_operaciones,
-            width=100
-        )
 
         # ----------------------------------------------------
         # FORMATO
         # ----------------------------------------------------
 
         self.label_formato = ctk.CTkLabel(
-            self.frame_operaciones,
+            self.frame_inf,
             text="Formato:"
         )
 
-        self.menu_formato = ctk.CTkOptionMenu(
-            self.frame_operaciones,
-            values=["Decimales", "Fracciones"]
+        self.label_formato.grid(
+            row=0,
+            column=1,
+            padx=10,
+            pady=10
         )
+
+
+        self.opcion_numform = ctk.CTkOptionMenu(
+            self.frame_inf,
+            values=[
+                "Fracciones",
+                "Decimales"
+            ],
+            width=120
+        )
+
+        self.opcion_numform.grid(
+            row=0,
+            column=2,
+            padx=10,
+            pady=10
+        )
+
 
         # ----------------------------------------------------
         # BOTON CALCULAR
         # ----------------------------------------------------
 
-        self.boton_calcular = ctk.CTkButton(
-            self.frame_operaciones,
+        self.btn_calcular = ctk.CTkButton(
+            self.frame_inf,
             text="Calcular",
-            command=self.calcular
+            fg_color="green",
+            hover_color="darkgreen",
+            font=ctk.CTkFont(
+                weight="bold"
+            ),
+            command=self.calcular,
+            width=110
         )
 
-        self.boton_calcular.grid(
+        self.btn_calcular.grid(
             row=0,
-            column=5,
+            column=3,
             padx=10,
             pady=10
         )
+
+
+        # ----------------------------------------------------
+        # BOTON LIMPIAR
+        # ----------------------------------------------------
+
+        self.btn_limpiar = ctk.CTkButton(
+            self.frame_inf,
+            text="Limpiar",
+            command=self.limpiar,
+            width=100
+        )
+
+        self.btn_limpiar.grid(
+            row=0,
+            column=4,
+            padx=10,
+            pady=10
+        )
+
 
         # ----------------------------------------------------
         # RESULTADO
         # ----------------------------------------------------
 
-        self.label_resultado = ctk.CTkLabel(
-            self.frame_operaciones,
-            text="Resultado:"
+        self.txt_resultados = ctk.CTkTextbox(
+            self.frame_inf,
+            height=150,
+            font=("Courier New", 12)
         )
 
-        self.label_resultado.grid(
+        self.txt_resultados.grid(
             row=1,
             column=0,
-            padx=10,
-            pady=(5, 10),
-            sticky="nw"
-        )
-
-        self.texto_resultado = ctk.CTkTextbox(
-            self.frame_operaciones,
-            height=130
-        )
-
-        self.texto_resultado.grid(
-            row=1,
-            column=1,
             columnspan=5,
             padx=10,
-            pady=(5, 10),
+            pady=10,
             sticky="ew"
         )
 
-        self.frame_operaciones.grid_columnconfigure(
-            1,
+
+        self.frame_inf.grid_columnconfigure(
+            0,
             weight=1
         )
 
-    # ========================================================
-    # LIMPIAR CONTROLES SUPERIORES
-    # ========================================================
 
-    def limpiar_controles_superiores(self):
-
-        for widget in self.frame_controles.winfo_children():
-            widget.destroy()
-
-        self.controles_superiores = {}
-
-    # ========================================================
-    # CREAR CONTROL DE DIMENSION
-    # ========================================================
-
-    def crear_control_dimension(
-        self,
-        nombre,
-        fila,
-        columna,
-        valor_inicial
-    ):
-
-        label = ctk.CTkLabel(
-            self.frame_controles,
-            text=nombre
+        self._escribir_en_visor(
+            "Seleccione una operación."
         )
 
-        label.grid(
-            row=fila,
-            column=columna,
-            padx=(5, 3),
-            pady=5
-        )
-
-        entry = ctk.CTkEntry(
-            self.frame_controles,
-            width=70
-        )
-
-        entry.insert(
-            0,
-            str(valor_inicial)
-        )
-
-        entry.grid(
-            row=fila,
-            column=columna + 1,
-            padx=(3, 10),
-            pady=5
-        )
-
-        self.controles_superiores[nombre] = entry
-
-        return entry
-
-    # ========================================================
-    # CREAR CONTROL DE CANTIDAD DE VECTORES
-    # ========================================================
-
-    def crear_control_vectores(
-        self,
-        fila=0,
-        valor_inicial=2
-    ):
-
-        label = ctk.CTkLabel(
-            self.frame_controles,
-            text="Cantidad de vectores:"
-        )
-
-        label.grid(
-            row=fila,
-            column=0,
-            padx=(5, 3),
-            pady=5
-        )
-
-        entry = ctk.CTkEntry(
-            self.frame_controles,
-            width=70
-        )
-
-        entry.insert(
-            0,
-            str(valor_inicial)
-        )
-
-        entry.grid(
-            row=fila,
-            column=1,
-            padx=(3, 10),
-            pady=5
-        )
-
-        self.controles_superiores["cantidad_vectores"] = entry
-
-        return entry
-
-    # ========================================================
-    # CREAR CONTROL DE DIMENSION DE VECTOR
-    # ========================================================
-
-    def crear_control_dimension_vector(
-        self,
-        fila=0,
-        valor_inicial=2
-    ):
-
-        label = ctk.CTkLabel(
-            self.frame_controles,
-            text="Dimensión del vector:"
-        )
-
-        label.grid(
-            row=fila,
-            column=2,
-            padx=(5, 3),
-            pady=5
-        )
-
-        entry = ctk.CTkEntry(
-            self.frame_controles,
-            width=70
-        )
-
-        entry.insert(
-            0,
-            str(valor_inicial)
-        )
-
-        entry.grid(
-            row=fila,
-            column=3,
-            padx=(3, 10),
-            pady=5
-        )
-
-        self.controles_superiores["dimension_vector"] = entry
-
-        return entry
-
-    # ========================================================
-    # BOTON GENERAR
-    # ========================================================
-
-    def crear_boton_generar(self):
-
-        boton = ctk.CTkButton(
-            self.frame_controles,
-            text="Generar",
-            command=lambda: self.generar_datos(True)
-        )
-
-        boton.grid(
-            row=0,
-            column=10,
-            padx=10,
-            pady=5
-        )
-
-        self.controles_superiores["boton_generar"] = boton
 
     # ========================================================
     # CAMBIAR OPERACION
     # ========================================================
 
-    def cambiar_operacion(self, valor=None):
+    def cambiar_operacion(
+        self,
+        valor=None
+    ):
 
-        operacion = self.menu_operacion.get()
+        operacion = (
+            self.opcion_operacion.get()
+        )
 
-        self.limpiar_controles_superiores()
 
-        # Ocultar escalar
-        self.label_escalar.grid_forget()
-        self.entry_escalar.grid_forget()
+        # ----------------------------------------------------
+        # ELIMINAR CONTROLES ANTERIORES
+        # ----------------------------------------------------
+
+        for widget in (
+            self.frame_controles.winfo_children()
+        ):
+
+            widget.destroy()
+
+        self.controles.clear()
+
 
         # ----------------------------------------------------
         # A + B
         # ----------------------------------------------------
 
-        if operacion in ["A + B", "A - B", "A × B"]:
+        if operacion in [
+            "A + B",
+            "A - B"
+        ]:
 
             self.crear_control_dimension(
                 "Filas de A:",
                 0,
-                0,
-                3
+                2
             )
 
             self.crear_control_dimension(
                 "Columnas de A:",
-                0,
                 2,
-                3
+                2
             )
 
             self.crear_control_dimension(
                 "Filas de B:",
-                0,
                 4,
-                3
+                2
             )
 
             self.crear_control_dimension(
                 "Columnas de B:",
-                0,
                 6,
-                3
+                2
             )
 
             self.crear_boton_generar()
+
 
         # ----------------------------------------------------
         # cA
@@ -457,264 +350,324 @@ class AppCalculadoraMatriciales(ctk.CTk):
             self.crear_control_dimension(
                 "Filas de A:",
                 0,
-                0,
-                3
+                2
             )
 
             self.crear_control_dimension(
                 "Columnas de A:",
-                0,
                 2,
-                3
+                2
+            )
+
+            self.crear_control_escalar(
+                4
             )
 
             self.crear_boton_generar()
 
-            self.mostrar_escalar()
 
         # ----------------------------------------------------
-        # OPERACIONES CON A Y VECTORES
+        # A × B
         # ----------------------------------------------------
 
-        elif operacion in [
-            "A × u",
-            "A(u + v)",
-            "A(u + v + ...)",
-            "A(cu)",
-            "A(u + v) = Au + Av",
-            "A(cu) = c(Au)",
-            "Mostrar columnas de A"
-        ]:
+        elif operacion == "A × B":
 
             self.crear_control_dimension(
                 "Filas de A:",
                 0,
-                0,
-                3
+                2
             )
 
             self.crear_control_dimension(
                 "Columnas de A:",
-                0,
                 2,
-                3
+                2
             )
 
-            # Cantidad de vectores solamente cuando aplica
-            if operacion == "A × u":
-
-                self.crear_control_vectores(
-                    fila=0,
-                    valor_inicial=1
-                )
-
-            elif operacion == "A(u + v)":
-
-                self.crear_control_vectores(
-                    fila=0,
-                    valor_inicial=2
-                )
-
-            elif operacion == "A(u + v + ...)":
-
-                self.crear_control_vectores(
-                    fila=0,
-                    valor_inicial=3
-                )
-
-            elif operacion == "A(cu)":
-
-                self.crear_control_vectores(
-                    fila=0,
-                    valor_inicial=1
-                )
-
-            elif operacion == "A(u + v) = Au + Av":
-
-                self.crear_control_vectores(
-                    fila=0,
-                    valor_inicial=2
-                )
-
-            elif operacion == "A(cu) = c(Au)":
-
-                self.crear_control_vectores(
-                    fila=0,
-                    valor_inicial=1
-                )
-
-            self.crear_boton_generar()
-
-            if operacion in [
-                "A(cu)",
-                "A(cu) = c(Au)"
-            ]:
-                self.mostrar_escalar()
-
-        # ----------------------------------------------------
-        # u + v
-        # ----------------------------------------------------
-
-        elif operacion == "u + v":
-
-            self.crear_control_vectores(
-                fila=0,
-                valor_inicial=2
+            self.crear_control_dimension(
+                "Filas de B:",
+                4,
+                2
             )
 
-            self.crear_control_dimension_vector(
-                fila=0,
-                valor_inicial=3
+            self.crear_control_dimension(
+                "Columnas de B:",
+                6,
+                2
             )
 
             self.crear_boton_generar()
 
+
         # ----------------------------------------------------
-        # c(u)
+        # A × x → b
         # ----------------------------------------------------
 
-        elif operacion == "c(u)":
+        elif operacion == "A × x → b":
 
-            self.crear_control_dimension_vector(
-                fila=0,
-                valor_inicial=3
+            self.crear_control_dimension(
+                "Filas de A:",
+                0,
+                2
+            )
+
+            self.crear_control_dimension(
+                "Columnas de A:",
+                2,
+                2
             )
 
             self.crear_boton_generar()
 
-            self.mostrar_escalar()
 
         # ----------------------------------------------------
-        # COMBINACION LINEAL
+        # RESOLVER Ax = b
         # ----------------------------------------------------
 
-        elif operacion == "Combinación lineal":
+        elif operacion == "Resolver Ax = b":
 
-            self.crear_control_vectores(
-                fila=0,
-                valor_inicial=2
+            self.crear_control_dimension(
+                "Filas de A:",
+                0,
+                2
             )
 
-            self.crear_control_dimension_vector(
-                fila=0,
-                valor_inicial=3
+            self.crear_control_dimension(
+                "Columnas de A:",
+                2,
+                2
             )
 
             self.crear_boton_generar()
 
+
         # ----------------------------------------------------
-        # ACTUALIZAR AREA CENTRAL
+        # LIMPIAR DATOS DE ENTRADA
         # ----------------------------------------------------
 
-        self.generar_datos(
-            limpiar_resultado=False
+        self.matriz_a_entries = []
+        self.matriz_b_entries = []
+        self.vector_x_entries = []
+        self.vector_b_entries = []
+
+        for widget in (
+            self.frame_centro.winfo_children()
+        ):
+
+            widget.destroy()
+
+        self._escribir_en_visor(
+            "Ingrese las dimensiones y presione "
+            "'Generar'."
         )
 
+
     # ========================================================
-    # MOSTRAR ESCALAR
+    # CREAR CONTROL DE DIMENSION
     # ========================================================
 
-    def mostrar_escalar(self):
+    def crear_control_dimension(
+        self,
+        nombre,
+        columna,
+        valor_inicial
+    ):
 
-        self.label_escalar.grid(
-            row=0,
-            column=3,
-            padx=(20, 3),
-            pady=10
+        label = ctk.CTkLabel(
+            self.frame_controles,
+            text=nombre
         )
 
-        self.entry_escalar.grid(
+        label.grid(
             row=0,
-            column=4,
+            column=columna,
+            padx=(5, 3),
+            pady=5
+        )
+
+
+        entry = ctk.CTkEntry(
+            self.frame_controles,
+            width=70
+        )
+
+        entry.insert(
+            0,
+            str(valor_inicial)
+        )
+
+        entry.grid(
+            row=0,
+            column=columna + 1,
             padx=(3, 10),
-            pady=10
+            pady=5
         )
+
+
+        self.controles[
+            nombre
+        ] = entry
+
+
+    # ========================================================
+    # CREAR CONTROL DE ESCALAR
+    # ========================================================
+
+    def crear_control_escalar(
+        self,
+        columna
+    ):
+
+        label = ctk.CTkLabel(
+            self.frame_controles,
+            text="Escalar:"
+        )
+
+        label.grid(
+            row=0,
+            column=columna,
+            padx=(10, 3),
+            pady=5
+        )
+
+
+        entry = ctk.CTkEntry(
+            self.frame_controles,
+            width=70
+        )
+
+        entry.grid(
+            row=0,
+            column=columna + 1,
+            padx=(3, 10),
+            pady=5
+        )
+
+
+        self.controles[
+            "Escalar:"
+        ] = entry
+
+
+    # ========================================================
+    # CREAR BOTON GENERAR
+    # ========================================================
+
+    def crear_boton_generar(self):
+
+        boton = ctk.CTkButton(
+            self.frame_controles,
+            text="Generar",
+            command=self.generar_datos,
+            width=90
+        )
+
+        boton.grid(
+            row=0,
+            column=8,
+            padx=10,
+            pady=5
+        )
+
 
     # ========================================================
     # OBTENER ENTERO DE CONTROL
     # ========================================================
 
-    def obtener_entero_control(
+    def obtener_entero(
         self,
-        nombre,
-        minimo=1
+        nombre
     ):
 
-        entry = self.controles_superiores.get(nombre)
+        entry = self.controles.get(
+            nombre
+        )
 
         if entry is None:
-            return None
+
+            raise ValueError(
+                f"No existe el campo {nombre}."
+            )
+
 
         try:
-            valor = int(entry.get())
 
-            if valor < minimo:
-                raise ValueError
-
-            return valor
+            valor = int(
+                entry.get()
+            )
 
         except ValueError:
 
             raise ValueError(
-                f"El campo '{nombre}' debe contener "
-                f"un entero mayor o igual que {minimo}."
+                f"{nombre} debe ser un entero."
             )
+
+
+        if valor <= 0:
+
+            raise ValueError(
+                f"{nombre} debe ser mayor que cero."
+            )
+
+
+        return valor
+
 
     # ========================================================
     # GENERAR DATOS
     # ========================================================
 
-    def generar_datos(
-        self,
-        limpiar_resultado=True
-    ):
-
-        operacion = self.menu_operacion.get()
+    def generar_datos(self):
 
         try:
 
-            self.matriz_a_entries = []
-            self.matriz_b_entries = []
-            self.vector_entries = []
+            operacion = (
+                self.opcion_operacion.get()
+            )
 
-            for widget in self.frame_entrada.winfo_children():
+
+            # ------------------------------------------------
+            # LIMPIAR ENTRADAS ANTERIORES
+            # ------------------------------------------------
+
+            for widget in (
+                self.frame_centro.winfo_children()
+            ):
+
                 widget.destroy()
 
-            # ------------------------------------------------
-            # DATOS DE A
-            # ------------------------------------------------
 
-            necesita_a = operacion in [
-                "A + B",
-                "A - B",
-                "cA",
-                "A × B",
-                "A × u",
-                "A(u + v)",
-                "A(u + v + ...)",
-                "A(cu)",
-                "A(u + v) = Au + Av",
-                "A(cu) = c(Au)",
-                "Mostrar columnas de A"
-            ]
+            self.matriz_a_entries = []
+            self.matriz_b_entries = []
+            self.vector_x_entries = []
+            self.vector_b_entries = []
 
-            if necesita_a:
-
-                filas_a = self.obtener_entero_control(
-                    "Filas de A:"
-                )
-
-                columnas_a = self.obtener_entero_control(
-                    "Columnas de A:"
-                )
-
-                self.crear_matriz_a(
-                    filas_a,
-                    columnas_a
-                )
 
             # ------------------------------------------------
-            # DATOS DE B
+            # DIMENSIONES DE A
+            # ------------------------------------------------
+
+            filas_a = self.obtener_entero(
+                "Filas de A:"
+            )
+
+            columnas_a = self.obtener_entero(
+                "Columnas de A:"
+            )
+
+
+            # ------------------------------------------------
+            # MATRIZ A
+            # ------------------------------------------------
+
+            self.crear_matriz_a(
+                filas_a,
+                columnas_a
+            )
+
+
+            # ------------------------------------------------
+            # MATRIZ B
             # ------------------------------------------------
 
             if operacion in [
@@ -723,11 +676,11 @@ class AppCalculadoraMatriciales(ctk.CTk):
                 "A × B"
             ]:
 
-                filas_b = self.obtener_entero_control(
+                filas_b = self.obtener_entero(
                     "Filas de B:"
                 )
 
-                columnas_b = self.obtener_entero_control(
+                columnas_b = self.obtener_entero(
                     "Columnas de B:"
                 )
 
@@ -736,63 +689,41 @@ class AppCalculadoraMatriciales(ctk.CTk):
                     columnas_b
                 )
 
+
             # ------------------------------------------------
-            # VECTORES
+            # A × x → b
             # ------------------------------------------------
 
-            if operacion in [
-                "A × u",
-                "A(u + v)",
-                "A(u + v + ...)",
-                "A(cu)",
-                "A(u + v) = Au + Av",
-                "A(cu) = c(Au)"
-            ]:
+            elif operacion == "A × x → b":
 
-                columnas_a = self.obtener_entero_control(
-                    "Columnas de A:"
-                )
-
-                cantidad = self.obtener_entero_control(
-                    "cantidad_vectores"
-                )
-
-                self.crear_vectores(
-                    cantidad,
+                self.crear_vector_x(
                     columnas_a
                 )
 
-            elif operacion in [
-                "u + v",
-                "c(u)",
-                "Combinación lineal"
-            ]:
 
-                cantidad = self.obtener_entero_control(
-                    "cantidad_vectores"
+            # ------------------------------------------------
+            # RESOLVER Ax = b
+            # ------------------------------------------------
+
+            elif operacion == "Resolver Ax = b":
+
+                self.crear_vector_b(
+                    filas_a
                 )
 
-                dimension = self.obtener_entero_control(
-                    "dimension_vector"
-                )
 
-                self.crear_vectores(
-                    cantidad,
-                    dimension
-                )
+            self._escribir_en_visor(
+                "Ingrese los valores y presione "
+                "'Calcular'."
+            )
 
-            if limpiar_resultado:
-
-                self.texto_resultado.delete(
-                    "1.0",
-                    "end"
-                )
 
         except ValueError as error:
 
             self.mostrar_error(
                 str(error)
             )
+
 
     # ========================================================
     # CREAR MATRIZ A
@@ -805,10 +736,10 @@ class AppCalculadoraMatriciales(ctk.CTk):
     ):
 
         titulo = ctk.CTkLabel(
-            self.frame_entrada,
+            self.frame_centro,
             text="Matriz A",
             font=ctk.CTkFont(
-                size=18,
+                size=16,
                 weight="bold"
             )
         )
@@ -817,13 +748,15 @@ class AppCalculadoraMatriciales(ctk.CTk):
             pady=(10, 5)
         )
 
-        frame = ctk.CTkFrame(
-            self.frame_entrada
+
+        contenedor = ctk.CTkFrame(
+            self.frame_centro
         )
 
-        frame.pack(
+        contenedor.pack(
             pady=5
         )
+
 
         for i in range(filas):
 
@@ -832,15 +765,9 @@ class AppCalculadoraMatriciales(ctk.CTk):
             for j in range(columnas):
 
                 entry = ctk.CTkEntry(
-                    frame,
-                    width=70
-                )
-
-                entry.grid(
-                    row=i,
-                    column=j,
-                    padx=3,
-                    pady=3
+                    contenedor,
+                    width=75,
+                    justify="center"
                 )
 
                 entry.insert(
@@ -848,11 +775,21 @@ class AppCalculadoraMatriciales(ctk.CTk):
                     "0"
                 )
 
-                fila_entries.append(entry)
+                entry.grid(
+                    row=i,
+                    column=j,
+                    padx=4,
+                    pady=4
+                )
+
+                fila_entries.append(
+                    entry
+                )
 
             self.matriz_a_entries.append(
                 fila_entries
             )
+
 
     # ========================================================
     # CREAR MATRIZ B
@@ -865,25 +802,27 @@ class AppCalculadoraMatriciales(ctk.CTk):
     ):
 
         titulo = ctk.CTkLabel(
-            self.frame_entrada,
+            self.frame_centro,
             text="Matriz B",
             font=ctk.CTkFont(
-                size=18,
+                size=16,
                 weight="bold"
             )
         )
 
         titulo.pack(
-            pady=(15, 5)
+            pady=(20, 5)
         )
 
-        frame = ctk.CTkFrame(
-            self.frame_entrada
+
+        contenedor = ctk.CTkFrame(
+            self.frame_centro
         )
 
-        frame.pack(
+        contenedor.pack(
             pady=5
         )
+
 
         for i in range(filas):
 
@@ -892,108 +831,169 @@ class AppCalculadoraMatriciales(ctk.CTk):
             for j in range(columnas):
 
                 entry = ctk.CTkEntry(
-                    frame,
-                    width=70
+                    contenedor,
+                    width=75,
+                    justify="center"
+                )
+
+                entry.insert(
+                    0,
+                    "0"
                 )
 
                 entry.grid(
                     row=i,
                     column=j,
-                    padx=3,
-                    pady=3
+                    padx=4,
+                    pady=4
                 )
 
-                entry.insert(
-                    0,
-                    "0"
+                fila_entries.append(
+                    entry
                 )
-
-                fila_entries.append(entry)
 
             self.matriz_b_entries.append(
                 fila_entries
             )
 
+
     # ========================================================
-    # CREAR VECTORES
+    # CREAR VECTOR x
     # ========================================================
 
-    def crear_vectores(
+    def crear_vector_x(
         self,
-        cantidad,
         dimension
     ):
 
-        nombres_base = [
-            "u",
-            "v",
-            "w",
-            "z",
-            "p",
-            "q",
-            "r",
-            "s"
-        ]
+        titulo = ctk.CTkLabel(
+            self.frame_centro,
+            text="Vector x",
+            font=ctk.CTkFont(
+                size=16,
+                weight="bold"
+            )
+        )
 
-        for numero in range(cantidad):
+        titulo.pack(
+            pady=(20, 5)
+        )
 
-            if numero < len(nombres_base):
 
-                nombre = nombres_base[numero]
+        contenedor = ctk.CTkFrame(
+            self.frame_centro
+        )
 
-            else:
+        contenedor.pack(
+            pady=5
+        )
 
-                nombre = f"v{numero + 1}"
 
-            titulo = ctk.CTkLabel(
-                self.frame_entrada,
-                text=f"Vector {nombre}",
-                font=ctk.CTkFont(
-                    size=18,
-                    weight="bold"
-                )
+        for i in range(dimension):
+
+            ctk.CTkLabel(
+                contenedor,
+                text=f"x{i + 1}"
+            ).grid(
+                row=i,
+                column=0,
+                padx=10,
+                pady=4
             )
 
-            titulo.pack(
-                pady=(15, 5)
+
+            entry = ctk.CTkEntry(
+                contenedor,
+                width=100,
+                justify="center"
             )
 
-            frame = ctk.CTkFrame(
-                self.frame_entrada
+            entry.insert(
+                0,
+                "0"
             )
 
-            frame.pack(
-                pady=5
+            entry.grid(
+                row=i,
+                column=1,
+                padx=10,
+                pady=4
             )
 
-            entradas_vector = []
 
-            for i in range(dimension):
-
-                entry = ctk.CTkEntry(
-                    frame,
-                    width=70
-                )
-
-                entry.grid(
-                    row=i,
-                    column=0,
-                    padx=3,
-                    pady=3
-                )
-
-                entry.insert(
-                    0,
-                    "0"
-                )
-
-                entradas_vector.append(
-                    entry
-                )
-
-            self.vector_entries.append(
-                entradas_vector
+            self.vector_x_entries.append(
+                entry
             )
+
+
+    # ========================================================
+    # CREAR VECTOR b
+    # ========================================================
+
+    def crear_vector_b(
+        self,
+        dimension
+    ):
+
+        titulo = ctk.CTkLabel(
+            self.frame_centro,
+            text="Vector b",
+            font=ctk.CTkFont(
+                size=16,
+                weight="bold"
+            )
+        )
+
+        titulo.pack(
+            pady=(20, 5)
+        )
+
+
+        contenedor = ctk.CTkFrame(
+            self.frame_centro
+        )
+
+        contenedor.pack(
+            pady=5
+        )
+
+
+        for i in range(dimension):
+
+            ctk.CTkLabel(
+                contenedor,
+                text=f"b{i + 1}"
+            ).grid(
+                row=i,
+                column=0,
+                padx=10,
+                pady=4
+            )
+
+
+            entry = ctk.CTkEntry(
+                contenedor,
+                width=100,
+                justify="center"
+            )
+
+            entry.insert(
+                0,
+                "0"
+            )
+
+            entry.grid(
+                row=i,
+                column=1,
+                padx=10,
+                pady=4
+            )
+
+
+            self.vector_b_entries.append(
+                entry
+            )
+
 
     # ========================================================
     # OBTENER MATRIZ A
@@ -1003,27 +1003,50 @@ class AppCalculadoraMatriciales(ctk.CTk):
 
         matriz = []
 
-        for fila_entries in self.matriz_a_entries:
+        for i, fila_entries in enumerate(
+            self.matriz_a_entries
+        ):
 
             fila = []
 
-            for entry in fila_entries:
+            for j, entry in enumerate(
+                fila_entries
+            ):
 
-                valor = op.convertir_a_decimal(
-                    entry.get()
-                )
+                valor = entry.get().strip()
 
-                if valor is None:
+                if not valor:
 
                     raise ValueError(
-                        "Todos los valores de A deben ser numéricos."
+                        f"A[{i + 1}][{j + 1}] "
+                        "está vacío."
                     )
 
-                fila.append(valor)
 
-            matriz.append(fila)
+                numero = (
+                    conv.convertir_a_decimal(
+                        valor
+                    )
+                )
+
+                if numero is None:
+
+                    raise ValueError(
+                        f"A[{i + 1}][{j + 1}] "
+                        "no contiene un número válido."
+                    )
+
+
+                fila.append(
+                    numero
+                )
+
+            matriz.append(
+                fila
+            )
 
         return matriz
+
 
     # ========================================================
     # OBTENER MATRIZ B
@@ -1033,58 +1056,134 @@ class AppCalculadoraMatriciales(ctk.CTk):
 
         matriz = []
 
-        for fila_entries in self.matriz_b_entries:
+        for i, fila_entries in enumerate(
+            self.matriz_b_entries
+        ):
 
             fila = []
 
-            for entry in fila_entries:
+            for j, entry in enumerate(
+                fila_entries
+            ):
 
-                valor = op.convertir_a_decimal(
-                    entry.get()
-                )
+                valor = entry.get().strip()
 
-                if valor is None:
+                if not valor:
 
                     raise ValueError(
-                        "Todos los valores de B deben ser numéricos."
+                        f"B[{i + 1}][{j + 1}] "
+                        "está vacío."
                     )
 
-                fila.append(valor)
 
-            matriz.append(fila)
+                numero = (
+                    conv.convertir_a_decimal(
+                        valor
+                    )
+                )
+
+                if numero is None:
+
+                    raise ValueError(
+                        f"B[{i + 1}][{j + 1}] "
+                        "no contiene un número válido."
+                    )
+
+
+                fila.append(
+                    numero
+                )
+
+            matriz.append(
+                fila
+            )
 
         return matriz
 
+
     # ========================================================
-    # OBTENER VECTORES
+    # OBTENER VECTOR x
     # ========================================================
 
-    def obtener_vectores(self):
+    def obtener_vector_x(self):
 
-        vectores = []
+        vector = []
 
-        for entradas in self.vector_entries:
+        for i, entry in enumerate(
+            self.vector_x_entries
+        ):
 
-            vector = []
+            valor = entry.get().strip()
 
-            for entry in entradas:
+            if not valor:
 
-                valor = op.convertir_a_decimal(
-                    entry.get()
+                raise ValueError(
+                    f"x{i + 1} está vacío."
                 )
 
-                if valor is None:
 
-                    raise ValueError(
-                        "Todos los valores de los vectores "
-                        "deben ser numéricos."
-                    )
+            numero = (
+                conv.convertir_a_decimal(
+                    valor
+                )
+            )
 
-                vector.append(valor)
+            if numero is None:
 
-            vectores.append(vector)
+                raise ValueError(
+                    f"x{i + 1} no contiene "
+                    "un número válido."
+                )
 
-        return vectores
+
+            vector.append(
+                numero
+            )
+
+        return vector
+
+
+    # ========================================================
+    # OBTENER VECTOR b
+    # ========================================================
+
+    def obtener_vector_b(self):
+
+        vector = []
+
+        for i, entry in enumerate(
+            self.vector_b_entries
+        ):
+
+            valor = entry.get().strip()
+
+            if not valor:
+
+                raise ValueError(
+                    f"b{i + 1} está vacío."
+                )
+
+
+            numero = (
+                conv.convertir_a_decimal(
+                    valor
+                )
+            )
+
+            if numero is None:
+
+                raise ValueError(
+                    f"b{i + 1} no contiene "
+                    "un número válido."
+                )
+
+
+            vector.append(
+                numero
+            )
+
+        return vector
+
 
     # ========================================================
     # OBTENER ESCALAR
@@ -1092,17 +1191,41 @@ class AppCalculadoraMatriciales(ctk.CTk):
 
     def obtener_escalar(self):
 
-        valor = op.convertir_a_decimal(
-            self.entry_escalar.get()
+        entry = self.controles.get(
+            "Escalar:"
         )
 
-        if valor is None:
+        if entry is None:
 
             raise ValueError(
-                "El escalar debe ser un número válido."
+                "No existe el campo Escalar."
             )
 
-        return valor
+
+        valor = entry.get().strip()
+
+        if not valor:
+
+            raise ValueError(
+                "Debe ingresar un escalar."
+            )
+
+
+        numero = (
+            conv.convertir_a_decimal(
+                valor
+            )
+        )
+
+        if numero is None:
+
+            raise ValueError(
+                "El escalar no es válido."
+            )
+
+
+        return numero
+
 
     # ========================================================
     # CALCULAR
@@ -1112,26 +1235,14 @@ class AppCalculadoraMatriciales(ctk.CTk):
 
         try:
 
-            operacion = self.menu_operacion.get()
-            formato = self.menu_formato.get()
+            operacion = (
+                self.opcion_operacion.get()
+            )
 
-            matriz_a = None
-            matriz_b = None
-            vectores = []
+            formato = (
+                self.opcion_numform.get()
+            )
 
-            if self.matriz_a_entries:
-
-                matriz_a = self.obtener_matriz_a()
-
-            if self.matriz_b_entries:
-
-                matriz_b = self.obtener_matriz_b()
-
-            if self.vector_entries:
-
-                vectores = self.obtener_vectores()
-
-            resultado = ""
 
             # ------------------------------------------------
             # A + B
@@ -1139,18 +1250,31 @@ class AppCalculadoraMatriciales(ctk.CTk):
 
             if operacion == "A + B":
 
-                resultado_matriz = op.sumar_matrices(
-                    matriz_a,
-                    matriz_b
+                matriz_a = (
+                    self.obtener_matriz_a()
+                )
+
+                matriz_b = (
+                    self.obtener_matriz_b()
                 )
 
                 resultado = (
-                    "A + B =\n\n"
-                    + vis.matriz_a_string(
-                        resultado_matriz,
+                    op.sumar_matrices(
+                        matriz_a,
+                        matriz_b
+                    )
+                )
+
+                texto = (
+                    vis.operacion_matrices_a_string(
+                        matriz_a,
+                        matriz_b,
+                        resultado,
+                        "+",
                         formato
                     )
                 )
+
 
             # ------------------------------------------------
             # A - B
@@ -1158,18 +1282,31 @@ class AppCalculadoraMatriciales(ctk.CTk):
 
             elif operacion == "A - B":
 
-                resultado_matriz = op.restar_matrices(
-                    matriz_a,
-                    matriz_b
+                matriz_a = (
+                    self.obtener_matriz_a()
+                )
+
+                matriz_b = (
+                    self.obtener_matriz_b()
                 )
 
                 resultado = (
-                    "A - B =\n\n"
-                    + vis.matriz_a_string(
-                        resultado_matriz,
+                    op.restar_matrices(
+                        matriz_a,
+                        matriz_b
+                    )
+                )
+
+                texto = (
+                    vis.operacion_matrices_a_string(
+                        matriz_a,
+                        matriz_b,
+                        resultado,
+                        "-",
                         formato
                     )
                 )
+
 
             # ------------------------------------------------
             # cA
@@ -1177,22 +1314,30 @@ class AppCalculadoraMatriciales(ctk.CTk):
 
             elif operacion == "cA":
 
-                escalar = self.obtener_escalar()
+                matriz_a = (
+                    self.obtener_matriz_a()
+                )
 
-                resultado_matriz = (
+                escalar = (
+                    self.obtener_escalar()
+                )
+
+                resultado = (
                     op.multiplicar_matriz_escalar(
                         matriz_a,
                         escalar
                     )
                 )
 
-                resultado = (
-                    f"cA, con c = {escalar}\n\n"
-                    + vis.matriz_a_string(
-                        resultado_matriz,
+                texto = (
+                    vis.matriz_escalar_a_string(
+                        matriz_a,
+                        escalar,
+                        resultado,
                         formato
                     )
                 )
+
 
             # ------------------------------------------------
             # A × B
@@ -1200,273 +1345,128 @@ class AppCalculadoraMatriciales(ctk.CTk):
 
             elif operacion == "A × B":
 
-                resultado_matriz = (
+                matriz_a = (
+                    self.obtener_matriz_a()
+                )
+
+                matriz_b = (
+                    self.obtener_matriz_b()
+                )
+
+                resultado = (
                     op.multiplicar_matrices(
                         matriz_a,
                         matriz_b
                     )
                 )
 
-                resultado = (
-                    "A × B =\n\n"
-                    + vis.matriz_a_string(
-                        resultado_matriz,
-                        formato
-                    )
-                )
-
-            # ------------------------------------------------
-            # A × u
-            # ------------------------------------------------
-
-            elif operacion == "A × u":
-
-                resultado_vector = (
-                    op.producto_matriz_vector(
+                texto = (
+                    vis.producto_matrices_a_string(
                         matriz_a,
-                        vectores[0]
-                    )
-                )
-
-                resultado = (
-                    "A × u = b\n\n"
-                    + vis.vector_a_string(
-                        vectores[0],
-                        "u",
-                        formato
-                    )
-                    + "\n\n"
-                    + vis.resultado_a_string(
-                        resultado_vector,
-                        "b",
+                        matriz_b,
+                        resultado,
                         formato
                     )
                 )
 
+
             # ------------------------------------------------
-            # A(u + v)
+            # A × x → b
+            #
+            # A y x son conocidos.
+            # Se calcula b.
             # ------------------------------------------------
 
-            elif operacion == "A(u + v)":
+            elif operacion == "A × x → b":
 
-                vector_suma, resultado_vector = (
-                    op.matriz_sobre_suma_vectores(
+                matriz_a = (
+                    self.obtener_matriz_a()
+                )
+
+                vector_x = (
+                    self.obtener_vector_x()
+                )
+
+                vector_b, pasos = (
+                    op.producto_matriz_vector_detallado(
                         matriz_a,
-                        vectores
+                        vector_x
                     )
                 )
 
-                resultado = (
-                    "u + v =\n"
-                    + vis.vector_horizontal_a_string(
-                        vector_suma,
-                        formato
-                    )
-                    + "\n\nA(u + v) = b\n"
-                    + vis.vector_horizontal_a_string(
-                        resultado_vector,
-                        formato
-                    )
-                )
-
-            # ------------------------------------------------
-            # A(u + v + ...)
-            # ------------------------------------------------
-
-            elif operacion == "A(u + v + ...)":
-
-                vector_suma, resultado_vector = (
-                    op.matriz_sobre_suma_vectores(
+                texto = (
+                    vis.producto_matriz_vector_a_string(
                         matriz_a,
-                        vectores
-                    )
-                )
-
-                nombres = []
-
-                for i in range(len(vectores)):
-
-                    if i == 0:
-                        nombres.append("u")
-                    elif i == 1:
-                        nombres.append("v")
-                    else:
-                        nombres.append(f"v{i + 1}")
-
-                resultado = (
-                    f"{vis.nombres_suma_vectores(nombres)} =\n"
-                    + vis.vector_horizontal_a_string(
-                        vector_suma,
-                        formato
-                    )
-                    + "\n\n"
-                    + f"A({vis.nombres_suma_vectores(nombres)}) = b\n"
-                    + vis.vector_horizontal_a_string(
-                        resultado_vector,
+                        vector_x,
+                        vector_b,
                         formato
                     )
                 )
 
-            # ------------------------------------------------
-            # u + v
-            # ------------------------------------------------
-
-            elif operacion == "u + v":
-
-                resultado_vector = op.sumar_vectores(
-                    vectores
-                )
-
-                resultado = (
-                    "u + v =\n\n"
-                    + vis.vector_horizontal_a_string(
-                        resultado_vector,
-                        formato
+                texto += (
+                    "\n\n"
+                    + vis.pasos_producto_matriz_vector_a_string(
+                        pasos
                     )
                 )
 
+
             # ------------------------------------------------
-            # c(u)
+            # RESOLVER Ax = b
+            #
+            # A y b son conocidos.
+            # Se calcula x.
             # ------------------------------------------------
 
-            elif operacion == "c(u)":
+            elif operacion == "Resolver Ax = b":
 
-                escalar = self.obtener_escalar()
-
-                resultado_vector = (
-                    op.multiplicar_vector_escalar(
-                        vectores[0],
-                        escalar
-                    )
+                matriz_a = (
+                    self.obtener_matriz_a()
                 )
 
-                resultado = (
-                    f"c(u), con c = {escalar}\n\n"
-                    + vis.vector_horizontal_a_string(
-                        resultado_vector,
-                        formato
-                    )
+                vector_b = (
+                    self.obtener_vector_b()
                 )
 
-            # ------------------------------------------------
-            # A(cu)
-            # ------------------------------------------------
-
-            elif operacion == "A(cu)":
-
-                escalar = self.obtener_escalar()
-
-                vector_escalado = (
-                    op.multiplicar_vector_escalar(
-                        vectores[0],
-                        escalar
-                    )
-                )
-
-                resultado_vector = (
-                    op.producto_matriz_vector(
+                informacion = (
+                    sol.resolver_ecuacion_matricial(
                         matriz_a,
-                        vector_escalado
+                        vector_b
                     )
                 )
 
-                resultado = (
-                    "A(cu) = b\n\n"
-                    + vis.vector_horizontal_a_string(
-                        resultado_vector,
-                        formato
-                    )
-                )
-
-            # ------------------------------------------------
-            # PROPIEDAD DISTRIBUTIVA
-            # ------------------------------------------------
-
-            elif operacion == "A(u + v) = Au + Av":
-
-                izquierda, derecha = (
-                    op.propiedad_distributiva(
+                texto = (
+                    vis.ecuacion_matricial_a_string(
                         matriz_a,
-                        vectores[0],
-                        vectores[1]
-                    )
-                )
-
-                resultado = (
-                    "A(u + v):\n"
-                    + vis.vector_horizontal_a_string(
-                        izquierda,
-                        formato
-                    )
-                    + "\n\nAu + Av:\n"
-                    + vis.vector_horizontal_a_string(
-                        derecha,
+                        vector_b,
                         formato
                     )
                 )
 
-            # ------------------------------------------------
-            # PROPIEDAD ESCALAR
-            # ------------------------------------------------
-
-            elif operacion == "A(cu) = c(Au)":
-
-                escalar = self.obtener_escalar()
-
-                izquierda, derecha = (
-                    op.propiedad_escalar(
-                        matriz_a,
-                        vectores[0],
-                        escalar
-                    )
-                )
-
-                resultado = (
-                    "A(cu):\n"
-                    + vis.vector_horizontal_a_string(
-                        izquierda,
-                        formato
-                    )
-                    + "\n\nc(Au):\n"
-                    + vis.vector_horizontal_a_string(
-                        derecha,
+                texto += (
+                    "\n\n"
+                    + vis.solucion_ecuacion_matricial_a_string(
+                        informacion,
                         formato
                     )
                 )
 
-            # ------------------------------------------------
-            # COMBINACION LINEAL
-            # ------------------------------------------------
 
-            elif operacion == "Combinación lineal":
+            else:
 
-                self.abrir_combinacion_lineal(
-                    vectores,
-                    formato
+                raise ValueError(
+                    "Operación no reconocida."
                 )
 
-                return
 
             # ------------------------------------------------
-            # COLUMNAS DE A
+            # MOSTRAR RESULTADO
             # ------------------------------------------------
 
-            elif operacion == "Mostrar columnas de A":
-
-                resultado = vis.columnas_a_string(
-                    matriz_a,
-                    formato
-                )
-
-            self.texto_resultado.delete(
-                "1.0",
-                "end"
+            self._escribir_en_visor(
+                texto
             )
 
-            self.texto_resultado.insert(
-                "1.0",
-                resultado
-            )
 
         except ValueError as error:
 
@@ -1474,158 +1474,14 @@ class AppCalculadoraMatriciales(ctk.CTk):
                 str(error)
             )
 
-    # ========================================================
-    # COMBINACION LINEAL
-    # ========================================================
 
-    def abrir_combinacion_lineal(
-        self,
-        vectores,
-        formato
-    ):
+        except Exception as error:
 
-        ventana = ctk.CTkToplevel(self)
-
-        ventana.title(
-            "Combinación lineal"
-        )
-
-        ventana.geometry(
-            "450x500"
-        )
-
-        ventana.grab_set()
-
-        ctk.CTkLabel(
-            ventana,
-            text="Ingrese un escalar para cada vector",
-            font=ctk.CTkFont(
-                size=18,
-                weight="bold"
-            )
-        ).pack(
-            pady=15
-        )
-
-        entradas = []
-
-        nombres = [
-            "u",
-            "v",
-            "w",
-            "z",
-            "p",
-            "q",
-            "r",
-            "s"
-        ]
-
-        for i in range(len(vectores)):
-
-            if i < len(nombres):
-
-                nombre = nombres[i]
-
-            else:
-
-                nombre = f"v{i + 1}"
-
-            frame = ctk.CTkFrame(
-                ventana
+            self.mostrar_error(
+                "Ocurrió un error inesperado:\n\n"
+                + str(error)
             )
 
-            frame.pack(
-                fill="x",
-                padx=30,
-                pady=5
-            )
-
-            ctk.CTkLabel(
-                frame,
-                text=f"Escalar de {nombre}:"
-            ).pack(
-                side="left",
-                padx=10
-            )
-
-            entry = ctk.CTkEntry(
-                frame,
-                width=100
-            )
-
-            entry.pack(
-                side="right",
-                padx=10
-            )
-
-            entry.insert(
-                0,
-                "1"
-            )
-
-            entradas.append(entry)
-
-        def calcular_combinacion():
-
-            try:
-
-                escalares = []
-
-                for entry in entradas:
-
-                    valor = op.convertir_a_decimal(
-                        entry.get()
-                    )
-
-                    if valor is None:
-
-                        raise ValueError(
-                            "Todos los escalares deben "
-                            "ser números válidos."
-                        )
-
-                    escalares.append(valor)
-
-                resultado_vector = (
-                    op.combinacion_lineal(
-                        vectores,
-                        escalares
-                    )
-                )
-
-                resultado = (
-                    "Combinación lineal:\n\n"
-                    + vis.vector_horizontal_a_string(
-                        resultado_vector,
-                        formato
-                    )
-                )
-
-                self.texto_resultado.delete(
-                    "1.0",
-                    "end"
-                )
-
-                self.texto_resultado.insert(
-                    "1.0",
-                    resultado
-                )
-
-                ventana.destroy()
-
-            except ValueError as error:
-
-                self.mostrar_error(
-                    str(error)
-                )
-
-        ctk.CTkButton(
-            ventana,
-            text="Calcular",
-            command=calcular_combinacion
-        ).pack(
-            pady=20
-        )
 
     # ========================================================
     # MOSTRAR ERROR
@@ -1636,15 +1492,39 @@ class AppCalculadoraMatriciales(ctk.CTk):
         mensaje
     ):
 
-        self.texto_resultado.delete(
-            "1.0",
+        self._escribir_en_visor(
+            "ERROR\n\n"
+            + mensaje
+        )
+
+
+    # ========================================================
+    # ESCRIBIR EN VISOR
+    # ========================================================
+
+    def _escribir_en_visor(
+        self,
+        texto
+    ):
+
+        self.txt_resultados.configure(
+            state="normal"
+        )
+
+        self.txt_resultados.delete(
+            "0.0",
             "end"
         )
 
-        self.texto_resultado.insert(
-            "1.0",
-            "ERROR:\n\n" + mensaje
+        self.txt_resultados.insert(
+            "0.0",
+            texto
         )
+
+        self.txt_resultados.configure(
+            state="disabled"
+        )
+
 
     # ========================================================
     # LIMPIAR
@@ -1652,25 +1532,30 @@ class AppCalculadoraMatriciales(ctk.CTk):
 
     def limpiar(self):
 
-        for widget in self.frame_entrada.winfo_children():
-            widget.destroy()
-
         self.matriz_a_entries = []
         self.matriz_b_entries = []
-        self.vector_entries = []
+        self.vector_x_entries = []
+        self.vector_b_entries = []
 
-        self.texto_resultado.delete(
-            "1.0",
-            "end"
+
+        for widget in (
+            self.frame_centro.winfo_children()
+        ):
+
+            widget.destroy()
+
+
+        self._escribir_en_visor(
+            "Seleccione una operación."
         )
-
-        self.cambiar_operacion()
 
 
 # ============================================================
-# EJECUCION
+# EJECUTAR PROGRAMA
 # ============================================================
 
 if __name__ == "__main__":
+
     app = AppCalculadoraMatriciales()
+
     app.mainloop()

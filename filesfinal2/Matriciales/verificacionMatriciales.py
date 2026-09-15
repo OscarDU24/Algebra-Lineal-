@@ -10,6 +10,7 @@ TOLERANCIA = 1e-9
 # ============================================================
 
 def verificar_matriz(matriz):
+
     if matriz is None or len(matriz) == 0:
         return False
 
@@ -19,6 +20,7 @@ def verificar_matriz(matriz):
     cantidad_columnas = len(matriz[0])
 
     for fila in matriz:
+
         if fila is None:
             return False
 
@@ -33,6 +35,7 @@ def verificar_matriz(matriz):
 # ============================================================
 
 def verificar_vector(vector):
+
     return (
         vector is not None
         and len(vector) > 0
@@ -44,6 +47,7 @@ def verificar_vector(vector):
 # ============================================================
 
 def obtener_dimensiones_matriz(matriz):
+
     if not verificar_matriz(matriz):
         return 0, 0
 
@@ -61,6 +65,7 @@ def verificar_mismas_dimensiones(
     matriz_a,
     matriz_b
 ):
+
     if not verificar_matriz(matriz_a):
         return False
 
@@ -93,6 +98,7 @@ def verificar_suma_matrices(
     matriz_a,
     matriz_b
 ):
+
     return verificar_mismas_dimensiones(
         matriz_a,
         matriz_b
@@ -107,6 +113,7 @@ def verificar_resta_matrices(
     matriz_a,
     matriz_b
 ):
+
     return verificar_mismas_dimensiones(
         matriz_a,
         matriz_b
@@ -114,13 +121,14 @@ def verificar_resta_matrices(
 
 
 # ============================================================
-# VERIFICAR MULTIPLICACION POR ESCALAR
+# VERIFICAR MATRIZ Y ESCALAR
 # ============================================================
 
 def verificar_matriz_escalar(
     matriz,
     escalar
 ):
+
     if not verificar_matriz(matriz):
         return False
 
@@ -138,6 +146,7 @@ def verificar_multiplicacion_matrices(
     matriz_a,
     matriz_b
 ):
+
     if not verificar_matriz(matriz_a):
         return False
 
@@ -167,6 +176,7 @@ def dimensiones_resultado_multiplicacion(
     matriz_a,
     matriz_b
 ):
+
     if not verificar_multiplicacion_matrices(
         matriz_a,
         matriz_b
@@ -196,6 +206,7 @@ def verificar_dimensiones_matriz_vector(
     matriz,
     vector
 ):
+
     if not verificar_matriz(matriz):
         return False
 
@@ -212,6 +223,30 @@ def verificar_dimensiones_matriz_vector(
 
 
 # ============================================================
+# VERIFICAR ECUACION MATRICIAL Ax = b
+# ============================================================
+
+def verificar_ecuacion_matricial(
+    matriz,
+    vector_b
+):
+
+    if not verificar_matriz(matriz):
+        return False
+
+    if not verificar_vector(vector_b):
+        return False
+
+    filas, columnas = (
+        obtener_dimensiones_matriz(
+            matriz
+        )
+    )
+
+    return filas == len(vector_b)
+
+
+# ============================================================
 # VERIFICAR PROPIEDAD ENTRE VECTORES
 # ============================================================
 
@@ -219,6 +254,7 @@ def verificar_propiedad(
     izquierda,
     derecha
 ):
+
     if not verificar_vector(izquierda):
         return False
 
@@ -229,10 +265,12 @@ def verificar_propiedad(
         return False
 
     for i in range(len(izquierda)):
+
         if abs(
             izquierda[i]
             - derecha[i]
         ) > TOLERANCIA:
+
             return False
 
     return True
@@ -247,21 +285,27 @@ def verificar_resultado(
     vector_x,
     vector_b
 ):
+
+    if not verificar_ecuacion_matricial(
+        matriz,
+        vector_b
+    ):
+        return False
+
     if not verificar_dimensiones_matriz_vector(
         matriz,
         vector_x
     ):
         return False
 
-    if not verificar_vector(vector_b):
-        return False
-
     resultado = []
 
     for fila in matriz:
+
         suma = 0.0
 
         for j in range(len(vector_x)):
+
             suma += (
                 fila[j]
                 * vector_x[j]
