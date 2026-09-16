@@ -1,0 +1,1 @@
+TOLERANCIA = 1e-9

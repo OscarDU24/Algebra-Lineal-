@@ -1,0 +1,9 @@
+# Archivos temporales de editores
+*.swp
+*~
+#*#
+.#*
+
+# Caché de Python
+__pycache__/
+*.pyc
