@@ -1,4 +1,5 @@
-TOLERANCIA = 1e-9
+from .constantesVectores import TOLERANCIA
+from .utilidadesVectores import copiar_vector
 
 
 # ============================================================
@@ -13,7 +14,7 @@ def obtener_resultado_vector(resultado):
     el vector original.
     """
 
-    return resultado[:]
+    return copiar_vector(resultado)
 
 
 # ============================================================

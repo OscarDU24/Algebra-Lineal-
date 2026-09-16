@@ -1,3 +1,6 @@
+from .conversionesVectores import convertir_a_decimal
+
+
 def leer_entero_positivo(mensaje):
     """
     Pide un numero entero estrictamente mayor que cero,
@@ -36,16 +39,15 @@ def leer_flotante(mensaje):
 
         entrada = input(mensaje).strip()
 
-        try:
+        valor = convertir_a_decimal(entrada)
 
-            return float(entrada)
+        if valor is not None:
+            return valor
 
-        except ValueError:
-
-            print(
-                "Error: debe ingresar un numero valido "
-                "(ej. 5, -3.2, 0.25)."
-            )
+        print(
+            "Error: debe ingresar un numero valido "
+            "(ej. 5, -3.2, 1/3)."
+        )
 
 
 def leer_dimension():

@@ -1,4 +1,4 @@
-TOLERANCIA = 1e-9
+from .constantesVectores import TOLERANCIA
 
 
 # ============================================================
@@ -33,14 +33,10 @@ def sumar_vectores(vector_u, vector_v):
             "Los vectores deben tener la misma dimension."
         )
 
-    resultado = []
-
-    for i in range(len(vector_u)):
-        resultado.append(
-            vector_u[i] + vector_v[i]
-        )
-
-    return resultado
+    return [
+        componente_u + componente_v
+        for componente_u, componente_v in zip(vector_u, vector_v)
+    ]
 
 
 def restar_vectores(vector_u, vector_v):
@@ -55,14 +51,10 @@ def restar_vectores(vector_u, vector_v):
             "Los vectores deben tener la misma dimension."
         )
 
-    resultado = []
-
-    for i in range(len(vector_u)):
-        resultado.append(
-            vector_u[i] - vector_v[i]
-        )
-
-    return resultado
+    return [
+        componente_u - componente_v
+        for componente_u, componente_v in zip(vector_u, vector_v)
+    ]
 
 
 def multiplicar_vector_escalar(vector, escalar):
@@ -71,14 +63,10 @@ def multiplicar_vector_escalar(vector, escalar):
     por un escalar.
     """
 
-    resultado = []
-
-    for componente in vector:
-        resultado.append(
-            componente * escalar
-        )
-
-    return resultado
+    return [
+        componente * escalar
+        for componente in vector
+    ]
 
 
 def producto_punto(vector_u, vector_v):
@@ -93,14 +81,10 @@ def producto_punto(vector_u, vector_v):
             "Los vectores deben tener la misma dimension."
         )
 
-    resultado = 0.0
-
-    for i in range(len(vector_u)):
-        resultado += (
-            vector_u[i] * vector_v[i]
-        )
-
-    return resultado
+    return sum(
+        componente_u * componente_v
+        for componente_u, componente_v in zip(vector_u, vector_v)
+    )
 
 
 # ============================================================
@@ -114,10 +98,7 @@ def magnitud_vector(vector):
     ||v|| = sqrt(v1² + v2² + ... + vn²)
     """
 
-    suma = 0.0
-
-    for componente in vector:
-        suma += componente ** 2
+    suma = sum(componente ** 2 for componente in vector)
 
     return suma ** 0.5
 
@@ -136,14 +117,10 @@ def normalizar_vector(vector):
             "No se puede normalizar el vector cero."
         )
 
-    resultado = []
-
-    for componente in vector:
-        resultado.append(
-            componente / magnitud
-        )
-
-    return resultado
+    return [
+        componente / magnitud
+        for componente in vector
+    ]
 
 
 # ============================================================
@@ -187,16 +164,7 @@ def vectores_a_matriz(vectores, vector_resultado):
                 "Todos los vectores deben tener la misma dimension."
             )
 
-    matriz = []
-
-    for i in range(dimension):
-        fila = []
-
-        for vector in vectores:
-            fila.append(vector[i])
-
-        fila.append(vector_resultado[i])
-
-        matriz.append(fila)
-
-    return matriz
+    return [
+        [vector[i] for vector in vectores] + [vector_resultado[i]]
+        for i in range(dimension)
+    ]

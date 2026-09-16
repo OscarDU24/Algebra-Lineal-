@@ -1,26 +1,6 @@
 from fractions import Fraction
 
 
-"""
-        XXXXXXXXXXXX
-      XX::::::::::::XX
-    XX::::::::::::::::XX
-    XX::::::::::::::::XX
-  XXXXXX::        ::XXXXXX
-  XXXX  XXXXXXXXXXXX  XXXX
-XX  XX                XX  XX
-XX        XX    XX        XX
-  XXXX    XX    XX   XXXXX
-  XXXXXX    ::::    XXXXXX
-XX    XXXXXXXXXXXXXXXX    XX
-XX    XXXXXXXXXXXXXXXX    XX
-  XXXXXX::::XXXX::::XXXXXX
-    XX::XXXX::::XXXX::XXX
-    XX::::::XXXX::::::XXX
-      XXXXXX    XXXXXX
-"""
-
-
 def convertir_a_decimal(entrada):
     """
     Convierte una entrada textual a un numero decimal.
@@ -40,7 +20,7 @@ def convertir_a_decimal(entrada):
     try:
         return float(Fraction(entrada))
 
-    except ValueError:
+    except (ValueError, ZeroDivisionError):
 
         try:
             return float(entrada)
@@ -56,12 +36,9 @@ def convertir_a_fraccion(entrada):
     en forma de fraccion.
     """
 
-    numerador, denominador = entrada.as_integer_ratio()
+    fraccion = Fraction(str(entrada)).limit_denominator()
 
-    if denominador == 1:
-        return f"{numerador}"
-
-    return f"{numerador}/{denominador}".rstrip("/1")
+    return str(fraccion)
 
 
 def convertir_vector_a_fracciones(vector):

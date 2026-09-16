@@ -1,9 +1,4 @@
-def copiar_vector(vector):
-    """
-    Devuelve una copia independiente del vector.
-    """
-
-    return vector[:]
+from .utilidadesVectores import copiar_vector
 
 
 def imprimir_vector(vector, nombre="Vector"):
