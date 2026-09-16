@@ -2,7 +2,7 @@
 # VISTA - SISTEMAS NUMÉRICOS
 # ============================================================
 
-import customtkinter as ctk
+from core.ui.ctk_compat import ctk
 # Importamos la lógica adaptada
 from core.sistemas_numericos import operaciones_numericas as op_num
 

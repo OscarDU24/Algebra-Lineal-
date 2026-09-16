@@ -3,7 +3,7 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-import customtkinter as ctk
+from core.ui.ctk_compat import ctk
 from core.vectores import conversionesVectores as conv
 from core.vectores import eliminacionVectores as ev
 

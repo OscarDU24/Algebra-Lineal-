@@ -2,7 +2,7 @@
 # VISTA - CÁLCULO DE LÍMITES
 # ============================================================
 
-import customtkinter as ctk
+from core.ui.ctk_compat import ctk
 # Importamos la lógica pura (ajusta la ruta si es necesario)
 from core.limites import operaciones_limites as op_lim
 

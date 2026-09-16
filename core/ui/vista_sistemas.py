@@ -2,7 +2,7 @@
 # VISTA - SISTEMAS DE ECUACIONES E INDEPENDENCIA LINEAL
 # ============================================================
 
-import customtkinter as ctk
+from core.ui.ctk_compat import ctk
 # Importamos la lógica pura (ajusta la ruta si es necesario)
 from core.sistemas import operaciones_sistemas as op_sis
 

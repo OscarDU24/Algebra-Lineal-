@@ -2,7 +2,7 @@
 # CALCULADORA DE MATRICES Y VECTORES - FIA UAM
 # ============================================================
 
-import customtkinter as ctk
+from core.ui.ctk_compat import ctk
 
 from core.matriciales import conversionesMatriciales as conv
 from core.matriciales import operacionesMatriciales as op

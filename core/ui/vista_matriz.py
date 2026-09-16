@@ -1,4 +1,4 @@
-import customtkinter as ctk
+from core.ui.ctk_compat import ctk
 from prettytable import PrettyTable, HRuleStyle, VRuleStyle
 
 # 1. IMPORTACIONES ADAPTADAS A TU NUEVA ESTRUCTURA (core/lineal/...)

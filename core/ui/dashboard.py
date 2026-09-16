@@ -1,24 +1,65 @@
 import tkinter as tk
 from tkinter import messagebox
+import ctypes
+from pathlib import Path
+from PIL import Image, ImageTk
 
 class Dashboard:
     def __init__(self, root):
         self.root = root
+        self.fuentes_registradas = []
+        self.fuente_titulo = "Segoe UI"
+        self.fuente_tarjetas = "Segoe UI"
+        self.fuente_menu = "Segoe UI"
+        self.registrar_fuentes()
+        self.root.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
         
-        # Fondo claro para aproximar la estética del diseño
-        self.root.configure(bg="#ececec")
+        # El canvas permite conservar las transparencias de Bordes.png.
+        self.root.configure(bg="#ffffff")
+        self.root.geometry("980x780")
         self.root.title("Calculadora de Álgebra Lineal - FIA UAM")
+
+        # ==========================================
+        # INYECCIÓN DEL FONDO DECORATIVO (CAPA 0)
+        # ==========================================
+        
+        try:
+            ruta_fondo = Path(__file__).resolve().parents[1] / "assets" / "Bordes.png"
+            self.fondo = Image.open(ruta_fondo)
+            self.bg_image = ImageTk.PhotoImage(self.fondo)
+        except Exception as e:
+            print(f"Advertencia: No se pudo cargar el fondo decorativo: {e}")
+            self.fondo = None
+            self.bg_image = None
+
+        self.contenido = tk.Canvas(
+            self.root,
+            width=980,
+            height=780,
+            bg="#ffffff",
+            highlightthickness=0,
+            borderwidth=0,
+        )
+        self.contenido.pack(expand=True, fill="both")
+        if self.bg_image is not None:
+            self.contenido.create_image(0, 0, image=self.bg_image, anchor="nw")
+
+
         
         # ==========================================
         # BARRA DE MENÚ SUPERIOR
         # ==========================================
-        self.menu_bar = tk.Menu(self.root)
+        self.menu_bar = tk.Menu(self.root, font=(self.fuente_menu, 11))
         
-        self.menu_archivo = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_archivo.add_command(label="Salir", command=self.root.quit)
+        self.menu_archivo = tk.Menu(
+            self.menu_bar, tearoff=0, font=(self.fuente_menu, 11)
+        )
+        self.menu_archivo.add_command(label="Salir", command=self.cerrar_aplicacion)
         self.menu_bar.add_cascade(label="Archivo", menu=self.menu_archivo)
         
-        self.menu_ayuda = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_ayuda = tk.Menu(
+            self.menu_bar, tearoff=0, font=(self.fuente_menu, 11)
+        )
         self.menu_ayuda.add_command(label="Acerca de", command=self.mostrar_acerca_de)
         self.menu_bar.add_cascade(label="Ayuda", menu=self.menu_ayuda)
         
@@ -27,26 +68,13 @@ class Dashboard:
         # ==========================================
         # TÍTULO PRINCIPAL
         # ==========================================
-        self.lbl_titulo = tk.Label(
-            self.root, 
-            text="Seleccione su sistema", 
-            font=("Segoe UI", 24, "bold"),
-            bg="#ececec",
-            fg="#000000"
+        self.contenido.create_text(
+            490,
+            92,
+            text="Seleccione su sistema",
+            font=(self.fuente_titulo, 75),
+            fill="#FFFFFF",
         )
-        self.lbl_titulo.pack(pady=(20, 10))
-
-        # ==========================================
-        # CONTENEDOR DE LA CUADRÍCULA (GRID)
-        # ==========================================
-        self.frame_grid = tk.Frame(self.root, bg="#ececec")
-        self.frame_grid.pack(expand=True, fill="both", padx=35, pady=10)
-
-        # uniform="card" garantiza proporciones idénticas en todas las celdas
-        for i in range(3):
-            self.frame_grid.columnconfigure(i, weight=1, uniform="card_col")
-        for j in range(2):
-            self.frame_grid.rowconfigure(j, weight=1, uniform="card_row")
 
         # ==========================================
         # CREACIÓN DE TARJETAS
@@ -65,15 +93,15 @@ class Dashboard:
         # BARRA DE ESTADO INFERIOR
         # ==========================================
         self.lbl_estado = tk.Label(
-            self.root, 
+            self.contenido,
             text="Módulo activo: Ninguno", 
-            font=("Segoe UI", 11),
+            font=(self.fuente_menu, 11),
             bg="#dcdcdc",
             fg="#333333",
             anchor="center",
             pady=6
         )
-        self.lbl_estado.pack(side="bottom", fill="x")
+        self.contenido.create_window(490, 766, window=self.lbl_estado, width=980, height=28)
 
     def crear_tarjeta(self, fila, columna, texto, comando):
         """
@@ -82,18 +110,38 @@ class Dashboard:
         """
         # Contenedor principal de la tarjeta con borde externo
         card_frame = tk.Frame(
-            self.frame_grid, 
+            self.contenido,
             bg="white", 
+            width=255,
+            height=220,
             highlightbackground="#1a1a1a", 
             highlightthickness=1
         )
-        card_frame.grid(row=fila, column=columna, padx=12, pady=12, sticky="nsew")
+        posiciones_x = (180, 490, 800)
+        posiciones_y = (330, 570)
+        self.contenido.create_window(
+            posiciones_x[columna],
+            posiciones_y[fila],
+            window=card_frame,
+            width=255,
+            height=220,
+        )
+        card_frame.grid_propagate(False)
+
+        preview_frame = tk.Frame(
+            card_frame,
+            bg="#f7f7f7",
+            width=210,
+            height=145,
+        )
+        preview_frame.pack(padx=8, pady=(8, 4))
+        preview_frame.pack_propagate(False)
 
         # Botón superior (Área de vista previa clickeable)
         btn_vista_previa = tk.Button(
-            card_frame,
+            preview_frame,
             text="[ Vista Previa ]",
-            font=("Segoe UI", 11, "italic"),
+            font=(self.fuente_menu, 10, "italic"),
             fg="#888888",
             bg="#f7f7f7",
             activebackground="#ebebeb",
@@ -102,19 +150,57 @@ class Dashboard:
             cursor="hand2",
             command=comando
         )
-        btn_vista_previa.pack(expand=True, fill="both", padx=8, pady=(8, 4))
+        btn_vista_previa.pack(expand=True, fill="both")
 
         # Etiqueta inferior con el nombre del módulo
         lbl_nombre = tk.Label(
             card_frame,
             text=texto,
-            font=("Segoe UI", 11, "bold"),
+            font=(self.fuente_tarjetas, 11),
             bg="white",
             fg="#000000",
             justify="center",
             pady=12
         )
         lbl_nombre.pack(side="bottom", fill="x")
+
+    def registrar_fuentes(self):
+        """Registra las fuentes solo durante la vida de esta aplicación."""
+        if not hasattr(ctypes, "windll"):
+            return
+
+        AddFontResourceExW = ctypes.windll.gdi32.AddFontResourceExW
+        AddFontResourceExW.argtypes = [ctypes.c_wchar_p, ctypes.c_uint, ctypes.c_void_p]
+        AddFontResourceExW.restype = ctypes.c_int
+
+        carpeta_fuentes = Path(__file__).resolve().parents[1] / "assets" / "fonts"
+        fuentes = {
+            "UltraCondensedSansSerif.ttf": ("fuente_titulo", "UltraCondensedSansSerif"),
+            "HelveticaNowDisplay-Bold.ttf": ("fuente_tarjetas", "Helvetica Now Display"),
+            "Democratica Bold.ttf": ("fuente_menu", "Democratica"),
+        }
+
+        for nombre_archivo, (atributo, familia) in fuentes.items():
+            ruta = carpeta_fuentes / nombre_archivo
+            if ruta.exists() and AddFontResourceExW(str(ruta), 0x10, None):
+                self.fuentes_registradas.append(ruta)
+                setattr(self, atributo, familia)
+
+    def desregistrar_fuentes(self):
+        if not hasattr(ctypes, "windll"):
+            return
+
+        RemoveFontResourceExW = ctypes.windll.gdi32.RemoveFontResourceExW
+        RemoveFontResourceExW.argtypes = [ctypes.c_wchar_p, ctypes.c_uint, ctypes.c_void_p]
+        RemoveFontResourceExW.restype = ctypes.c_int
+
+        for ruta in self.fuentes_registradas:
+            RemoveFontResourceExW(str(ruta), 0x10, None)
+        self.fuentes_registradas.clear()
+
+    def cerrar_aplicacion(self):
+        self.desregistrar_fuentes()
+        self.root.destroy()
 
     # ==========================================
     # FUNCIONES DE TRANSICIÓN (CONTROLADORES)
