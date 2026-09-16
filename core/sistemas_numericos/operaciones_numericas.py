@@ -1,4 +1,4 @@
-# Módulo de conversión entre sistemas numéricos con procedimiento algebraico.
+# Módulo de conversión entre sistemas numéricos con procedimiento algebraico...
 
 PRECISION_DECIMALES = 8
 
