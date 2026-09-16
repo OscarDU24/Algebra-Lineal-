@@ -307,6 +307,47 @@ def matriz_escalar_a_string(
 
 
 # ============================================================
+# MOSTRAR TRANSPOSICION DE UNA MATRIZ
+# ============================================================
+
+def matriz_transpuesta_a_string(
+    matriz,
+    transpuesta,
+    formato="Decimales"
+):
+
+    salida = []
+
+    salida.append(
+        "A ="
+    )
+
+    salida.append(
+        matriz_a_string(
+            matriz,
+            formato
+        )
+    )
+
+    salida.append("")
+
+    salida.append(
+        "A^T ="
+    )
+
+    salida.append(
+        matriz_a_string(
+            transpuesta,
+            formato
+        )
+    )
+
+    return "\n".join(
+        salida
+    )
+
+
+# ============================================================
 # MOSTRAR COLUMNAS DE UNA MATRIZ
 # ============================================================
 

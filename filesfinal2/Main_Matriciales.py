@@ -155,6 +155,7 @@ class AppCalculadoraMatriciales(ctk.CTk):
                 "A - B",
                 "cA",
                 "A × B",
+                "Transponer A",
                 "A × x → b",
                 "Resolver Ax = b"
             ],
@@ -393,6 +394,27 @@ class AppCalculadoraMatriciales(ctk.CTk):
             self.crear_control_dimension(
                 "Columnas de B:",
                 6,
+                2
+            )
+
+            self.crear_boton_generar()
+
+
+        # ----------------------------------------------------
+        # TRANSPONER A
+        # ----------------------------------------------------
+
+        elif operacion == "Transponer A":
+
+            self.crear_control_dimension(
+                "Filas de A:",
+                0,
+                2
+            )
+
+            self.crear_control_dimension(
+                "Columnas de A:",
+                2,
                 2
             )
 
@@ -1365,6 +1387,31 @@ class AppCalculadoraMatriciales(ctk.CTk):
                         matriz_a,
                         matriz_b,
                         resultado,
+                        formato
+                    )
+                )
+
+
+            # ------------------------------------------------
+            # TRANSPONER A
+            # ------------------------------------------------
+
+            elif operacion == "Transponer A":
+
+                matriz_a = (
+                    self.obtener_matriz_a()
+                )
+
+                transpuesta = (
+                    op.transponer_matriz(
+                        matriz_a
+                    )
+                )
+
+                texto = (
+                    vis.matriz_transpuesta_a_string(
+                        matriz_a,
+                        transpuesta,
                         formato
                     )
                 )

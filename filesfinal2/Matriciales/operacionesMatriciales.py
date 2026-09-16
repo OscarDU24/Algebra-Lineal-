@@ -188,6 +188,52 @@ def multiplicar_matrices(
 
 
 # ============================================================
+# TRANSPOSICION DE UNA MATRIZ
+#
+# Si A tiene dimensiones m x n,
+# entonces A^T tendra dimensiones n x m.
+#
+# Las filas de A se convierten en columnas
+# de la matriz transpuesta.
+# ============================================================
+
+def transponer_matriz(
+    matriz
+):
+
+    if not ver.verificar_matriz(
+        matriz
+    ):
+        raise ValueError(
+            "La matriz no es valida."
+        )
+
+    filas, columnas = (
+        ver.obtener_dimensiones_matriz(
+            matriz
+        )
+    )
+
+    resultado = []
+
+    for j in range(columnas):
+
+        nueva_fila = []
+
+        for i in range(filas):
+
+            nueva_fila.append(
+                matriz[i][j]
+            )
+
+        resultado.append(
+            nueva_fila
+        )
+
+    return resultado
+
+
+# ============================================================
 # MULTIPLICACION DE MATRIZ POR VECTOR
 #
 # Esta operacion permite evaluar:
