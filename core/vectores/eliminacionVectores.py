@@ -1,3 +1,5 @@
+import math
+
 from .constantesVectores import TOLERANCIA
 
 
@@ -168,3 +170,67 @@ def vectores_a_matriz(vectores, vector_resultado):
         [vector[i] for vector in vectores] + [vector_resultado[i]]
         for i in range(dimension)
     ]
+
+def producto_cruz(vector_u, vector_v):
+    """
+    Calcula el producto cruz de dos vectores de R3.
+
+    u x v = [u2*v3 - u3*v2,
+            u3*v1 - u1*v3,
+            u1*v2 - u2*v1]
+    """
+
+    if len(vector_u) != 3 or len(vector_v) != 3:
+        raise ValueError("El producto cruz solo esta definido para 3 dimensiones.")
+
+    return [
+        vector_u[1] * vector_v[2] - vector_u[2] * vector_v[1],
+        vector_u[2] * vector_v[0] - vector_u[0] * vector_v[2],
+        vector_u[0] * vector_v[1] - vector_u[1] * vector_v[0]
+    ]
+
+def angulo_entre_vectores(vector_u, vector_v):
+    """
+    Calcula el angulo entre dos vectores en grados.
+
+    cos(theta) = (u . v) / (||u|| * ||v||)
+    theta = arccos(cos(theta))
+    """
+
+    dot = producto_punto(vector_u, vector_v)
+    mag_u = magnitud_vector(vector_u)
+    mag_v = magnitud_vector(vector_v)
+
+    if mag_u < TOLERANCIA or mag_v < TOLERANCIA:
+        raise ValueError("No se puede calcular el angulo con el vector cero.")
+
+    cos_theta = max(-1.0, min(1.0, dot / (mag_u * mag_v)))
+
+    return math.degrees(math.acos(cos_theta))
+
+# ============================================================
+# PROYECCIÓN Y DISTANCIA
+# ============================================================
+
+def proyeccion_vector(vector_u, vector_v):
+    """
+    Calcula la proyección ortogonal del vector u sobre el vector v.
+    proj_v(u) = ((u · v) / ||v||²) * v
+    """
+    dot_uv = producto_punto(vector_u, vector_v)
+    mag_v_sq = sum(componente ** 2 for componente in vector_v)
+
+    if mag_v_sq < TOLERANCIA:
+        raise ValueError("No se puede proyectar sobre el vector cero.")
+
+    escalar = dot_uv / mag_v_sq
+    return multiplicar_vector_escalar(vector_v, escalar)
+
+
+def distancia_vectores(vector_u, vector_v):
+    """
+    Calcula la distancia euclidiana entre dos vectores.
+    d(u, v) = ||u - v||
+    """
+    diferencia = restar_vectores(vector_u, vector_v)
+    return magnitud_vector(diferencia)

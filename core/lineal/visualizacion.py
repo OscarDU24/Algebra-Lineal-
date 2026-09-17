@@ -12,8 +12,8 @@ def imprimir_matriz(matriz, titulo=""):
     for fila in matriz:
         print("  | ", end="")
         for j in range(columnas - 1):
-            print(f"{fila[j]:9.4f} ", end="")
-        print(f"| {fila[-1]:9.4f} |")
+            print(f"{fila[j]:9.2f} ", end="")
+            print(f"| {fila[-1]:9.2f} |")
 
 
 def imprimir_sistema_ecuaciones(matriz):

@@ -11,7 +11,7 @@ def imprimir_vector(vector, nombre="Vector"):
     for componente in vector:
 
         print(
-            f"| {componente:9.4f} |"
+            f"| {componente:9.2f} |"
         )
 
 
@@ -28,7 +28,7 @@ def vector_a_string(vector, nombre="Vector"):
     for componente in vector:
 
         lineas.append(
-            f"| {componente:9.4f} |"
+            f"| {componente:9.2f} |"
         )
 
     return "\n".join(lineas)

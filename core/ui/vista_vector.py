@@ -153,7 +153,11 @@ class VistaVector(ctk.CTkToplevel):
                 "Magnitud de u",
                 "Magnitud de v",
                 "Normalizar u",
-                "Normalizar v"
+                "Normalizar v",
+                "Producto cruz",
+                "Ángulo entre u y v",
+                "Proyección de u sobre v",
+                "Distancia entre u y v"
             ]
         )
 
@@ -195,6 +199,7 @@ class VistaVector(ctk.CTkToplevel):
                 weight="bold"
             ),
             command=self.accion_calcular
+
         )
 
         btn_calcular.pack(
@@ -454,31 +459,24 @@ class VistaVector(ctk.CTkToplevel):
     # FORMATEAR VECTOR
     # ============================================================
 
+    def formatear_numero(self, numero):
+        """Formatea un resultado decimal con dos cifras visibles."""
+
+        if self.opcion_numform.get() == "Fracciones":
+            return conv.convertir_a_fraccion(numero)
+
+        return f"{numero:.2f}"
+
     def vector_a_string(
         self,
         vector,
         nombre="Vector"
     ):
 
-        formato = self.opcion_numform.get()
-
         valores = []
 
         for componente in vector:
-
-            if formato == "Fracciones":
-
-                valores.append(
-                    conv.convertir_a_fraccion(
-                        componente
-                    )
-                )
-
-            else:
-
-                valores.append(
-                    f"{componente:.6f}".rstrip("0").rstrip(".")
-                )
+            valores.append(self.formatear_numero(componente))
 
         resultado = [
             f"{nombre} = ["
@@ -547,6 +545,10 @@ class VistaVector(ctk.CTkToplevel):
                 )
 
                 salida.append(
+                    "Cada componente: ui + vi"
+                )
+
+                salida.append(
                     self.vector_a_string(
                         resultado,
                         "Resultado"
@@ -566,6 +568,10 @@ class VistaVector(ctk.CTkToplevel):
 
                 salida.append(
                     "u - v"
+                )
+
+                salida.append(
+                    "Cada componente: ui - vi"
                 )
 
                 salida.append(
@@ -589,7 +595,11 @@ class VistaVector(ctk.CTkToplevel):
                 )
 
                 salida.append(
-                    f"Escalar = {escalar}"
+                    f"Escalar = {self.formatear_numero(escalar)}"
+                )
+
+                salida.append(
+                    "Cada componente: escalar * ui"
                 )
 
                 salida.append(
@@ -611,7 +621,13 @@ class VistaVector(ctk.CTkToplevel):
                 )
 
                 salida.append(
-                    f"u · v = {resultado:.6f}"
+                    "u · v = "
+                    + " + ".join(
+                        f"({self.formatear_numero(componente_u)} * "
+                        f"{self.formatear_numero(componente_v)})"
+                        for componente_u, componente_v in zip(vector_u, vector_v)
+                    )
+                    + f" = {self.formatear_numero(resultado)}"
                 )
 
             elif operacion == "Magnitud de u":
@@ -625,7 +641,8 @@ class VistaVector(ctk.CTkToplevel):
                 )
 
                 salida.append(
-                    f"||u|| = {resultado:.6f}"
+                    "||u|| = sqrt(u1^2 + u2^2 + ... + un^2) "
+                    f"= {self.formatear_numero(resultado)}"
                 )
 
             elif operacion == "Magnitud de v":
@@ -639,7 +656,8 @@ class VistaVector(ctk.CTkToplevel):
                 )
 
                 salida.append(
-                    f"||v|| = {resultado:.6f}"
+                    "||v|| = sqrt(v1^2 + v2^2 + ... + vn^2) "
+                    f"= {self.formatear_numero(resultado)}"
                 )
 
             elif operacion == "Normalizar u":
@@ -650,6 +668,10 @@ class VistaVector(ctk.CTkToplevel):
 
                 salida.append(
                     "--- NORMALIZACIÓN DE U ---"
+                )
+
+                salida.append(
+                    "u_unitario = u / ||u||"
                 )
 
                 salida.append(
@@ -670,15 +692,61 @@ class VistaVector(ctk.CTkToplevel):
                 )
 
                 salida.append(
+                    "v_unitario = v / ||v||"
+                )
+
+                salida.append(
                     self.vector_a_string(
                         resultado,
                         "Vector unitario"
                     )
                 )
 
+            elif operacion == "Producto cruz":
+                resultado = ev.producto_cruz(vector_u, vector_v)
+                salida.append("--- PRODUCTO CRUZ ---")
+                salida.append("u × v")
+                salida.append(
+                    "[u2v3 - u3v2, u3v1 - u1v3, u1v2 - u2v1]"
+                )
+                salida.append(
+                    self.vector_a_string(
+                        resultado,
+                        "Resultado"
+                    )
+                )
+
+            elif operacion == "Ángulo entre u y v":
+                resultado = ev.angulo_entre_vectores(vector_u, vector_v)
+                salida.append("--- ÁNGULO ENTRE VECTORES ---")
+                salida.append("cos(θ) = (u · v) / (||u|| · ||v||)")
+                salida.append(f"θ = {self.formatear_numero(resultado)}°")
+
+            elif operacion == "Proyección de u sobre v":
+                resultado = ev.proyeccion_vector(vector_u, vector_v)
+                salida.append("--- PROYECCIÓN DE U SOBRE V ---")
+                salida.append("proj_v(u) = ((u · v) / ||v||^2) · v")
+                salida.append(
+                    self.vector_a_string(
+                        resultado,
+                        "proj_v(u)"
+                    )
+                )
+
+            elif operacion == "Distancia entre u y v":
+                resultado = ev.distancia_vectores(vector_u, vector_v)
+                salida.append("--- DISTANCIA ENTRE U Y V ---")
+                salida.append("d(u, v) = ||u - v||")
+                salida.append(f"d(u, v) = {self.formatear_numero(resultado)}")
+
             self._escribir_en_visor(
                 "\n".join(salida)
+
             )
+
+
+
+
 
         except ValueError as e:
 

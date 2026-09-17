@@ -5,6 +5,11 @@ TOLERANCIA = 1e-9
 
 def crear_matriz_aumentada(matriz, vector_b):
 
+    if len(matriz) != len(vector_b):
+        raise ValueError(
+            "El vector b debe tener una componente por cada fila de A."
+        )
+
     matriz_aumentada = []
 
     for i in range(len(matriz)):
@@ -78,14 +83,14 @@ def clasificar_sistema(matriz_aumentada):
 
 
 def obtener_solucion_unica(rref):
-
-    solucion = []
+    variables = len(rref[0]) - 1
+    solucion = [0.0] * variables
 
     for fila in rref:
-
-        solucion.append(
-            fila[-1]
-        )
+        for columna in range(variables):
+            if abs(fila[columna] - 1) < TOLERANCIA:
+                solucion[columna] = fila[-1]
+                break
 
     return solucion
 
@@ -254,3 +259,14 @@ def obtener_conjunto_solucion(
         )
 
     return informacion
+
+
+def resolver_ecuacion_matricial(matriz, vector_b):
+    """
+    Resuelve y clasifica la ecuacion matricial A x = b.
+
+    Devuelve la informacion de la matriz aumentada [A | b], su RREF,
+    rangos, pasos de eliminacion y la solucion cuando corresponde.
+    """
+
+    return obtener_conjunto_solucion(matriz, vector_b)

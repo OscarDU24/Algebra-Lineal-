@@ -132,6 +132,48 @@ def producto_matriz_vector_detallado(
 
 
 # ============================================================
+# MATRIZ POR ESCALAR
+# ============================================================
+
+def multiplicar_matriz_escalar(matriz, escalar):
+    """
+    Multiplica cada elemento de A por el escalar c.
+
+    cA = [c * aij]
+    """
+
+    if not verificar_matriz(matriz):
+        raise ValueError("La matriz no es válida.")
+
+    return [
+        [valor * escalar for valor in fila]
+        for fila in matriz
+    ]
+
+
+# ============================================================
+# MATRIZ TRANSPUESTA
+# ============================================================
+
+def transponer_matriz(matriz):
+    """
+    Calcula la matriz transpuesta intercambiando filas y columnas.
+
+    (A^T)ij = Aji
+    """
+
+    if not verificar_matriz(matriz):
+        raise ValueError("La matriz no es válida.")
+
+    filas, columnas = dimensiones_matriz(matriz)
+
+    return [
+        [matriz[i][j] for i in range(filas)]
+        for j in range(columnas)
+    ]
+
+
+# ============================================================
 # SUMA DE VECTORES
 # ============================================================
 

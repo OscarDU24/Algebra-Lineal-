@@ -1,7 +1,6 @@
 from core.ui.ctk_compat import ctk
 from prettytable import PrettyTable, HRuleStyle, VRuleStyle
 
-# 1. IMPORTACIONES ADAPTADAS A TU NUEVA ESTRUCTURA (core/lineal/...)
 from core.lineal import conversiones as conv
 from core.lineal.eliminacion import eliminacion_por_filas
 from core.lineal.clasificacion import clasificar_sistema
@@ -9,36 +8,32 @@ from core.lineal.solucion import sustitucion_hacia_atras_detallada, extraer_solu
 from core.lineal.verificacion import verificar_solucion
 from core.lineal.visualizacion import imprimir_sistema_ecuaciones
 
-# Configuración inicial del tema visual
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
 
 
-# 2. CAMBIO A CTkToplevel PARA QUE FUNCIONE JUNTO AL DASHBOARD
 class VistaMatriz(ctk.CTkToplevel):
 
     def __init__(self, master):
         super().__init__(master)
         
-        # Referencia al Dashboard original para poder volver a él
         self.master_dashboard = master
 
-        # Configuración de la ventana (Tu diseño intacto)
         self.title("Calculadora de Sistemas de Ecuaciones Lineales - FIA UAM")
         self.geometry("980x780")
         
-        # 3. INTERCEPTAR LA X DE CERRAR LA VENTANA
+        # Asegurar foco en la ventana secundaria
+        self.lift()
+        self.focus_force()
+        
         self.protocol("WM_DELETE_WINDOW", self.al_cerrar)
 
-        # Almacenamiento bidimensional para los widgets CTkEntry
         self.matriz_entries = []
 
-        # Estructura de la interfaz
         self.crear_frame_superior()
         self.crear_frame_central()
         self.crear_frame_inferior()
 
-        # Generar cuadrícula inicial 3x3
         self.generar_cuadricula_matriz()
 
     def al_cerrar(self):
@@ -51,11 +46,9 @@ class VistaMatriz(ctk.CTkToplevel):
         self.frame_sup = ctk.CTkFrame(self)
         self.frame_sup.pack(pady=10, padx=20, fill="x")
 
-        # Título
         lbl_titulo = ctk.CTkLabel(self.frame_sup, text="Dimensiones:", font=ctk.CTkFont(size=14, weight="bold"))
         lbl_titulo.pack(side="left", padx=10, pady=10)
 
-        # Filas
         lbl_m = ctk.CTkLabel(self.frame_sup, text="Filas (m):")
         lbl_m.pack(side="left", padx=(10, 2))
 
@@ -63,7 +56,6 @@ class VistaMatriz(ctk.CTkToplevel):
         self.entry_m.insert(0, "3")
         self.entry_m.pack(side="left", padx=5)
 
-        # Variables
         lbl_n = ctk.CTkLabel(self.frame_sup, text="Variables (n):")
         lbl_n.pack(side="left", padx=(10, 2))
 
@@ -71,11 +63,9 @@ class VistaMatriz(ctk.CTkToplevel):
         self.entry_n.insert(0, "3")
         self.entry_n.pack(side="left", padx=5)
 
-        # Botón generar
         btn_generar = ctk.CTkButton(self.frame_sup, text="Generar Matriz", command=self.generar_cuadricula_matriz)
         btn_generar.pack(side="left", padx=15)
 
-        # Botón limpiar
         btn_limpiar = ctk.CTkButton(self.frame_sup, text="Limpiar Valores", fg_color="#555555", hover_color="#333333", command=self.limpiar_entradas)
         btn_limpiar.pack(side="left", padx=5)
 
@@ -92,19 +82,15 @@ class VistaMatriz(ctk.CTkToplevel):
         subframe_acciones = ctk.CTkFrame(self.frame_inf, fg_color="transparent")
         subframe_acciones.pack(fill="x", pady=5, padx=10)
 
-        # Selección del método
         self.opcion_metodo = ctk.CTkOptionMenu(subframe_acciones, values=["Método Escalonado", "Gauss", "Gauss-Jordan"])
         self.opcion_metodo.pack(side="left", padx=(0, 10))
 
-        # Formato de números
         self.opcion_numform = ctk.CTkOptionMenu(subframe_acciones, values=["Fracciones", "Decimales"])
         self.opcion_numform.pack(side="left", padx=(0, 10))
 
-        # Botón resolver
         btn_resolver = ctk.CTkButton(subframe_acciones, text="Resolver Sistema", fg_color="green", hover_color="darkgreen", font=ctk.CTkFont(weight="bold"), command=self.accion_resolver)
         btn_resolver.pack(side="left")
 
-        # Visor de resultados
         self.txt_resultados = ctk.CTkTextbox(self.frame_inf, font=("Courier New", 12))
         self.txt_resultados.pack(pady=10, padx=10, fill="both", expand=True)
         self._escribir_en_visor("Ingrese los coeficientes en la matriz y presione 'Resolver Sistema'...")
@@ -156,6 +142,14 @@ class VistaMatriz(ctk.CTkToplevel):
             matriz.append(fila_vals)
         return matriz
 
+    def _formatear_valor(self, valor, formato):
+        """Formatea un número a fracción o decimal sin perder ceros absolutos."""
+        if formato == "fr":
+            return conv.convertir_a_fraccion(valor)
+        
+        texto = f"{valor:.2f}".rstrip("0").rstrip(".")
+        return texto if texto else "0"
+
     def _matriz_a_string(self, matriz, formato):
         table = PrettyTable()
         table.hrules = HRuleStyle.HEADER
@@ -165,16 +159,7 @@ class VistaMatriz(ctk.CTkToplevel):
         table.field_names = campos
 
         for fila in matriz:
-            str_fila = []
-            for j in range(len(matriz[0]) - 1):
-                if formato == "fr":
-                    str_fila.append(conv.convertir_a_fraccion(fila[j]))
-                else:
-                    str_fila.append(f"{fila[j]:0.2}".rstrip("0").rstrip("."))
-            if formato == "fr":
-                str_fila.append(conv.convertir_a_fraccion(fila[-1]))
-            else:
-                str_fila.append(f"{fila[-1]:0.2f}".rstrip("0").rstrip("."))
+            str_fila = [self._formatear_valor(val, formato) for val in fila]
             table.add_row(str_fila)
         return str(table)
 
@@ -267,7 +252,7 @@ class VistaMatriz(ctk.CTkToplevel):
 
             salida.append("--- Solución Única Encontrada ---")
             for i in range(n):
-                val_formateado = conv.convertir_a_fraccion(x[i]) if formato == "fr" else f"{x[i]:.6f}"
+                val_formateado = self._formatear_valor(x[i], formato)
                 salida.append(f"  x{i + 1} = {val_formateado}")
 
             es_correcta = verificar_solucion(matriz_original, x)

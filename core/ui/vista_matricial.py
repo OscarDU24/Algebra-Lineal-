@@ -6,6 +6,7 @@ from core.ui.ctk_compat import ctk
 
 from core.matriciales import conversionesMatriciales as conv
 from core.matriciales import operacionesMatriciales as op
+from core.matriciales import solucionMatriciales as sol
 from core.matriciales import verificacionMatriciales as ver
 from core.matriciales import visualizacionMatriciales as vis
 
@@ -38,6 +39,7 @@ class VistaMatricial(ctk.CTkToplevel):
 
         # Entradas de los vectores
         self.vector_entries = []
+        self.vector_b_entries = []
 
         # Nombres de los vectores
         self.vector_names = []
@@ -156,7 +158,10 @@ class VistaMatricial(ctk.CTkToplevel):
                 "A(u + v) = Au + Av",
                 "A(cu) = c(Au)",
                 "Combinación lineal",
-                "Mostrar columnas de A"
+                "Mostrar columnas de A",
+                "Transpuesta de A",
+                "Matriz por escalar (cA)",
+                "Resolver Ax = b"
             ]
         )
         self.menu_operacion.grid(row=0, column=1, padx=5, pady=5)
@@ -225,6 +230,7 @@ class VistaMatricial(ctk.CTkToplevel):
 
         self.matriz_entries = []
         self.vector_entries = []
+        self.vector_b_entries = []
         self.vector_names = []
 
         # MATRIZ A
@@ -271,6 +277,20 @@ class VistaMatricial(ctk.CTkToplevel):
                 entradas.append(entry)
             self.vector_entries.append(entradas)
 
+        # VECTOR b PARA LA ECUACION MATRICIAL Ax = b
+        fila_b = fila_vectores + cantidad_vectores + 3
+        etiqueta_b = ctk.CTkLabel(
+            self.frame_central,
+            text="VECTOR b (terminos independientes)",
+            font=("Arial", 18, "bold")
+        )
+        etiqueta_b.grid(row=fila_b, column=0, columnspan=filas, pady=10)
+
+        for i in range(filas):
+            entry = ctk.CTkEntry(self.frame_central, width=80)
+            entry.grid(row=fila_b + 1 + i, column=0, padx=5, pady=5)
+            self.vector_b_entries.append(entry)
+
         self.mostrar_resultado("Matriz y vectores generados correctamente.")
 
     # ========================================================
@@ -314,6 +334,21 @@ class VistaMatricial(ctk.CTkToplevel):
                 vector.append(valor)
             vectores.append(vector)
         return vectores
+
+    def obtener_vector_b(self):
+        """Obtiene el vector b, cuya dimension coincide con las filas de A."""
+
+        if not self.vector_b_entries:
+            raise ValueError("Primero debe generar la matriz y el vector b.")
+
+        vector_b = []
+        for entry in self.vector_b_entries:
+            valor = conv.convertir_a_decimal(entry.get())
+            if valor is None:
+                raise ValueError("El vector b contiene valores inválidos.")
+            vector_b.append(valor)
+
+        return vector_b
 
     def obtener_escalar(self):
         valor = conv.convertir_a_decimal(self.entry_escalar.get())
@@ -498,6 +533,91 @@ class VistaMatricial(ctk.CTkToplevel):
         salida = ["COLUMNAS DE A", "", vis.columnas_a_string(matriz, formato)]
         self.mostrar_resultado("\n".join(salida))
 
+    def multiplicar_matriz_escalar(self):
+        matriz = self.obtener_matriz()
+        escalar = self.obtener_escalar()
+        formato = self.menu_formato.get()
+        resultado = op.multiplicar_matriz_escalar(matriz, escalar)
+        salida = [
+            "MULTIPLICACIÓN DE MATRIZ POR ESCALAR",
+            "",
+            f"c = {vis.formatear_numero(escalar, formato)}",
+            "cA =",
+            vis.matriz_a_string(resultado, formato)
+        ]
+        self.mostrar_resultado("\n".join(salida))
+
+    def mostrar_transpuesta(self):
+        matriz = self.obtener_matriz()
+        formato = self.menu_formato.get()
+        salida = [
+            "TRANSPUESTA DE LA MATRIZ",
+            "",
+            "(A^T)ij = Aji",
+            "A^T =",
+            vis.matriz_transpuesta_a_string(matriz, formato)
+        ]
+        self.mostrar_resultado("\n".join(salida))
+
+    def resolver_ax_b(self):
+        matriz = self.obtener_matriz()
+        vector_b = self.obtener_vector_b()
+        formato = self.menu_formato.get()
+        informacion = sol.resolver_ecuacion_matricial(matriz, vector_b)
+        matriz_aumentada = sol.crear_matriz_aumentada(matriz, vector_b)
+
+        salida = [
+            "RESOLUCIÓN DE LA ECUACIÓN MATRICIAL Ax = b",
+            "",
+            "Matriz aumentada [A | b]:",
+            vis.matriz_a_string(matriz_aumentada, formato),
+            ""
+        ]
+
+        for descripcion, matriz_paso in informacion["pasos"][1:]:
+            salida.extend([
+                f">> {descripcion}:",
+                vis.matriz_a_string(matriz_paso, formato),
+                ""
+            ])
+
+        salida.extend([
+            "Forma escalonada reducida (RREF):",
+            vis.matriz_a_string(informacion["rref"], formato),
+            "",
+            f"Rango(A) = {informacion['rango_a']}",
+            f"Rango([A | b]) = {informacion['rango_aumentada']}",
+            f"Clasificación: {informacion['tipo']}"
+        ])
+
+        if informacion["tipo"] == "unica":
+            solucion = informacion["solucion"]
+            salida.extend([
+                "",
+                "Solución única:",
+                vis.vector_a_string(solucion, "x", formato),
+                "",
+                "Comprobación: A x = b"
+            ])
+        elif informacion["tipo"] == "infinitas":
+            expresiones, parametros = informacion["parametrizacion"]
+            salida.extend([
+                "",
+                "Solución general:",
+                "Variables libres: " + ", ".join(parametros.values()),
+                "\n".join(
+                    f"x{i + 1} = {expresion}"
+                    for i, expresion in enumerate(expresiones)
+                )
+            ])
+        else:
+            salida.extend([
+                "",
+                "El sistema es incompatible: no existe solución."
+            ])
+
+        self.mostrar_resultado("\n".join(salida))
+
     # ========================================================
     # ACCION PRINCIPAL
     # ========================================================
@@ -526,6 +646,12 @@ class VistaMatricial(ctk.CTkToplevel):
                 self.calcular_combinacion_lineal()
             elif operacion == "Mostrar columnas de A":
                 self.mostrar_columnas()
+            elif operacion == "Transpuesta de A":
+                self.mostrar_transpuesta()
+            elif operacion == "Matriz por escalar (cA)":
+                self.multiplicar_matriz_escalar()
+            elif operacion == "Resolver Ax = b":
+                self.resolver_ax_b()
 
         except ValueError as error:
             self.mostrar_resultado("Error: " + str(error))
@@ -551,6 +677,7 @@ class VistaMatricial(ctk.CTkToplevel):
 
         self.matriz_entries = []
         self.vector_entries = []
+        self.vector_b_entries = []
         self.vector_names = []
         self.mostrar_resultado("")
 

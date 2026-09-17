@@ -7,7 +7,7 @@ from fractions import Fraction
 def convertir_a_fraccion(valor):
     """Convierte una cadena o número a Fraction. Retorna None si hay error."""
     try:
-        # Reemplazar comas por puntos por si el usuario escribe en formato latino
+        # Reemplazar comas por puntos por si el usuario escribe en formato latino.
         if isinstance(valor, str):
             valor = valor.replace(',', '.')
         return Fraction(valor)

@@ -33,7 +33,7 @@ def sustitucion_hacia_atras_detallada(matriz_ref, n):
         else:
             if isinstance(val, float) and abs(val - round(val)) < 1e-9:
                 return str(int(round(val)))
-            s = f"{val:.4f}"
+            s = f"{val:.2f}"
             if "." in s:
                 s = s.rstrip("0").rstrip(".")
             return s

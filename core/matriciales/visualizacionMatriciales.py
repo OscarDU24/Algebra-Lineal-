@@ -23,7 +23,7 @@ def formatear_numero(
     if abs(valor) < 1e-9:
         valor = 0.0
 
-    return f"{valor:.4f}"
+    return f"{valor:.2f}"
 
 
 # ============================================================
@@ -57,6 +57,31 @@ def matriz_a_string(
         )
 
     return "\n".join(filas)
+
+
+def matriz_escalar_a_string(
+    matriz,
+    escalar,
+    formato="Decimales"
+):
+    """Muestra la matriz resultante de multiplicar A por un escalar."""
+
+    from .operacionesMatriciales import multiplicar_matriz_escalar
+
+    resultado = multiplicar_matriz_escalar(matriz, escalar)
+
+    return matriz_a_string(resultado, formato)
+
+
+def matriz_transpuesta_a_string(
+    matriz,
+    formato="Decimales"
+):
+    """Muestra la matriz transpuesta A^T."""
+
+    from .operacionesMatriciales import transponer_matriz
+
+    return matriz_a_string(transponer_matriz(matriz), formato)
 
 
 # ============================================================

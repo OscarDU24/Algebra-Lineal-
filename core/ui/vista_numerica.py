@@ -3,8 +3,8 @@
 # ============================================================
 
 from core.ui.ctk_compat import ctk
-# Importamos la lógica adaptada
 from core.sistemas_numericos import operaciones_numericas as op_num
+
 
 class VistaSistemasNumericos(ctk.CTkToplevel):
 
@@ -13,12 +13,16 @@ class VistaSistemasNumericos(ctk.CTkToplevel):
 
         self.master_dashboard = master
         self.protocol("WM_DELETE_WINDOW", self.al_cerrar)
-        
-        self.title("Conversor de Sistemas Numéricos - FIA UAM")
-        self.geometry("900x700")
 
-        self.crear_frame_superior()
-        self.crear_frame_inferior()
+        self.title("Conversor de Sistemas Numéricos - FIA UAM")
+        self.geometry("880x720")
+        self.minsize(760, 620)
+
+        self.nombres_sistemas = list(op_num.SISTEMAS.keys())  # Binario, Octal, Decimal, Hexadecimal
+
+        self.crear_encabezado()
+        self.crear_tabs()
+        self.crear_consola()
 
     def al_cerrar(self):
         if self.master_dashboard is not None:
@@ -26,98 +30,173 @@ class VistaSistemasNumericos(ctk.CTkToplevel):
         self.destroy()
 
     # ========================================================
-    # FRAME SUPERIOR (ENTRADA DE DATOS)
+    # ENCABEZADO
     # ========================================================
-    def crear_frame_superior(self):
-        self.frame_sup = ctk.CTkFrame(self)
-        self.frame_sup.pack(fill="x", padx=15, pady=15)
+    def crear_encabezado(self):
+        frame = ctk.CTkFrame(self)
+        frame.pack(fill="x", padx=15, pady=(15, 8))
 
-        titulo = ctk.CTkLabel(
-            self.frame_sup, 
-            text="Conversor Universal de Sistemas Numéricos", 
-            font=("Arial", 24, "bold")
+        ctk.CTkLabel(
+            frame,
+            text="Conversor de Sistemas Numéricos",
+            font=("Segoe UI", 24, "bold"),
+        ).pack(pady=(12, 2))
+
+        ctk.CTkLabel(
+            frame,
+            text="Elige abajo qué quieres convertir: Decimal → otra base, u otra base → Decimal.",
+            text_color="gray",
+        ).pack(pady=(0, 12))
+
+    # ========================================================
+    # PESTAÑAS: los dos módulos que pide la guía
+    # ========================================================
+    def crear_tabs(self):
+        self.tabs = ctk.CTkTabview(self, height=260)
+        self.tabs.pack(fill="x", padx=15, pady=8)
+
+        tab_dec = self.tabs.add("Decimal → Otra base")
+        tab_a_dec = self.tabs.add("Otra base → Decimal")
+
+        self.crear_modulo_decimal_a_base(tab_dec)
+        self.crear_modulo_base_a_decimal(tab_a_dec)
+
+    # --------------------------------------------------------
+    # MÓDULO 1: Decimal -> Binario / Octal / Hexadecimal
+    # El usuario ESCRIBE el número decimal y ELIGE la base destino.
+    # --------------------------------------------------------
+    def crear_modulo_decimal_a_base(self, contenedor):
+        ctk.CTkLabel(
+            contenedor,
+            text="Número decimal a convertir:",
+            font=("Segoe UI", 14, "bold"),
+        ).pack(anchor="w", padx=20, pady=(18, 4))
+
+        self.entry_decimal = ctk.CTkEntry(
+            contenedor, width=300, font=("Consolas", 16), placeholder_text="Ej: 156 o 45.75"
         )
-        titulo.pack(pady=10)
+        self.entry_decimal.pack(anchor="w", padx=20, pady=(0, 16))
 
-        instrucciones = (
-            "• Ingresa bases del 2 al 36 (o hasta 60 para sistema Sexagesimal).\n"
-            "• Para bases > 36, separa los bloques con dos puntos (:). Ej: 12:45:10"
-        )
-        ctk.CTkLabel(self.frame_sup, text=instrucciones, text_color="gray", justify="left").pack(pady=(0, 15))
+        ctk.CTkLabel(
+            contenedor,
+            text="¿A qué sistema quieres convertirlo?",
+            font=("Segoe UI", 14, "bold"),
+        ).pack(anchor="w", padx=20, pady=(0, 6))
 
-        # Cuadro de Entradas
-        frame_inputs = ctk.CTkFrame(self.frame_sup, fg_color="transparent")
-        frame_inputs.pack(pady=10)
+        # Solo se ofrecen los destinos que pide la guía (no incluye "Decimal").
+        destinos = [n for n in self.nombres_sistemas if n != "Decimal"]
+        self.selector_destino = ctk.CTkSegmentedButton(contenedor, values=destinos)
+        self.selector_destino.set(destinos[0])
+        self.selector_destino.pack(anchor="w", padx=20, pady=(0, 20))
 
-        # Entrada del Número
-        ctk.CTkLabel(frame_inputs, text="Número a convertir:", font=("Arial", 14, "bold")).grid(row=0, column=0, padx=10, pady=10, sticky="e")
-        self.entry_numero = ctk.CTkEntry(frame_inputs, width=300, font=("Consolas", 16), placeholder_text="Ej: 1A.8 o 101.11")
-        self.entry_numero.grid(row=0, column=1, columnspan=3, padx=10, pady=10, sticky="w")
-
-        # Base Origen
-        ctk.CTkLabel(frame_inputs, text="Base Origen:").grid(row=1, column=0, padx=10, pady=10, sticky="e")
-        self.entry_base_origen = ctk.CTkEntry(frame_inputs, width=80)
-        self.entry_base_origen.insert(0, "2")
-        self.entry_base_origen.grid(row=1, column=1, padx=10, pady=10, sticky="w")
-
-        # Base Destino
-        ctk.CTkLabel(frame_inputs, text="Base Destino:").grid(row=1, column=2, padx=10, pady=10, sticky="e")
-        self.entry_base_destino = ctk.CTkEntry(frame_inputs, width=80)
-        self.entry_base_destino.insert(0, "10")
-        self.entry_base_destino.grid(row=1, column=3, padx=10, pady=10, sticky="w")
-
-    # ========================================================
-    # FRAME INFERIOR (CONSOLA INTEGRADA)
-    # ========================================================
-    def crear_frame_inferior(self):
-        self.frame_inf = ctk.CTkFrame(self)
-        self.frame_inf.pack(fill="both", expand=True, padx=15, pady=(0, 15))
-
-        boton_calcular = ctk.CTkButton(
-            self.frame_inf, 
-            text="Convertir y Mostrar Procedimiento", 
-            command=self.ejecutar_calculo, 
+        ctk.CTkButton(
+            contenedor,
+            text="Convertir y mostrar procedimiento",
+            command=self.ejecutar_decimal_a_base,
             fg_color="green", hover_color="darkgreen",
-            height=40, font=("Arial", 14, "bold")
-        )
-        boton_calcular.pack(pady=15)
+            height=40, font=("Segoe UI", 14, "bold"),
+        ).pack(anchor="w", padx=20, pady=(0, 10))
 
-        # Consola de solo lectura
-        self.texto_resultado = ctk.CTkTextbox(self.frame_inf, font=("Consolas", 14))
+    # --------------------------------------------------------
+    # MÓDULO 2: Binario / Octal / Decimal -> Decimal
+    # El usuario ELIGE la base de origen y ESCRIBE el número en esa base.
+    # Se muestra la combinación lineal que genera el número.
+    # --------------------------------------------------------
+    def crear_modulo_base_a_decimal(self, contenedor):
+        ctk.CTkLabel(
+            contenedor,
+            text="¿En qué sistema está el número que vas a convertir?",
+            font=("Segoe UI", 14, "bold"),
+        ).pack(anchor="w", padx=20, pady=(18, 6))
+
+        # Solo se ofrecen los orígenes que pide la guía: Binario, Octal, Decimal.
+        origenes = [n for n in self.nombres_sistemas if n != "Hexadecimal"]
+        self.selector_origen = ctk.CTkSegmentedButton(
+            contenedor, values=origenes, command=self.al_cambiar_origen
+        )
+        self.selector_origen.set(origenes[0])
+        self.selector_origen.pack(anchor="w", padx=20, pady=(0, 16))
+
+        self.label_numero_origen = ctk.CTkLabel(
+            contenedor,
+            text=f"Número en {origenes[0]}:",
+            font=("Segoe UI", 14, "bold"),
+        )
+        self.label_numero_origen.pack(anchor="w", padx=20, pady=(0, 4))
+
+        self.entry_origen = ctk.CTkEntry(
+            contenedor, width=300, font=("Consolas", 16), placeholder_text="Ej: 1011.01"
+        )
+        self.entry_origen.pack(anchor="w", padx=20, pady=(0, 20))
+
+        ctk.CTkButton(
+            contenedor,
+            text="Convertir y mostrar combinación lineal",
+            command=self.ejecutar_base_a_decimal,
+            fg_color="green", hover_color="darkgreen",
+            height=40, font=("Segoe UI", 14, "bold"),
+        ).pack(anchor="w", padx=20, pady=(0, 10))
+
+    def al_cambiar_origen(self, valor_seleccionado):
+        self.label_numero_origen.configure(text=f"Número en {valor_seleccionado}:")
+
+    # ========================================================
+    # CONSOLA DE PROCEDIMIENTO (SOLO LECTURA)
+    # ========================================================
+    def crear_consola(self):
+        frame = ctk.CTkFrame(self)
+        frame.pack(fill="both", expand=True, padx=15, pady=(0, 15))
+
+        ctk.CTkLabel(
+            frame, text="Procedimiento y resultado:", font=("Segoe UI", 13, "bold")
+        ).pack(anchor="w", padx=10, pady=(10, 0))
+
+        self.texto_resultado = ctk.CTkTextbox(frame, font=("Consolas", 14))
         self.texto_resultado.pack(fill="both", expand=True, padx=10, pady=10)
-
-    # ========================================================
-    # EJECUCIÓN LÓGICA
-    # ========================================================
-    def ejecutar_calculo(self):
-        numero_str = self.entry_numero.get().strip()
-        
-        try:
-            base_origen = int(self.entry_base_origen.get().strip())
-            base_destino = int(self.entry_base_destino.get().strip())
-        except ValueError:
-            self.mostrar_resultado("Error: Las bases deben ser números enteros (ej. 2, 8, 10, 16, 60).")
-            return
-
-        if not numero_str:
-            self.mostrar_resultado("Error: Debes ingresar un número para convertir.")
-            return
-
-        # Llamar al motor unificado
-        resultado, log_procedimiento = op_num.ejecutar_conversion_completa(numero_str, base_origen, base_destino)
-        
-        # Formatear la salida para la consola
-        salida_final = (
-            f"=== RESULTADO ===\n"
-            f"{resultado}\n\n"
-            f"=== PROCEDIMIENTO MATEMÁTICO ===\n"
-            f"{log_procedimiento}"
-        )
-        self.mostrar_resultado(salida_final)
 
     def mostrar_resultado(self, texto):
         self.texto_resultado.delete("1.0", "end")
         self.texto_resultado.insert("1.0", texto)
+
+    # ========================================================
+    # EJECUCIÓN DE CADA MÓDULO
+    # ========================================================
+    def ejecutar_decimal_a_base(self):
+        try:
+            numero = op_num.parsear_decimal(self.entry_decimal.get())
+        except ValueError as e:
+            self.mostrar_resultado(f"Error: {e}")
+            return
+
+        nombre_destino = self.selector_destino.get()
+        base_destino = op_num.SISTEMAS[nombre_destino]
+
+        resultado, procedimiento = op_num.convertir_decimal_a_base(
+            numero, base_destino, nombre_destino
+        )
+        self.mostrar_resultado(
+            f"=== RESULTADO ===\n{resultado}\n\n"
+            f"=== PROCEDIMIENTO (divisiones/multiplicaciones sucesivas) ===\n{procedimiento}"
+        )
+
+    def ejecutar_base_a_decimal(self):
+        nombre_origen = self.selector_origen.get()
+        base_origen = op_num.SISTEMAS[nombre_origen]
+        numero_str = self.entry_origen.get().strip()
+
+        try:
+            resultado, procedimiento = op_num.convertir_a_decimal(
+                numero_str, base_origen, nombre_origen
+            )
+        except ValueError as e:
+            self.mostrar_resultado(f"Error: {e}")
+            return
+
+        self.mostrar_resultado(
+            f"=== RESULTADO ===\n{resultado}\n\n"
+            f"=== PROCEDIMIENTO (combinación lineal) ===\n{procedimiento}"
+        )
+
 
 # ============================================================
 # PRUEBA INDEPENDIENTE

@@ -55,7 +55,7 @@ def calcular_limite(funcion_str, punto_str, direccion="bilateral"):
             if limite.is_number and not limite in [sp.oo, -sp.oo, sp.zoo, sp.nan]:
                 aproximacion = limite.evalf()
                 if str(limite) != str(aproximacion):
-                    salida.append(f"    (Aprox. Decimal: {aproximacion:.6f})")
+                    salida.append(f"    (Aprox. Decimal: {aproximacion:.2f})")
 
         return "\n".join(salida)
 
