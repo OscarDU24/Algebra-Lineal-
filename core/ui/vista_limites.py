@@ -43,12 +43,12 @@ class VistaLimites(ctk.CTkToplevel):
         )
         titulo.pack(pady=10)
 
-        # Instrucciones de uso para SymPy
+        # Instrucciones de uso del evaluador numerico
         ayuda_texto = (
             "Guía de sintaxis matemática:\n"
             "• Potencias: Usa doble asterisco (x**2)\n"
             "• Funciones: sin(x), cos(x), tan(x), log(x), exp(x)\n"
-            "• Infinito: Escribe 'oo' (doble letra o) o 'inf'"
+            "• Constantes: pi, e. Infinito: escribe 'inf'"
         )
         ctk.CTkLabel(self.frame_sup, text=ayuda_texto, text_color="gray", justify="left").pack(pady=(0, 15))
 
@@ -108,7 +108,7 @@ class VistaLimites(ctk.CTkToplevel):
             self.mostrar_resultado("Error: Debes ingresar tanto la función como el punto de evaluación.")
             return
 
-        # Llamar al motor de SymPy
+        # Llamar al evaluador numérico propio
         resultado = op_lim.calcular_limite(funcion, punto, direccion)
         self.mostrar_resultado(resultado)
 

@@ -19,6 +19,40 @@ Los modulos disponibles son:
 - Calculo de limites.
 - Sistemas numericos.
 
+### Tabla de intercambio de Leontief
+
+La calculadora de ecuaciones matriciales incluye la opcion `Tabla de Intercambio`. Esta herramienta
+resuelve el modelo abierto mediante el sistema:
+
+```text
+(I - A)X = D
+```
+
+En lugar de calcular explicitamente la inversa de `I - A`, construye la matriz
+aumentada `[I - A | D]` y aplica eliminacion de Gauss-Jordan con listas de Python.
+La salida muestra la matriz `I - A`, la matriz aumentada, los pasos de reduccion y
+el vector de produccion `X`.
+
+El modelo cerrado agrega el sector hogares como un sector endogeno. Para ello se
+ingresan, ademas, los coeficientes de consumo de los hogares y los coeficientes de
+ingreso generados por cada sector. La demanda externa se mantiene en los sectores
+productivos y la demanda externa del sector hogares se toma como cero.
+
+### Flujo de red
+
+La calculadora de ecuaciones matriciales tambien incluye la opcion `Flujo de Red`. Cada rama se
+define por un nodo origen y un nodo destino, y su variable de flujo es positiva en
+ese sentido. Para cada nodo se plantea la ecuacion:
+
+```text
+salidas - entradas = balance externo
+```
+
+El programa construye la matriz de incidencia `C`, forma el sistema aumentado
+`[C | b]` y aplica Gauss-Jordan. La salida identifica los pivotes, las ramas libres
+y los flujos resultantes. Si los balances son incompatibles, informa que no existe
+un flujo que satisfaga simultaneamente todas las ecuaciones.
+
 ## Requisitos
 
 - Windows 10 u 11
@@ -150,10 +184,10 @@ Dependencias principales:
 - `customtkinter`: controles visuales de las calculadoras.
 - `Pillow`: carga y visualizacion de recursos graficos.
 - `prettytable`: presentacion tabular de algunos resultados.
-- `sympy`: soporte para operaciones de limites y expresiones simbolicas.
 
-Las operaciones vectoriales y matriciales implementadas para la actividad utilizan
-listas, ciclos, condicionales y funciones de Python estandar, sin NumPy ni SciPy.
+Las operaciones vectoriales, matriciales y de limites implementadas para la actividad
+utilizan listas, ciclos, condicionales, `ast` y funciones propias de Python estandar,
+sin NumPy, SciPy, SymPy ni funciones avanzadas de `math`.
 
 ## Recursos incluidos
 

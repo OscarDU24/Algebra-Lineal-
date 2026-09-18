@@ -161,7 +161,9 @@ class VistaMatricial(ctk.CTkToplevel):
                 "Mostrar columnas de A",
                 "Transpuesta de A",
                 "Matriz por escalar (cA)",
-                "Resolver Ax = b"
+                "Resolver Ax = b",
+                "Tabla de Intercambio",
+                "Flujo de Red"
             ]
         )
         self.menu_operacion.grid(row=0, column=1, padx=5, pady=5)
@@ -618,6 +620,22 @@ class VistaMatricial(ctk.CTkToplevel):
 
         self.mostrar_resultado("\n".join(salida))
 
+    def abrir_tabla_intercambio(self):
+        """Abre el modelo de Leontief desde el módulo matricial."""
+
+        self.withdraw()
+        from core.ui.vista_intercambio import VistaIntercambio
+
+        VistaIntercambio(self)
+
+    def abrir_flujo_red(self):
+        """Abre el análisis de flujo de red desde el módulo matricial."""
+
+        self.withdraw()
+        from core.ui.vista_flujo_red import VistaFlujoRed
+
+        VistaFlujoRed(self)
+
     # ========================================================
     # ACCION PRINCIPAL
     # ========================================================
@@ -625,6 +643,13 @@ class VistaMatricial(ctk.CTkToplevel):
     def accion_calcular(self):
         try:
             operacion = self.menu_operacion.get()
+
+            if operacion == "Tabla de Intercambio":
+                self.abrir_tabla_intercambio()
+                return
+            if operacion == "Flujo de Red":
+                self.abrir_flujo_red()
+                return
 
             if operacion == "A × u":
                 self.calcular_au()

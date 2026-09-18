@@ -494,10 +494,10 @@ class VistaVector(ctk.CTkToplevel):
 
         try:
 
+            operacion = self.opcion_operacion.get()
+
             vector_u = self.obtener_vector_u()
             vector_v = self.obtener_vector_v()
-
-            operacion = self.opcion_operacion.get()
 
             salida = []
 

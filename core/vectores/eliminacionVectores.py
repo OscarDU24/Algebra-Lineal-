@@ -1,6 +1,6 @@
-import math
-
 from .constantesVectores import TOLERANCIA
+
+PI = 3.141592653589793
 
 
 # ============================================================
@@ -206,7 +206,22 @@ def angulo_entre_vectores(vector_u, vector_v):
 
     cos_theta = max(-1.0, min(1.0, dot / (mag_u * mag_v)))
 
-    return math.degrees(math.acos(cos_theta))
+    if cos_theta == 1:
+        return 0.0
+    if cos_theta == -1:
+        return 180.0
+
+    seno_medio = ((1 - cos_theta) / (1 + cos_theta)) ** 0.5
+    tangente_medio = seno_medio / (1 + (1 + seno_medio ** 2) ** 0.5)
+    angulo_medio = 0.0
+    termino = tangente_medio
+
+    for indice in range(1, 24, 2):
+        angulo_medio += termino / indice
+        termino *= -tangente_medio ** 2
+
+    angulo_radianes = 4 * angulo_medio
+    return angulo_radianes * 180 / PI
 
 # ============================================================
 # PROYECCIÓN Y DISTANCIA
