@@ -815,12 +815,12 @@ class VistaVector(ctk.CTkToplevel):
         )
 
         self.txt_resultados.delete(
-            "1.0",  # ✅ Corregido de "0.0" a "1.0"
+            "1.0",  
             "end"
         )
 
         self.txt_resultados.insert(
-            "1.0",  # ✅ Corregido de "0.0" a "1.0"
+            "1.0",  
             texto
         )
 

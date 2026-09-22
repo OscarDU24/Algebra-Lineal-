@@ -202,6 +202,7 @@ class VistaMatricial(ctk.CTkToplevel):
                 "A(cu) = c(Au)",
                 "Combinación lineal",
                 "Mostrar columnas de A",
+                "Sistema a ecuación vectorial",
                 "Transpuesta de A",
                 "Matriz por escalar (cA)",
                 "Resolver Ax = b",
@@ -626,6 +627,51 @@ class VistaMatricial(ctk.CTkToplevel):
         salida = ["COLUMNAS DE A", "", vis.columnas_a_string(matriz, formato)]
         self.mostrar_resultado("\n".join(salida))
 
+    def calcular_sistema_ecuacion_vectorial(self):
+        matriz = self.obtener_matriz()
+        vector_b = self.obtener_vector_b()
+        formato = self.menu_formato.get()
+        vectores = op.obtener_columnas(matriz)
+        nombres = [f"a{i + 1}" for i in range(len(vectores))]
+
+        terminos = [
+            f"x{i + 1}{nombre}"
+            for i, nombre in enumerate(nombres)
+        ]
+        terminos_desarrollados = [
+            f"x{i + 1}{vis.vector_horizontal_a_string(vector, formato)}"
+            for i, vector in enumerate(vectores)
+        ]
+
+        salida = [
+            "SISTEMA A ECUACIÓN VECTORIAL",
+            "",
+            "Matriz de coeficientes A:",
+            vis.matriz_a_string(matriz, formato),
+            "",
+            "Vector b:",
+            vis.vector_a_string(vector_b, "b", formato),
+            "",
+            "Vectores columna:"
+        ]
+
+        salida.extend(
+            vis.vector_a_string(vector, nombre, formato)
+            for vector, nombre in zip(vectores, nombres)
+        )
+        salida.extend([
+            "",
+            "Ecuación vectorial:",
+            " + ".join(terminos) + " = b",
+            "",
+            "Forma desarrollada:",
+            " + ".join(terminos_desarrollados)
+            + " = "
+            + vis.vector_horizontal_a_string(vector_b, formato)
+        ])
+
+        self.mostrar_resultado("\n".join(salida))
+
     def multiplicar_matriz_escalar(self):
         matriz = self.obtener_matriz()
         escalar = self.obtener_escalar()
@@ -762,6 +808,8 @@ class VistaMatricial(ctk.CTkToplevel):
                 self.calcular_combinacion_lineal()
             elif operacion == "Mostrar columnas de A":
                 self.mostrar_columnas()
+            elif operacion == "Sistema a ecuación vectorial":
+                self.calcular_sistema_ecuacion_vectorial()
             elif operacion == "Transpuesta de A":
                 self.mostrar_transpuesta()
             elif operacion == "Matriz por escalar (cA)":
