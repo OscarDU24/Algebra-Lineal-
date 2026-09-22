@@ -6,6 +6,16 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")
 from core.ui.ctk_compat import ctk
 from core.vectores import conversionesVectores as conv
 from core.vectores import eliminacionVectores as ev
+from core.ui.tema import (
+    FONDO_CALCULADORA,
+    TEXTO_CLARO,
+    estilo_boton_principal,
+    estilo_boton_secundario,
+    estilo_consola_resultado,
+    estilo_menu_desplegable,
+    estilo_panel_contenedor,
+    TEXTO_CLARO,
+)
 
 
 
@@ -15,7 +25,7 @@ class VistaVector(ctk.CTkToplevel):
         super().__init__(master)
 
         self.master_dashboard = master
-        self.title("Calculadora de Vectores - FIA UAM")
+        self.title("Operaciones con Vectores")
         self.geometry("980x780")
         self.protocol("WM_DELETE_WINDOW", self.al_cerrar)
 
@@ -38,7 +48,7 @@ class VistaVector(ctk.CTkToplevel):
 
     def crear_frame_superior(self):
 
-        self.frame_sup = ctk.CTkFrame(self)
+        self.frame_sup = ctk.CTkFrame(self, **estilo_panel_contenedor())
         self.frame_sup.pack(
             pady=10,
             padx=20,
@@ -78,6 +88,7 @@ class VistaVector(ctk.CTkToplevel):
         btn_generar = ctk.CTkButton(
             self.frame_sup,
             text="Generar Vectores",
+            **estilo_boton_secundario(),
             command=self.generar_vectores
         )
 
@@ -89,8 +100,7 @@ class VistaVector(ctk.CTkToplevel):
         btn_limpiar = ctk.CTkButton(
             self.frame_sup,
             text="Limpiar Valores",
-            fg_color="#555555",
-            hover_color="#333333",
+            **estilo_boton_secundario(),
             command=self.limpiar_entradas
         )
 
@@ -104,18 +114,36 @@ class VistaVector(ctk.CTkToplevel):
     # ============================================================
 
     def crear_frame_central(self):
+        self.frame_central = ctk.CTkFrame(self, **estilo_panel_contenedor())
+        self.frame_central.pack(pady=10, padx=20, fill="both", expand=True)
 
         self.frame_centro = ctk.CTkScrollableFrame(
-            self,
-            label_text="Vectores"
+            self.frame_central,
+            label_text="Vectores",
+            **estilo_panel_contenedor()
         )
+        self.frame_centro.pack(side="left", pady=8, padx=(8, 4), fill="both", expand=True)
 
-        self.frame_centro.pack(
-            pady=10,
-            padx=20,
-            fill="both",
-            expand=True
+        self.frame_previsualizacion = ctk.CTkFrame(
+            self.frame_central,
+            width=260,
+            **estilo_panel_contenedor()
         )
+        self.frame_previsualizacion.pack(side="right", pady=8, padx=(4, 8), fill="both")
+        self.frame_previsualizacion.pack_propagate(False)
+        ctk.CTkLabel(
+            self.frame_previsualizacion,
+            text="Vista previa de vectores",
+            text_color=TEXTO_CLARO,
+            font=ctk.CTkFont(size=14, weight="bold")
+        ).pack(pady=(10, 4))
+        self.txt_previsualizacion = ctk.CTkTextbox(
+            self.frame_previsualizacion,
+            font=("Consolas", 12),
+            **estilo_consola_resultado()
+        )
+        self.txt_previsualizacion.pack(fill="both", expand=True, padx=8, pady=8)
+        self._escribir_previsualizacion("Genere los vectores y complete sus componentes.")
 
     # ============================================================
     # FRAME INFERIOR
@@ -123,7 +151,7 @@ class VistaVector(ctk.CTkToplevel):
 
     def crear_frame_inferior(self):
 
-        self.frame_inf = ctk.CTkFrame(self)
+        self.frame_inf = ctk.CTkFrame(self, **estilo_panel_contenedor())
 
         self.frame_inf.pack(
             pady=10,
@@ -143,7 +171,7 @@ class VistaVector(ctk.CTkToplevel):
             padx=10
         )
 
-        self.opcion_operacion = ctk.CTkOptionMenu(
+        self.opcion_operacion = ctk.CTkComboBox(
             subframe_acciones,
             values=[
                 "Suma",
@@ -158,8 +186,10 @@ class VistaVector(ctk.CTkToplevel):
                 "Ángulo entre u y v",
                 "Proyección de u sobre v",
                 "Distancia entre u y v"
-            ]
+            ],
+            **estilo_menu_desplegable()
         )
+        self.opcion_operacion.set("Suma")
 
         self.opcion_operacion.pack(
             side="left",
@@ -177,13 +207,15 @@ class VistaVector(ctk.CTkToplevel):
             padx=(0, 10)
         )
 
-        self.opcion_numform = ctk.CTkOptionMenu(
+        self.opcion_numform = ctk.CTkComboBox(
             subframe_acciones,
             values=[
                 "Fracciones",
                 "Decimales"
-            ]
+            ],
+            **estilo_menu_desplegable()
         )
+        self.opcion_numform.set("Fracciones")
 
         self.opcion_numform.pack(
             side="left",
@@ -193,11 +225,7 @@ class VistaVector(ctk.CTkToplevel):
         btn_calcular = ctk.CTkButton(
             subframe_acciones,
             text="Calcular",
-            fg_color="green",
-            hover_color="darkgreen",
-            font=ctk.CTkFont(
-                weight="bold"
-            ),
+            **estilo_boton_principal(),
             command=self.accion_calcular
 
         )
@@ -207,8 +235,7 @@ class VistaVector(ctk.CTkToplevel):
         )
 
         self.txt_resultados = ctk.CTkTextbox(
-            self.frame_inf,
-            font=("Courier New", 12)
+            self.frame_inf, font=("Courier New", 12), **estilo_consola_resultado()
         )
 
         self.txt_resultados.pack(
@@ -324,6 +351,9 @@ class VistaVector(ctk.CTkToplevel):
                 pady=4
             )
 
+            entry_u.bind("<KeyRelease>", lambda event: self.actualizar_previsualizacion())
+            entry_v.bind("<KeyRelease>", lambda event: self.actualizar_previsualizacion())
+
             self.vector_u_entries.append(
                 entry_u
             )
@@ -331,6 +361,25 @@ class VistaVector(ctk.CTkToplevel):
             self.vector_v_entries.append(
                 entry_v
             )
+
+        self.actualizar_previsualizacion()
+
+    def actualizar_previsualizacion(self):
+        """Muestra los componentes actuales de u y v antes de calcular."""
+        if not hasattr(self, "txt_previsualizacion"):
+            return
+
+        valores_u = [entry.get().strip() or "_" for entry in self.vector_u_entries]
+        valores_v = [entry.get().strip() or "_" for entry in self.vector_v_entries]
+        texto = "u = [" + ", ".join(valores_u) + "]\n"
+        texto += "v = [" + ", ".join(valores_v) + "]"
+        self._escribir_previsualizacion(texto)
+
+    def _escribir_previsualizacion(self, texto):
+        self.txt_previsualizacion.configure(state="normal")
+        self.txt_previsualizacion.delete("1.0", "end")
+        self.txt_previsualizacion.insert("1.0", texto)
+        self.txt_previsualizacion.configure(state="disabled")
 
     # ============================================================
     # LIMPIAR ENTRADAS
@@ -349,6 +398,8 @@ class VistaVector(ctk.CTkToplevel):
                 0,
                 "end"
             )
+
+        self.actualizar_previsualizacion()
 
         self.entry_escalar.delete(
             0,

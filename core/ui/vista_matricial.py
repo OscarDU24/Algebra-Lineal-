@@ -9,6 +9,16 @@ from core.matriciales import operacionesMatriciales as op
 from core.matriciales import solucionMatriciales as sol
 from core.matriciales import verificacionMatriciales as ver
 from core.matriciales import visualizacionMatriciales as vis
+from core.ui.tema import (
+    FONDO_CALCULADORA,
+    TEXTO_CLARO,
+    estilo_boton_principal,
+    estilo_boton_secundario,
+    estilo_consola_resultado,
+    estilo_menu_desplegable,
+    estilo_panel_contenedor,
+    FUENTE_CONTROLES,
+)
 
 
 # ============================================================
@@ -27,11 +37,12 @@ class VistaMatricial(ctk.CTkToplevel):
 
     def __init__(self, master=None):
         super().__init__(master)
+        self.configure(fg_color=FONDO_CALCULADORA)
 
         self.master_dashboard = master
         self.protocol("WM_DELETE_WINDOW", self.al_cerrar)
         
-        self.title("Calculadora de Matrices y Vectores - FIA UAM")
+        self.title("Operaciones con Matrices y Ecuaciones Matriciales")
         self.geometry("1100x800")
 
         # Entradas de la matriz
@@ -65,7 +76,7 @@ class VistaMatricial(ctk.CTkToplevel):
     # ========================================================
 
     def crear_frame_superior(self):
-        self.frame_superior = ctk.CTkFrame(self)
+        self.frame_superior = ctk.CTkFrame(self, **estilo_panel_contenedor())
         self.frame_superior.pack(fill="x", padx=15, pady=15)
 
         titulo = ctk.CTkLabel(
@@ -84,21 +95,21 @@ class VistaMatricial(ctk.CTkToplevel):
         # ----------------------------------------------------
         # FILAS
         # ----------------------------------------------------
-        ctk.CTkLabel(frame_datos, text="Filas de A:").grid(row=0, column=0, padx=5)
+        ctk.CTkLabel(frame_datos, text="Filas de A:", text_color=TEXTO_CLARO).grid(row=0, column=0, padx=5)
         self.entry_filas = ctk.CTkEntry(frame_datos, width=80, placeholder_text="2")
         self.entry_filas.grid(row=0, column=1, padx=5)
 
         # ----------------------------------------------------
         # COLUMNAS
         # ----------------------------------------------------
-        ctk.CTkLabel(frame_datos, text="Columnas de A:").grid(row=0, column=2, padx=5)
+        ctk.CTkLabel(frame_datos, text="Columnas de A:", text_color=TEXTO_CLARO).grid(row=0, column=2, padx=5)
         self.entry_columnas = ctk.CTkEntry(frame_datos, width=80, placeholder_text="2")
         self.entry_columnas.grid(row=0, column=3, padx=5)
 
         # ----------------------------------------------------
         # CANTIDAD DE VECTORES
         # ----------------------------------------------------
-        ctk.CTkLabel(frame_datos, text="Cantidad de vectores:").grid(row=0, column=4, padx=5)
+        ctk.CTkLabel(frame_datos, text="Cantidad de vectores:", text_color=TEXTO_CLARO).grid(row=0, column=4, padx=5)
         self.entry_cantidad_vectores = ctk.CTkEntry(frame_datos, width=80, placeholder_text="2")
         self.entry_cantidad_vectores.grid(row=0, column=5, padx=5)
 
@@ -108,6 +119,7 @@ class VistaMatricial(ctk.CTkToplevel):
         boton_generar = ctk.CTkButton(
             frame_datos,
             text="Generar",
+            **estilo_boton_secundario(),
             command=self.generar_datos
         )
         boton_generar.grid(row=0, column=6, padx=10)
@@ -118,6 +130,7 @@ class VistaMatricial(ctk.CTkToplevel):
         boton_limpiar = ctk.CTkButton(
             frame_datos,
             text="Limpiar",
+            **estilo_boton_secundario(),
             command=self.limpiar
         )
         boton_limpiar.grid(row=0, column=7, padx=10)
@@ -127,26 +140,56 @@ class VistaMatricial(ctk.CTkToplevel):
     # ========================================================
 
     def crear_frame_central(self):
-        self.frame_central = ctk.CTkScrollableFrame(
+        self.frame_central = ctk.CTkFrame(
             self,
-            label_text="Datos de la operación"
+            **estilo_panel_contenedor()
         )
         self.frame_central.pack(fill="both", expand=True, padx=15, pady=5)
+
+        self.frame_centro = ctk.CTkScrollableFrame(
+            self.frame_central,
+            label_text="Datos de la operación",
+            **estilo_panel_contenedor()
+        )
+        self.frame_centro.pack(side="left", fill="both", expand=True, padx=(0, 8))
+
+        self.frame_previsualizacion = ctk.CTkFrame(
+            self.frame_central,
+            width=330,
+            **estilo_panel_contenedor()
+        )
+        self.frame_previsualizacion.pack(side="right", fill="both", padx=(8, 0))
+        self.frame_previsualizacion.pack_propagate(False)
+
+        ctk.CTkLabel(
+            self.frame_previsualizacion,
+            text="Vista previa de la ecuación matricial",
+            font=(FUENTE_CONTROLES, 14, "bold"),
+            text_color=TEXTO_CLARO,
+        ).pack(pady=(10, 4))
+
+        self.txt_previsualizacion = ctk.CTkTextbox(
+            self.frame_previsualizacion,
+            font=("Consolas", 12),
+            **estilo_consola_resultado(),
+        )
+        self.txt_previsualizacion.pack(fill="both", expand=True, padx=8, pady=8)
+        self._escribir_previsualizacion("Genere la matriz y complete sus valores.")
 
     # ========================================================
     # FRAME INFERIOR
     # ========================================================
 
     def crear_frame_inferior(self):
-        self.frame_inferior = ctk.CTkFrame(self)
+        self.frame_inferior = ctk.CTkFrame(self, **estilo_panel_contenedor())
         self.frame_inferior.pack(fill="x", padx=15, pady=15)
 
         # ----------------------------------------------------
         # OPERACION
         # ----------------------------------------------------
-        ctk.CTkLabel(self.frame_inferior, text="Operación:").grid(row=0, column=0, padx=5, pady=5)
+        ctk.CTkLabel(self.frame_inferior, text="Operación:", text_color=TEXTO_CLARO).grid(row=0, column=0, padx=5, pady=5)
         
-        self.menu_operacion = ctk.CTkOptionMenu(
+        self.menu_operacion = ctk.CTkComboBox(
             self.frame_inferior,
             values=[
                 "A × u",
@@ -164,19 +207,23 @@ class VistaMatricial(ctk.CTkToplevel):
                 "Resolver Ax = b",
                 "Tabla de Intercambio",
                 "Flujo de Red"
-            ]
+            ],
+            **estilo_menu_desplegable()
         )
+        self.menu_operacion.set("A × u")
         self.menu_operacion.grid(row=0, column=1, padx=5, pady=5)
 
         # ----------------------------------------------------
         # FORMATO
         # ----------------------------------------------------
-        ctk.CTkLabel(self.frame_inferior, text="Formato:").grid(row=0, column=2, padx=5, pady=5)
+        ctk.CTkLabel(self.frame_inferior, text="Formato:", text_color=TEXTO_CLARO).grid(row=0, column=2, padx=5, pady=5)
         
-        self.menu_formato = ctk.CTkOptionMenu(
+        self.menu_formato = ctk.CTkComboBox(
             self.frame_inferior,
-            values=["Decimales", "Fracciones"]
+            values=["Decimales", "Fracciones"],
+            **estilo_menu_desplegable()
         )
+        self.menu_formato.set("Decimales")
         self.menu_formato.grid(row=0, column=3, padx=5, pady=5)
 
         # ----------------------------------------------------
@@ -195,6 +242,7 @@ class VistaMatricial(ctk.CTkToplevel):
         boton_calcular = ctk.CTkButton(
             self.frame_inferior,
             text="Calcular",
+            **estilo_boton_principal(),
             command=self.accion_calcular
         )
         boton_calcular.grid(row=0, column=5, padx=10, pady=5)
@@ -203,8 +251,7 @@ class VistaMatricial(ctk.CTkToplevel):
         # RESULTADO
         # ----------------------------------------------------
         self.texto_resultado = ctk.CTkTextbox(
-            self.frame_inferior,
-            height=180
+            self.frame_inferior, height=180, **estilo_consola_resultado()
         )
         self.texto_resultado.grid(
             row=1, column=0, columnspan=6,
@@ -227,7 +274,7 @@ class VistaMatricial(ctk.CTkToplevel):
             self.mostrar_resultado("Error: las dimensiones deben ser enteros mayores que 0.")
             return
 
-        for widget in self.frame_central.winfo_children():
+        for widget in self.frame_centro.winfo_children():
             widget.destroy()
 
         self.matriz_entries = []
@@ -237,7 +284,7 @@ class VistaMatricial(ctk.CTkToplevel):
 
         # MATRIZ A
         etiqueta_a = ctk.CTkLabel(
-            self.frame_central,
+            self.frame_centro,
             text="MATRIZ A",
             font=("Arial", 18, "bold")
         )
@@ -246,15 +293,16 @@ class VistaMatricial(ctk.CTkToplevel):
         for i in range(filas):
             fila_entries = []
             for j in range(columnas):
-                entry = ctk.CTkEntry(self.frame_central, width=80)
+                entry = ctk.CTkEntry(self.frame_centro, width=80)
                 entry.grid(row=i + 1, column=j, padx=5, pady=5)
+                entry.bind("<KeyRelease>", lambda event: self.actualizar_previsualizacion())
                 fila_entries.append(entry)
             self.matriz_entries.append(fila_entries)
 
         # VECTORES
         fila_vectores = filas + 3
         etiqueta_vectores = ctk.CTkLabel(
-            self.frame_central,
+            self.frame_centro,
             text="VECTORES",
             font=("Arial", 18, "bold")
         )
@@ -265,7 +313,7 @@ class VistaMatricial(ctk.CTkToplevel):
             self.vector_names.append(nombre)
 
             etiqueta = ctk.CTkLabel(
-                self.frame_central,
+                self.frame_centro,
                 text=nombre,
                 font=("Arial", 16, "bold")
             )
@@ -274,26 +322,69 @@ class VistaMatricial(ctk.CTkToplevel):
         for j in range(cantidad_vectores):
             entradas = []
             for i in range(columnas):
-                entry = ctk.CTkEntry(self.frame_central, width=80)
+                entry = ctk.CTkEntry(self.frame_centro, width=80)
                 entry.grid(row=fila_vectores + 2 + i, column=j, padx=10, pady=5)
+                entry.bind("<KeyRelease>", lambda event: self.actualizar_previsualizacion())
                 entradas.append(entry)
             self.vector_entries.append(entradas)
 
         # VECTOR b PARA LA ECUACION MATRICIAL Ax = b
         fila_b = fila_vectores + cantidad_vectores + 3
         etiqueta_b = ctk.CTkLabel(
-            self.frame_central,
+            self.frame_centro,
             text="VECTOR b (terminos independientes)",
             font=("Arial", 18, "bold")
         )
         etiqueta_b.grid(row=fila_b, column=0, columnspan=filas, pady=10)
 
         for i in range(filas):
-            entry = ctk.CTkEntry(self.frame_central, width=80)
+            entry = ctk.CTkEntry(self.frame_centro, width=80)
             entry.grid(row=fila_b + 1 + i, column=0, padx=5, pady=5)
+            entry.bind("<KeyRelease>", lambda event: self.actualizar_previsualizacion())
             self.vector_b_entries.append(entry)
 
+        self.actualizar_previsualizacion()
         self.mostrar_resultado("Matriz y vectores generados correctamente.")
+
+    def actualizar_previsualizacion(self):
+        """Muestra la estructura de A X = B mientras se capturan los datos."""
+        if not hasattr(self, "txt_previsualizacion"):
+            return
+
+        if not self.matriz_entries:
+            self._escribir_previsualizacion("Genere la matriz y complete sus valores.")
+            return
+
+        filas_a = []
+        for fila_entries in self.matriz_entries:
+            valores = [entry.get().strip() or "_" for entry in fila_entries]
+            filas_a.append("[ " + ", ".join(valores) + " ]")
+
+        valores_x = []
+        if self.vector_entries:
+            valores_x = [entry.get().strip() or "_" for entry in self.vector_entries[0]]
+        else:
+            valores_x = ["_"] * len(self.matriz_entries[0])
+
+        valores_b = [entry.get().strip() or "_" for entry in self.vector_b_entries]
+        if not valores_b:
+            valores_b = ["_"] * len(self.matriz_entries)
+
+        lineas = ["A = " + filas_a[0]]
+        lineas.extend("    " + fila for fila in filas_a[1:])
+        lineas.append("")
+        lineas.append("X = [ " + valores_x[0] + " ]")
+        lineas.extend("    [ " + valor + " ]" for valor in valores_x[1:])
+        lineas.append("")
+        lineas.append("B = [ " + valores_b[0] + " ]")
+        lineas.extend("    [ " + valor + " ]" for valor in valores_b[1:])
+        self._escribir_previsualizacion("\n".join(lineas))
+
+    def _escribir_previsualizacion(self, texto):
+        self.txt_previsualizacion.configure(state="normal")
+        self.txt_previsualizacion.delete("1.0", "end")
+        self.txt_previsualizacion.insert("1.0", texto)
+        self.txt_previsualizacion.configure(state="disabled")
 
     # ========================================================
     # GENERAR NOMBRE DEL VECTOR
@@ -697,13 +788,14 @@ class VistaMatricial(ctk.CTkToplevel):
         self.entry_cantidad_vectores.delete(0, "end")
         self.entry_escalar.delete(0, "end")
 
-        for widget in self.frame_central.winfo_children():
+        for widget in self.frame_centro.winfo_children():
             widget.destroy()
 
         self.matriz_entries = []
         self.vector_entries = []
         self.vector_b_entries = []
         self.vector_names = []
+        self._escribir_previsualizacion("Genere la matriz y complete sus valores.")
         self.mostrar_resultado("")
 
 

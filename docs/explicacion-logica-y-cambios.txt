@@ -1,0 +1,301 @@
+EXPLICACION GENERAL DE LA LOGICA MATEMATICA Y DE LOS CAMBIOS DE INTERFAZ
+Calculadora de Algebra Lineal - FIA UAM
+
+1. PROPOSITO DEL DOCUMENTO
+
+Este documento resume, sin recorrer el codigo linea por linea, como funcionan las
+calculadoras de vectores y sistemas numericos, y como evoluciono la interfaz del
+proyecto. La aplicacion separa la logica matematica de las ventanas: los modulos de
+core/vectores y core/sistemas_numericos realizan los calculos, mientras que las vistas
+de core/ui reciben datos, llaman a esas funciones y muestran los procedimientos.
+
+La intencion principal es que el usuario no vea solamente una respuesta final. Cada
+calculadora procura mostrar la estructura de los datos, los pasos relevantes y el
+resultado obtenido.
+
+2. LOGICA MATEMATICA DE LA CALCULADORA DE VECTORES
+
+2.1 Representacion y entrada de datos
+
+Un vector se representa como una lista ordenada de componentes. Por ejemplo:
+
+    u = [u1, u2, u3]
+
+La vista permite elegir la dimension y captura dos vectores, u y v. Las entradas
+pueden ser enteros, decimales, negativos y fracciones como 1/3. Antes de calcular,
+los textos se convierten a valores numericos. Si una entrada no es valida o esta
+vacia, se informa el error sin cerrar la calculadora.
+
+Las operaciones que necesitan dos vectores verifican primero que tengan la misma
+dimension. Esto evita sumar, restar o comparar listas que no representan espacios de
+la misma dimension.
+
+2.2 Suma y resta
+
+La suma y la resta se realizan componente por componente:
+
+    u + v = [u1 + v1, u2 + v2, ..., un + vn]
+    u - v = [u1 - v1, u2 - v2, ..., un - vn]
+
+Por ejemplo, si u = [1, 2] y v = [3, 4], entonces:
+
+    u + v = [1 + 3, 2 + 4] = [4, 6]
+
+2.3 Multiplicacion por escalar
+
+Un escalar es un numero que multiplica cada componente del vector:
+
+    c u = [c*u1, c*u2, ..., c*un]
+
+Esta operacion cambia el tamano del vector y, si el escalar es negativo, tambien
+puede invertir su direccion.
+
+2.4 Producto punto
+
+El producto punto produce un escalar. Se multiplica cada pareja de componentes y se
+suman los productos:
+
+    u . v = u1*v1 + u2*v2 + ... + un*vn
+
+El resultado permite, entre otras cosas, estudiar perpendicularidad y calcular
+proyecciones y angulos.
+
+2.5 Magnitud y normalizacion
+
+La magnitud representa la longitud del vector:
+
+    ||u|| = sqrt(u1^2 + u2^2 + ... + un^2)
+
+La normalizacion divide cada componente entre la magnitud para producir un vector
+unitario:
+
+    u_unitario = u / ||u||
+
+No se puede normalizar el vector cero porque su magnitud es cero. El programa utiliza
+una tolerancia para detectar ese caso y mostrar un mensaje comprensible.
+
+2.6 Producto cruz
+
+El producto cruz esta definido en R3 y devuelve un vector perpendicular a los dos
+vectores de entrada:
+
+    u x v = [u2*v3 - u3*v2,
+             u3*v1 - u1*v3,
+             u1*v2 - u2*v1]
+
+Por esa razon, la calculadora rechaza dimensiones diferentes de tres para esta
+operacion.
+
+2.7 Angulo entre vectores
+
+El angulo se obtiene a partir del producto punto y de las magnitudes:
+
+    cos(theta) = (u . v) / (||u|| * ||v||)
+
+La implementacion limita el coseno al intervalo [-1, 1] para evitar pequenos errores
+numericos. Despues aproxima el angulo y lo muestra en grados. No se puede calcular el
+angulo si alguno de los vectores es el vector cero.
+
+2.8 Proyeccion y distancia
+
+La proyeccion ortogonal de u sobre v se calcula como:
+
+    proj_v(u) = ((u . v) / ||v||^2) * v
+
+No se puede proyectar sobre el vector cero porque el denominador seria cero.
+
+La distancia entre dos vectores es la magnitud de su diferencia:
+
+    d(u, v) = ||u - v||
+
+2.9 Ecuaciones vectoriales
+
+Cuando varios vectores forman una combinacion lineal, el programa puede convertirlos
+en una matriz aumentada. Por ejemplo:
+
+    x1*u + x2*v = w
+
+se organiza como:
+
+    [ u1  v1 | w1 ]
+    [ u2  v2 | w2 ]
+    [ u3  v3 | w3 ]
+
+Esta representacion permite reutilizar metodos de eliminacion y resolver el problema
+como un sistema lineal.
+
+3. LOGICA MATEMATICA DE SISTEMAS NUMERICOS
+
+3.1 Bases utilizadas
+
+El conversor trabaja con estas bases:
+
+    Binario      base 2
+    Octal        base 8
+    Decimal      base 10
+    Hexadecimal  base 16
+
+En hexadecimal, los valores del 10 al 15 se representan con A, B, C, D, E y F.
+La validacion comprueba que cada digito sea permitido por la base seleccionada.
+
+3.2 Conversion de cualquier base a decimal
+
+La conversion utiliza descomposicion polinomica. Cada digito se multiplica por una
+potencia de la base segun su posicion, empezando por la potencia mas alta a la
+izquierda y terminando en la potencia cero a la derecha.
+
+Ejemplo binario:
+
+    (10010)2 = 1*2^4 + 0*2^3 + 0*2^2 + 1*2^1 + 0*2^0
+             = 16 + 0 + 0 + 2 + 0
+             = 18
+
+Ejemplo hexadecimal:
+
+    (1A)16 = 1*16^1 + A*16^0
+           = 16 + 10
+           = 26
+
+La calculadora muestra estas tres etapas: la expresion con potencias, los valores de
+cada termino y la suma final. Tambien puede manejar la parte fraccionaria usando
+potencias negativas:
+
+    (101.01)2 = 1*2^2 + 0*2^1 + 1*2^0 + 0*2^-1 + 1*2^-2
+
+3.3 Conversion de decimal a otra base
+
+La parte entera se convierte mediante divisiones sucesivas entre la base. En cada
+paso se guarda el residuo y se continua con el cociente entero. El resultado se forma
+leyendo los residuos desde el ultimo hasta el primero.
+
+Ejemplo con 18 a binario:
+
+    18 / 2 = 9, residuo 0
+     9 / 2 = 4, residuo 1
+     4 / 2 = 2, residuo 0
+     2 / 2 = 1, residuo 0
+     1 / 2 = 0, residuo 1
+
+Tomando los residuos desde el ultimo al primero:
+
+    1 -> 0 -> 0 -> 1 -> 0 = 10010
+
+La parte fraccionaria se convierte mediante multiplicaciones sucesivas por la base.
+En cada paso se toma la parte entera del producto como el siguiente digito. El
+proceso se detiene cuando la fraccion llega a cero o cuando se alcanza la precision
+maxima configurada.
+
+3.4 Validacion numerica
+
+Se rechazan entradas vacias, caracteres invalidos, mas de un punto decimal y numeros
+no finitos como NaN o infinito. La conversion hexadecimal tambien se valida con la
+misma logica general; no es un modulo separado.
+
+4. EVOLUCION DE LA INTERFAZ
+
+4.1 Menu de seleccion anterior
+
+La version anterior presentaba un Dashboard mas claro y ornamental, con una cabecera
+morada, tarjetas que podian mostrar espacios reservados para imagenes y una relacion
+visual menos uniforme entre el menu y las calculadoras internas.
+
+4.2 Dashboard actual
+
+El Dashboard actual funciona como una pantalla de seleccion visual. Usa un Canvas de
+Tkinter, un fondo decorativo, tarjetas blancas con bordes, iconos cargados desde
+core/assets y tipografias registradas temporalmente desde core/assets/fonts.
+
+Cada tarjeta identifica un modulo y actualiza la barra de estado al abrirlo. Las
+calculadoras se crean como ventanas secundarias para mantener separada la navegacion
+de la captura de datos.
+
+4.3 Calculadoras actuales
+
+Las calculadoras internas utilizan principalmente CustomTkinter y comparten un tema
+definido en core/ui/tema.py. La paleta utiliza fondo oscuro, texto claro, paneles
+con bordes de acento rojo, botones principales rojos, botones secundarios claros y
+consolas de resultados oscuras con texto monoespaciado.
+
+La interfaz se organiza normalmente en:
+
+    configuracion de dimensiones o modo
+    captura de datos
+    vista previa
+    seleccion de operacion
+    procedimiento y resultado
+
+Esta organizacion permite que el usuario revise primero lo que esta introduciendo y
+luego consulte como se obtuvo la respuesta.
+
+4.4 Vistas previas
+
+Las vistas de matrices, vectores, ecuaciones matriciales y sistemas actualizan una
+representacion textual mientras se escriben los valores. Los campos vacios aparecen
+como guiones bajos para distinguir estructura de datos aun no capturados.
+
+En ecuaciones matriciales se muestra la estructura A X = B. En sistemas lineales se
+muestran las ecuaciones con bordes visuales para separar la primera, las intermedias
+y la ultima fila. Estas representaciones no sustituyen al calculo; sirven como una
+guia inmediata de la informacion que sera procesada.
+
+4.5 Navegacion y control de ventanas
+
+Al abrir una calculadora, el Dashboard se oculta temporalmente. Se conserva una
+referencia de la ventana activa para evitar que una doble pulsacion cree dos
+calculadoras. Al cerrar la ventana secundaria, el Dashboard vuelve a mostrarse.
+
+La referencia se limpia solamente cuando se destruye la ventana principal de la
+calculadora, no cuando se destruyen widgets internos. Esto evita que la aplicacion
+pierda el control del modulo activo durante una regeneracion de entradas.
+
+5. ORGANIZACION DEL CODIGO
+
+La separacion principal es la siguiente:
+
+    core/vectores/
+        operaciones y conversiones de vectores
+    core/sistemas_numericos/
+        validacion y conversion entre bases
+    core/ui/
+        ventanas, controles, previsualizaciones y resultados
+    core/ui/tema.py
+        colores y estilos compartidos
+    main.py
+        creacion de la ventana raiz y del Dashboard
+
+La interfaz no implementa las formulas directamente. Recibe entradas, solicita la
+operacion al modulo matematico y presenta el resultado y el procedimiento. Esto
+facilita corregir la apariencia sin cambiar las formulas y revisar la logica sin
+depender de una ventana grafica.
+
+6. RESTRICCIONES Y DEPENDENCIAS
+
+Las operaciones matematicas principales utilizan Python estandar, listas, ciclos,
+condicionales, operaciones aritmeticas, fractions.Fraction y funciones propias. No
+se utilizan NumPy, SciPy ni SymPy.
+
+Las dependencias del proyecto se reservan principalmente para la interfaz y la
+presentacion:
+
+    customtkinter  controles de las calculadoras
+    Pillow         fondos e iconos del Dashboard
+    prettytable    algunas salidas tabulares
+
+El proyecto esta preparado principalmente para Windows porque registra temporalmente
+las fuentes incluidas mediante ctypes.
+
+7. RESUMEN PARA LOS COLABORADORES
+
+El cambio principal no fue solamente visual. La aplicacion paso de mostrar formularios
+separados a guiar al usuario en un flujo educativo:
+
+    seleccionar modulo
+    definir dimensiones o modo
+    capturar datos
+    revisar la vista previa
+    ejecutar la operacion
+    leer el procedimiento
+    consultar el resultado
+
+La logica matematica conserva operaciones directas y explicables, mientras que la
+interfaz hace visibles la estructura y los pasos necesarios para entenderlas.

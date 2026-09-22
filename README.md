@@ -1,6 +1,55 @@
-# Calculadora de Algebra Lineal
+# Calculadora de Álgebra Lineal
 
-Aplicacion de escritorio para practicar operaciones con matrices, vectores, sistemas de ecuaciones, limites y sistemas numericos.
+Aplicación de escritorio educativa para practicar operaciones con matrices, vectores,
+sistemas de ecuaciones, límites y sistemas numéricos.
+
+## Estudio de UI/UX
+
+El diagnostico de experiencia de usuario, la comparacion con calculadoras educativas,
+las referencias de accesibilidad y el plan de pruebas se encuentran en
+[docs/estudio-ui-ux-heyalg.md](docs/estudio-ui-ux-heyalg.md).
+
+Las propuestas que aun no han sido aprobadas para desarrollo se conservan en
+[docs/pendientes-ui-ux.md](docs/pendientes-ui-ux.md).
+
+## Evolución de la interfaz
+
+La interfaz actual es resultado de una revisión visual realizada durante el desarrollo
+del proyecto. La versión anterior utilizaba una presentación más clara y ornamental,
+con una cabecera morada en el Dashboard, tarjetas con espacios reservados para las
+imágenes de cada calculadora y una apariencia menos uniforme entre el menú y las
+ventanas de trabajo.
+
+La versión actual separa con mayor claridad dos contextos de uso:
+
+- **Dashboard:** funciona como menú visual de entrada. Utiliza un fondo decorativo,
+  tarjetas con iconos, tipografías registradas desde `core/assets/fonts` y una barra de
+  estado que indica el módulo activo.
+- **Calculadoras:** priorizan la captura y lectura de datos. Usan CustomTkinter, fondo
+  oscuro, paneles delimitados, bordes de acento rojo, botones con funciones visualmente
+  diferenciadas y consolas monoespaciadas para procedimientos y resultados.
+
+Los cambios principales fueron:
+
+- Sustitución de la paleta anterior por una base negro, blanco y rojo definida en
+  `core/ui/tema.py`.
+- Centralización de estilos para paneles, botones principales, botones secundarios,
+  menús desplegables y consolas de resultado.
+- Incorporación de fondos e iconos reales en el Dashboard mediante Pillow.
+- Registro temporal de fuentes incluidas en el proyecto para reforzar la jerarquía
+  visual del título, las tarjetas y el menú.
+- Organización de las calculadoras en áreas diferenciadas de configuración, captura,
+  acciones, procedimiento y resultado.
+- Incorporación de vistas previas para matrices, vectores, ecuaciones matriciales y
+  sistemas lineales, actualizadas mientras el usuario escribe.
+- Unificación del flujo de ventanas: el Dashboard se oculta al abrir una calculadora,
+  conserva la referencia de la ventana activa y vuelve a mostrarse al cerrarla.
+
+El objetivo de estos cambios no fue solo modificar colores. La interfaz pasó de ser una
+colección de formularios independientes a una herramienta educativa con una jerarquía
+visual más consistente: primero se identifica el módulo, después se introducen los
+datos, se revisa su representación y finalmente se consulta el procedimiento y el
+resultado.
 
 ## Descripcion general
 
@@ -18,6 +67,36 @@ Los modulos disponibles son:
 - Ecuaciones lineales e independencia lineal.
 - Calculo de limites.
 - Sistemas numericos.
+
+Las calculadoras se abren desde el Dashboard en ventanas secundarias. Mientras el
+usuario captura datos, las vistas de matrices, vectores, ecuaciones matriciales y
+sistemas muestran una previsualización de la estructura que se está construyendo.
+
+### Previsualizaciones
+
+- **Matrices individuales:** muestra la matriz aumentada `[A | b]` mientras se capturan
+  los coeficientes.
+- **Operaciones vectoriales:** muestra los vectores `u` y `v` con sus componentes actuales.
+- **Ecuaciones matriciales:** muestra la estructura `A`, `X` y `B` de la ecuación `AX = B`.
+- **Sistemas lineales:** muestra las ecuaciones con sus variables, términos independientes
+  y bordes visuales `┌`, `│` y `└`.
+
+Las previsualizaciones se actualizan con cada cambio de los campos y utilizan `_` para
+representar valores todavía vacíos.
+
+### Sistemas numéricos
+
+El conversor incluye dos operaciones:
+
+- **Decimal → otra base:** convierte a binario, octal o hexadecimal mediante divisiones
+  sucesivas para la parte entera y multiplicaciones sucesivas para la parte fraccionaria.
+  Al final muestra los residuos en orden inverso para formar el resultado.
+- **Otra base → Decimal:** convierte desde binario, octal o hexadecimal mediante
+  descomposición polinómica. La salida muestra los términos con potencias de la base,
+  sus valores calculados y la suma final.
+
+Estas conversiones están implementadas con Python estándar, sin NumPy, SciPy, SymPy ni
+`math`.
 
 ### Tabla de intercambio de Leontief
 
@@ -119,14 +198,17 @@ El flujo de transicion es el siguiente:
 1. `main.py` crea la ventana raiz de Tkinter y construye el `Dashboard`.
 2. El Dashboard muestra una tarjeta para cada calculadora disponible.
 3. Al seleccionar una tarjeta, el Dashboard actualiza la barra de estado y se oculta
-	temporalmente mediante `withdraw()`.
+  temporalmente mediante `withdraw()`.
 4. El controlador importa y crea la vista correspondiente como una ventana secundaria
-	(`Toplevel`). La importacion dentro del controlador permite cargar cada modulo al
-	utilizarlo.
-5. Al cerrar la calculadora, su metodo `al_cerrar()` vuelve a mostrar el Dashboard con
-	`deiconify()` y destruye solamente la ventana secundaria.
-6. Al elegir `Archivo > Salir`, se desregistran las fuentes temporales y se cierra la
-	ventana principal junto con la aplicacion.
+  (`Toplevel`). La importacion dentro del controlador permite cargar cada modulo al
+  utilizarlo.
+5. El Dashboard conserva una referencia a la ventana activa. Esto evita abrir dos
+   calculadoras por una doble pulsacion y evita que la destruccion de un widget interno
+   se confunda con el cierre de la ventana completa.
+6. Al cerrar la calculadora, su metodo `al_cerrar()` vuelve a mostrar el Dashboard con
+   `deiconify()` y destruye solamente la ventana secundaria.
+7. Al elegir `Archivo > Salir`, se desregistran las fuentes temporales y se cierra la
+   ventana principal junto con la aplicacion.
 
 Este patron se aplica a las vistas de matrices, vectores, ecuaciones matriciales,
 sistemas, limites y sistemas numericos. La referencia al Dashboard se guarda en cada
@@ -154,7 +236,18 @@ se encarga de recibir datos y mostrar resultados, mientras que los modulos dentr
 `core/vectores/` realizan las conversiones y operaciones. Esta separacion facilita
 probar o reutilizar la logica sin depender directamente de los widgets.
 
-## Mejoras recientes del modulo de vectores
+Vistas principales dentro de `core/ui/`:
+
+- `dashboard.py`: menú principal, tarjetas, navegación y control de la ventana activa.
+- `vista_matriz.py`: resolución de sistemas de ecuaciones lineales con matriz aumentada.
+- `vista_vector.py`: operaciones entre vectores y conversiones de formato.
+- `vista_matricial.py`: productos matriz-vector, operaciones matriciales, ecuaciones
+  matriciales, tabla de intercambio y flujo de red.
+- `vista_sistemas.py`: sistemas `Ax = b` e independencia lineal.
+- `vista_limites.py`: evaluación de límites y continuidad.
+- `vista_numerica.py`: conversión entre bases numéricas y procedimiento detallado.
+
+## Características de las operaciones vectoriales
 
 - Las fracciones se convierten con `fractions.Fraction`, evitando el uso incorrecto
   de `rstrip("/1")` y reduciendo correctamente valores como `0.1` a `1/10`.
@@ -185,13 +278,28 @@ Dependencias principales:
 - `Pillow`: carga y visualizacion de recursos graficos.
 - `prettytable`: presentacion tabular de algunos resultados.
 
-Las operaciones vectoriales, matriciales y de limites implementadas para la actividad
-utilizan listas, ciclos, condicionales, `ast` y funciones propias de Python estandar,
-sin NumPy, SciPy, SymPy ni funciones avanzadas de `math`.
+La lógica matemática del proyecto utiliza principalmente listas, ciclos, condicionales,
+`ast`, `fractions.Fraction` y funciones propias de Python estándar. No se utilizan
+NumPy, SciPy ni SymPy. Las dependencias externas se reservan para la interfaz, los
+recursos gráficos y la presentación tabular.
+
+## Verificación rápida
+
+Para comprobar que el código compila después de realizar cambios, ejecuta desde
+PowerShell:
+
+```powershell
+.\.venv\Scripts\python.exe -m py_compile main.py core\ui\dashboard.py core\ui\vista_matriz.py core\ui\vista_vector.py core\ui\vista_matricial.py core\ui\vista_sistemas.py core\ui\vista_limites.py core\ui\vista_numerica.py
+```
+
+La aplicación no incluye todavía una suite automatizada de pruebas. Las comprobaciones
+de la interfaz se realizan instanciando las vistas y verificando sus controles y
+previsualizaciones con el entorno virtual del proyecto.
 
 ## Recursos incluidos
 
-- `core/assets/Bordes.png`: fondo decorativo.
+- `core/assets/BordesFinales.png`: fondo decorativo principal del Dashboard.
+- `core/assets/*ICON.png` y `*CON.png`: iconos de las calculadoras del Dashboard.
 - `core/assets/fonts/`: fuentes utilizadas por la interfaz.
 
 Las fuentes deben conservarse junto con el proyecto. Antes de redistribuir la aplicacion, verifica que sus licencias permitan incluirlas.

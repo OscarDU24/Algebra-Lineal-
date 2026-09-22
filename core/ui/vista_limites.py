@@ -5,16 +5,25 @@
 from core.ui.ctk_compat import ctk
 # Importamos la lógica pura (ajusta la ruta si es necesario)
 from core.limites import operaciones_limites as op_lim
+from core.ui.tema import (
+    FONDO_CALCULADORA,
+    TEXTO_CLARO,
+    estilo_boton_principal,
+    estilo_boton_secundario,
+    estilo_consola_resultado,
+    estilo_panel_contenedor,
+)
 
 class VistaLimites(ctk.CTkToplevel):
 
     def __init__(self, master=None):
         super().__init__(master)
+        self.configure(fg_color=FONDO_CALCULADORA)
 
         self.master_dashboard = master
         self.protocol("WM_DELETE_WINDOW", self.al_cerrar)
         
-        self.title("Calculadora de Límites - FIA UAM")
+        self.title("Límites y Continuidad")
         self.geometry("900x700")
 
         # Variable de control
@@ -33,7 +42,7 @@ class VistaLimites(ctk.CTkToplevel):
     # FRAME SUPERIOR (ENTRADA DE DATOS)
     # ========================================================
     def crear_frame_superior(self):
-        self.frame_sup = ctk.CTkFrame(self)
+        self.frame_sup = ctk.CTkFrame(self, **estilo_panel_contenedor())
         self.frame_sup.pack(fill="x", padx=15, pady=15)
 
         titulo = ctk.CTkLabel(
@@ -50,7 +59,7 @@ class VistaLimites(ctk.CTkToplevel):
             "• Funciones: sin(x), cos(x), tan(x), log(x), exp(x)\n"
             "• Constantes: pi, e. Infinito: escribe 'inf'"
         )
-        ctk.CTkLabel(self.frame_sup, text=ayuda_texto, text_color="gray", justify="left").pack(pady=(0, 15))
+        ctk.CTkLabel(self.frame_sup, text=ayuda_texto, text_color=TEXTO_CLARO, justify="left").pack(pady=(0, 15))
 
         # Cuadro de Entradas
         frame_inputs = ctk.CTkFrame(self.frame_sup, fg_color="transparent")
@@ -81,19 +90,19 @@ class VistaLimites(ctk.CTkToplevel):
     # FRAME INFERIOR (CONSOLA INTEGADA)
     # ========================================================
     def crear_frame_inferior(self):
-        self.frame_inf = ctk.CTkFrame(self)
+        self.frame_inf = ctk.CTkFrame(self, **estilo_panel_contenedor())
         self.frame_inf.pack(fill="both", expand=True, padx=15, pady=(0, 15))
 
         botones_frame = ctk.CTkFrame(self.frame_inf, fg_color="transparent")
         botones_frame.pack(pady=10)
 
-        boton_calcular = ctk.CTkButton(botones_frame, text="Evaluar Límite", command=self.ejecutar_calculo, fg_color="green", hover_color="darkgreen")
+        boton_calcular = ctk.CTkButton(botones_frame, text="Evaluar Límite", **estilo_boton_principal(), command=self.ejecutar_calculo)
         boton_calcular.grid(row=0, column=0, padx=10)
 
-        boton_limpiar = ctk.CTkButton(botones_frame, text="Limpiar Consola", command=lambda: self.mostrar_resultado(""))
+        boton_limpiar = ctk.CTkButton(botones_frame, text="Limpiar Consola", **estilo_boton_secundario(), command=lambda: self.mostrar_resultado(""))
         boton_limpiar.grid(row=0, column=1, padx=10)
 
-        self.texto_resultado = ctk.CTkTextbox(self.frame_inf, font=("Consolas", 14))
+        self.texto_resultado = ctk.CTkTextbox(self.frame_inf, font=("Consolas", 14), **estilo_consola_resultado())
         self.texto_resultado.pack(fill="both", expand=True, padx=10, pady=10)
 
     # ========================================================

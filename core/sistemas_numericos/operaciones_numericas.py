@@ -45,6 +45,9 @@ def validar_cadena_en_base(cadena, base):
     if cuerpo == '' or cuerpo == '.':
         raise ValueError("Debes ingresar un número para convertir.")
 
+    if cuerpo.count('.') > 1:
+        raise ValueError("El número solo puede contener un punto decimal.")
+
     for caracter in cuerpo:
         if caracter == '.':
             continue
@@ -87,7 +90,7 @@ def convertir_a_decimal(cadena, base, nombre_base):
     for i, caracter in enumerate(parte_entera):
         val_dig = _valor_digito(caracter, base)
         potencia = n - 1 - i
-        terminos_formula.append(f"({val_dig} x {base}^{potencia})")
+        terminos_formula.append(f"{caracter.upper()}x{base}^{potencia}")
         resultado_termino = val_dig * (base ** potencia)
         terminos_valores.append(str(resultado_termino))
         valor_entero += resultado_termino
@@ -97,7 +100,7 @@ def convertir_a_decimal(cadena, base, nombre_base):
     for i, caracter in enumerate(parte_frac):
         val_dig = _valor_digito(caracter, base)
         potencia = -(i + 1)
-        terminos_formula.append(f"({val_dig} x {base}^{potencia})")
+        terminos_formula.append(f"{caracter.upper()}x{base}^{potencia}")
         resultado_termino = val_dig / (base ** (i + 1))
         terminos_valores.append(f"{resultado_termino:.6f}")
         valor_frac += resultado_termino
@@ -105,17 +108,16 @@ def convertir_a_decimal(cadena, base, nombre_base):
     expresion_combinacion = " + ".join(terminos_formula)
     evaluacion_numerica = " + ".join(terminos_valores)
 
-    pasos.append("Combinación lineal (sumatoria de potencias de la base):")
-    pasos.append(f"  N = {expresion_combinacion}")
-    pasos.append("Sustituyendo cada término:")
-    pasos.append(f"  N = {evaluacion_numerica}")
-
     resultado = valor_entero + valor_frac
     if negativo:
         resultado = -resultado
     if valor_frac == 0:
         resultado = int(resultado)
 
+    signo = "-" if negativo else ""
+    pasos.append("Descomposición polinómica:")
+    pasos.append(f"  ({signo}{cadena}){base} = {expresion_combinacion}")
+    pasos.append(f"  = {evaluacion_numerica} = {resultado}")
     pasos.append(f"Resultado en Decimal: {resultado}\n")
     return resultado, "\n".join(pasos)
 
@@ -141,6 +143,7 @@ def convertir_decimal_a_base(numero, base, nombre_base, precision=PRECISION_DECI
 
     # --- Divisiones sucesivas para la parte entera ---
     grupos_enteros = []
+    residuos_enteros = []
     if parte_entera == 0:
         grupos_enteros = [0]
         pasos.append("Parte entera es 0.")
@@ -152,7 +155,19 @@ def convertir_decimal_a_base(numero, base, nombre_base, precision=PRECISION_DECI
             cociente = temporal // base
             pasos.append(f"  {temporal} / {base} = {cociente}  (Residuo = {residuo})")
             grupos_enteros.insert(0, residuo)
+            residuos_enteros.append(residuo)
             temporal = cociente
+
+        residuos_invertidos = " -> ".join(
+            _digito_valor(residuo) for residuo in reversed(residuos_enteros)
+        )
+        resultado_residuos = "".join(
+            _digito_valor(residuo) for residuo in reversed(residuos_enteros)
+        )
+        pasos.append(
+            "Tomando los residuos desde el último al primero: "
+            f"{residuos_invertidos} -> {resultado_residuos}"
+        )
 
     # --- Multiplicaciones sucesivas para la parte fraccionaria ---
     grupos_frac = []
@@ -190,6 +205,8 @@ def parsear_decimal(cadena):
         valor = float(cadena)
     except ValueError:
         raise ValueError(f"'{cadena}' no es un número decimal válido.")
+    if valor != valor or valor in (float("inf"), float("-inf")):
+        raise ValueError(f"'{cadena}' debe ser un número decimal finito.")
     if valor == int(valor):
         valor = int(valor)
     return valor

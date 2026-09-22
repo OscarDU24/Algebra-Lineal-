@@ -2,6 +2,15 @@ from core.ui.ctk_compat import ctk
 from core.matriciales import visualizacionMatriciales as vis
 from core.vectores import conversionesVectores as conv
 from core.vectores import flujo_red
+from core.ui.tema import (
+    FONDO_CALCULADORA,
+    TEXTO_CLARO,
+    estilo_boton_principal,
+    estilo_boton_secundario,
+    estilo_consola_resultado,
+    estilo_menu_desplegable,
+    estilo_panel_contenedor,
+)
 
 
 class VistaFlujoRed(ctk.CTkToplevel):
@@ -9,7 +18,8 @@ class VistaFlujoRed(ctk.CTkToplevel):
 
     def __init__(self, master):
         super().__init__(master)
-        self.title("Flujo de Red - Conservación en Nodos")
+        self.configure(fg_color=FONDO_CALCULADORA)
+        self.title("Análisis de Flujo en Redes")
         self.geometry("980x780")
         self.master_matricial = master
         self.protocol("WM_DELETE_WINDOW", self.al_cerrar)
@@ -24,34 +34,36 @@ class VistaFlujoRed(ctk.CTkToplevel):
         self.destroy()
 
     def crear_controles(self):
-        frame = ctk.CTkFrame(self)
+        frame = ctk.CTkFrame(self, **estilo_panel_contenedor())
         frame.pack(fill="x", padx=15, pady=12)
-        ctk.CTkLabel(frame, text="Nodos:").pack(side="left", padx=5)
+        ctk.CTkLabel(frame, text="Nodos:", text_color=TEXTO_CLARO).pack(side="left", padx=5)
         self.entry_nodos = ctk.CTkEntry(frame, width=55)
         self.entry_nodos.insert(0, "3")
         self.entry_nodos.pack(side="left", padx=5)
-        ctk.CTkLabel(frame, text="Ramas:").pack(side="left", padx=5)
+        ctk.CTkLabel(frame, text="Ramas:", text_color=TEXTO_CLARO).pack(side="left", padx=5)
         self.entry_ramas = ctk.CTkEntry(frame, width=55)
         self.entry_ramas.insert(0, "3")
         self.entry_ramas.pack(side="left", padx=5)
         ctk.CTkButton(
-            frame, text="Generar red", command=self.generar_datos
+            frame, text="Generar red", **estilo_boton_secundario(), command=self.generar_datos
         ).pack(side="left", padx=8)
         ctk.CTkButton(
-            frame, text="Calcular", fg_color="green", hover_color="darkgreen",
+            frame, text="Calcular", **estilo_boton_principal(),
             command=self.calcular
         ).pack(side="left", padx=8)
-        self.menu_formato = ctk.CTkOptionMenu(
-            frame, values=["Decimales", "Fracciones"]
+        self.menu_formato = ctk.CTkComboBox(
+            frame, values=["Decimales", "Fracciones"],
+            **estilo_menu_desplegable()
         )
+        self.menu_formato.set("Decimales")
         self.menu_formato.pack(side="right", padx=8)
 
     def crear_area_datos(self):
         self.area_datos = ctk.CTkScrollableFrame(
-            self, label_text="Ramas y balances de conservación"
+            self, label_text="Ramas y balances de conservación", **estilo_panel_contenedor()
         )
         self.area_datos.pack(fill="both", expand=True, padx=15, pady=5)
-        self.texto_resultado = ctk.CTkTextbox(self, height=220)
+        self.texto_resultado = ctk.CTkTextbox(self, height=220, **estilo_consola_resultado())
         self.texto_resultado.pack(fill="both", padx=15, pady=12)
 
     def _limpiar_area(self):
@@ -80,16 +92,17 @@ class VistaFlujoRed(ctk.CTkToplevel):
         self._limpiar_area()
         encabezados = ["Rama", "Origen", "Destino"]
         for columna, texto in enumerate(encabezados):
-            ctk.CTkLabel(self.area_datos, text=texto).grid(
+            ctk.CTkLabel(self.area_datos, text=texto, text_color=TEXTO_CLARO).grid(
                 row=0, column=columna, padx=5, pady=5
             )
         ctk.CTkLabel(
             self.area_datos,
-            text="El flujo se toma positivo en el sentido origen -> destino."
+            text="El flujo se toma positivo en el sentido origen -> destino.",
+            text_color=TEXTO_CLARO
         ).grid(row=0, column=3, columnspan=2, padx=8)
 
         for indice in range(ramas):
-            ctk.CTkLabel(self.area_datos, text=f"f{indice + 1}").grid(
+            ctk.CTkLabel(self.area_datos, text=f"f{indice + 1}", text_color=TEXTO_CLARO).grid(
                 row=indice + 1, column=0, padx=5, pady=4
             )
             origen = self._entrada(indice + 1, 1, str((indice % nodos) + 1))
@@ -99,10 +112,11 @@ class VistaFlujoRed(ctk.CTkToplevel):
         fila_balance = ramas + 3
         ctk.CTkLabel(
             self.area_datos,
-            text="Balance externo por nodo: salidas - entradas = balance"
+            text="Balance externo por nodo: salidas - entradas = balance",
+            text_color=TEXTO_CLARO
         ).grid(row=fila_balance, column=0, columnspan=3, pady=8)
         for indice in range(nodos):
-            ctk.CTkLabel(self.area_datos, text=f"Nodo {indice + 1}").grid(
+            ctk.CTkLabel(self.area_datos, text=f"Nodo {indice + 1}", text_color=TEXTO_CLARO).grid(
                 row=fila_balance + indice + 1, column=0, padx=5, pady=4
             )
             self.balance_entries.append(

@@ -2,6 +2,15 @@ from core.ui.ctk_compat import ctk
 from core.matriciales import visualizacionMatriciales as vis
 from core.vectores import conversionesVectores as conv
 from core.vectores import intercambio
+from core.ui.tema import (
+    FONDO_CALCULADORA,
+    TEXTO_CLARO,
+    estilo_boton_principal,
+    estilo_boton_secundario,
+    estilo_consola_resultado,
+    estilo_menu_desplegable,
+    estilo_panel_contenedor,
+)
 
 
 class VistaIntercambio(ctk.CTkToplevel):
@@ -9,7 +18,8 @@ class VistaIntercambio(ctk.CTkToplevel):
 
     def __init__(self, master):
         super().__init__(master)
-        self.title("Tabla de Intercambio - Modelos de Leontief")
+        self.configure(fg_color=FONDO_CALCULADORA)
+        self.title("Tabla de Intercambio y Producción - Modelo de Leontief")
         self.geometry("980x780")
         self.master_matricial = master
         self.protocol("WM_DELETE_WINDOW", self.al_cerrar)
@@ -26,42 +36,47 @@ class VistaIntercambio(ctk.CTkToplevel):
         self.destroy()
 
     def crear_controles(self):
-        frame = ctk.CTkFrame(self)
+        frame = ctk.CTkFrame(self, **estilo_panel_contenedor())
         frame.pack(fill="x", padx=15, pady=12)
-        ctk.CTkLabel(frame, text="Sectores:").pack(side="left", padx=8)
+        ctk.CTkLabel(frame, text="Sectores:", text_color=TEXTO_CLARO).pack(side="left", padx=8)
         self.entry_dimension = ctk.CTkEntry(frame, width=60)
         self.entry_dimension.insert(0, "2")
         self.entry_dimension.pack(side="left", padx=5)
-        self.menu_modelo = ctk.CTkOptionMenu(
+        self.menu_modelo = ctk.CTkComboBox(
             frame,
-            values=["Modelo abierto", "Modelo cerrado"]
+            values=["Modelo abierto", "Modelo cerrado"],
+            **estilo_menu_desplegable()
         )
+        self.menu_modelo.set("Modelo abierto")
         self.menu_modelo.pack(side="left", padx=10)
         ctk.CTkButton(
             frame,
             text="Generar tabla",
+            **estilo_boton_secundario(),
             command=self.generar_datos
         ).pack(side="left", padx=8)
         ctk.CTkButton(
             frame,
             text="Calcular",
-            fg_color="green",
-            hover_color="darkgreen",
+            **estilo_boton_principal(),
             command=self.calcular
         ).pack(side="left", padx=8)
-        self.menu_formato = ctk.CTkOptionMenu(
+        self.menu_formato = ctk.CTkComboBox(
             frame,
-            values=["Decimales", "Fracciones"]
+            values=["Decimales", "Fracciones"],
+            **estilo_menu_desplegable()
         )
+        self.menu_formato.set("Decimales")
         self.menu_formato.pack(side="right", padx=8)
 
     def crear_area_datos(self):
         self.area_datos = ctk.CTkScrollableFrame(
             self,
-            label_text="Coeficientes y demanda final"
+            label_text="Coeficientes y demanda final",
+            **estilo_panel_contenedor()
         )
         self.area_datos.pack(fill="both", expand=True, padx=15, pady=5)
-        self.texto_resultado = ctk.CTkTextbox(self, height=210)
+        self.texto_resultado = ctk.CTkTextbox(self, height=210, **estilo_consola_resultado())
         self.texto_resultado.pack(fill="both", padx=15, pady=12)
 
     def _limpiar_area(self):
@@ -91,13 +106,14 @@ class VistaIntercambio(ctk.CTkToplevel):
         self._limpiar_area()
         ctk.CTkLabel(
             self.area_datos,
-            text="A: coeficientes de consumo entre sectores"
+            text="A: coeficientes de consumo entre sectores",
+            text_color=TEXTO_CLARO
         ).grid(row=0, column=0, columnspan=dimension + 1, pady=8)
-        ctk.CTkLabel(self.area_datos, text="Sector").grid(row=1, column=0)
+        ctk.CTkLabel(self.area_datos, text="Sector", text_color=TEXTO_CLARO).grid(row=1, column=0)
         for columna in range(dimension):
-            ctk.CTkLabel(self.area_datos, text=f"S{columna + 1}").grid(row=1, column=columna + 1)
+            ctk.CTkLabel(self.area_datos, text=f"S{columna + 1}", text_color=TEXTO_CLARO).grid(row=1, column=columna + 1)
         for fila in range(dimension):
-            ctk.CTkLabel(self.area_datos, text=f"S{fila + 1}").grid(row=fila + 2, column=0)
+            ctk.CTkLabel(self.area_datos, text=f"S{fila + 1}", text_color=TEXTO_CLARO).grid(row=fila + 2, column=0)
             entradas_fila = []
             for columna in range(dimension):
                 entradas_fila.append(self._crear_entrada(fila + 2, columna + 1, "0"))
@@ -106,23 +122,25 @@ class VistaIntercambio(ctk.CTkToplevel):
         fila_demanda = dimension + 3
         ctk.CTkLabel(
             self.area_datos,
-            text="D: demanda final externa"
+            text="D: demanda final externa",
+            text_color=TEXTO_CLARO
         ).grid(row=fila_demanda, column=0, columnspan=dimension + 1, pady=8)
         for fila in range(dimension):
-            ctk.CTkLabel(self.area_datos, text=f"D{fila + 1}").grid(row=fila_demanda + 1 + fila, column=0)
+            ctk.CTkLabel(self.area_datos, text=f"D{fila + 1}", text_color=TEXTO_CLARO).grid(row=fila_demanda + 1 + fila, column=0)
             self.demanda_entries.append(self._crear_entrada(fila_demanda + 1 + fila, 1, "0"))
 
         if self.menu_modelo.get() == "Modelo cerrado":
             fila_cerrado = fila_demanda + dimension + 2
             ctk.CTkLabel(
                 self.area_datos,
-                text="Sector hogares endógeno"
+                text="Sector hogares endógeno",
+                text_color=TEXTO_CLARO
             ).grid(row=fila_cerrado, column=0, columnspan=dimension + 1, pady=8)
             for fila in range(dimension):
-                ctk.CTkLabel(self.area_datos, text=f"Consumo S{fila + 1}").grid(row=fila_cerrado + 1 + fila, column=0)
+                ctk.CTkLabel(self.area_datos, text=f"Consumo S{fila + 1}", text_color=TEXTO_CLARO).grid(row=fila_cerrado + 1 + fila, column=0)
                 self.consumo_entries.append(self._crear_entrada(fila_cerrado + 1 + fila, 1, "0"))
             for columna in range(dimension):
-                ctk.CTkLabel(self.area_datos, text=f"Ingreso S{columna + 1}").grid(row=fila_cerrado + 1 + dimension + columna, column=0)
+                ctk.CTkLabel(self.area_datos, text=f"Ingreso S{columna + 1}", text_color=TEXTO_CLARO).grid(row=fila_cerrado + 1 + dimension + columna, column=0)
                 self.ingreso_entries.append(self._crear_entrada(fila_cerrado + 1 + dimension + columna, 1, "0"))
 
     def _leer_entrada(self, entry, nombre):

@@ -7,6 +7,18 @@ from core.lineal.clasificacion import clasificar_sistema
 from core.lineal.solucion import sustitucion_hacia_atras_detallada, extraer_solucion_rref
 from core.lineal.verificacion import verificar_solucion
 from core.lineal.visualizacion import imprimir_sistema_ecuaciones
+from core.ui.tema import (
+    FONDO_BOTON,
+    FONDO_CALCULADORA,
+    FONDO_TERMINAL,
+    FONDO_TERMINO_INDEPENDIENTE,
+    FUENTE_CONTROLES,
+    estilo_boton_principal,
+    estilo_boton_secundario,
+    estilo_consola_resultado,
+    estilo_menu_desplegable,
+    estilo_panel_contenedor,
+)
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
@@ -19,7 +31,7 @@ class VistaMatriz(ctk.CTkToplevel):
         
         self.master_dashboard = master
 
-        self.title("Calculadora de Sistemas de Ecuaciones Lineales - FIA UAM")
+        self.title("Resolver Sistemas de Ecuaciones Lineales")
         self.geometry("980x780")
         
         # Asegurar foco en la ventana secundaria
@@ -43,55 +55,82 @@ class VistaMatriz(ctk.CTkToplevel):
 
     def crear_frame_superior(self):
         """Frame de controles iniciales: dimensiones, generación y reinicio."""
-        self.frame_sup = ctk.CTkFrame(self)
+        self.frame_sup = ctk.CTkFrame(self, **estilo_panel_contenedor())
         self.frame_sup.pack(pady=10, padx=20, fill="x")
 
-        lbl_titulo = ctk.CTkLabel(self.frame_sup, text="Dimensiones:", font=ctk.CTkFont(size=14, weight="bold"))
+        lbl_titulo = ctk.CTkLabel(self.frame_sup, text="Dimensiones:", text_color="#ffffff", font=ctk.CTkFont(size=14, weight="bold"))
         lbl_titulo.pack(side="left", padx=10, pady=10)
 
-        lbl_m = ctk.CTkLabel(self.frame_sup, text="Filas (m):")
+        lbl_m = ctk.CTkLabel(self.frame_sup, text="Filas (m):", text_color="#ffffff")
         lbl_m.pack(side="left", padx=(10, 2))
 
         self.entry_m = ctk.CTkEntry(self.frame_sup, width=50)
         self.entry_m.insert(0, "3")
         self.entry_m.pack(side="left", padx=5)
 
-        lbl_n = ctk.CTkLabel(self.frame_sup, text="Variables (n):")
+        lbl_n = ctk.CTkLabel(self.frame_sup, text="Variables (n):", text_color="#ffffff")
         lbl_n.pack(side="left", padx=(10, 2))
 
         self.entry_n = ctk.CTkEntry(self.frame_sup, width=50)
         self.entry_n.insert(0, "3")
         self.entry_n.pack(side="left", padx=5)
 
-        btn_generar = ctk.CTkButton(self.frame_sup, text="Generar Matriz", command=self.generar_cuadricula_matriz)
+        btn_generar = ctk.CTkButton(self.frame_sup, text="Generar Matriz", **estilo_boton_secundario(), command=self.generar_cuadricula_matriz)
         btn_generar.pack(side="left", padx=15)
 
-        btn_limpiar = ctk.CTkButton(self.frame_sup, text="Limpiar Valores", fg_color="#555555", hover_color="#333333", command=self.limpiar_entradas)
+        btn_limpiar = ctk.CTkButton(self.frame_sup, text="Limpiar Valores", **estilo_boton_secundario(), command=self.limpiar_entradas)
         btn_limpiar.pack(side="left", padx=5)
 
     def crear_frame_central(self):
         """Frame dinámico con barra de desplazamiento para la matriz aumentada."""
-        self.frame_centro = ctk.CTkScrollableFrame(self, label_text="Matriz Aumentada [A | b]")
-        self.frame_centro.pack(pady=10, padx=20, fill="both", expand=True)
+        self.frame_central = ctk.CTkFrame(self, **estilo_panel_contenedor())
+        self.frame_central.pack(pady=10, padx=20, fill="both", expand=True)
+        self.frame_centro = ctk.CTkScrollableFrame(
+            self.frame_central,
+            label_text="Matriz editable [A | b]",
+            width=520,
+            **estilo_panel_contenedor()
+        )
+        self.frame_centro.pack(side="left", fill="both", expand=True, padx=(0, 8))
+        self.frame_previsualizacion = ctk.CTkFrame(
+            self.frame_central, width=330, **estilo_panel_contenedor()
+        )
+        self.frame_previsualizacion.pack(side="right", fill="both", padx=(8, 0))
+        self.frame_previsualizacion.pack_propagate(False)
+        ctk.CTkLabel(
+            self.frame_previsualizacion,
+            text="Vista previa de la matriz",
+            font=(FUENTE_CONTROLES, 14, "bold"),
+            text_color="#ffffff",
+        ).pack(pady=(10, 4))
+        self.txt_previsualizacion = ctk.CTkTextbox(
+            self.frame_previsualizacion,
+            font=("Consolas", 12),
+            **estilo_consola_resultado(),
+        )
+        self.txt_previsualizacion.pack(fill="both", expand=True, padx=8, pady=8)
+        self._escribir_previsualizacion("Genere la matriz y complete sus valores.")
 
     def crear_frame_inferior(self):
         """Frame de controles de cálculo y visor de resultados."""
-        self.frame_inf = ctk.CTkFrame(self)
+        self.frame_inf = ctk.CTkFrame(self, **estilo_panel_contenedor())
         self.frame_inf.pack(pady=10, padx=20, fill="both", expand=True)
 
         subframe_acciones = ctk.CTkFrame(self.frame_inf, fg_color="transparent")
         subframe_acciones.pack(fill="x", pady=5, padx=10)
 
-        self.opcion_metodo = ctk.CTkOptionMenu(subframe_acciones, values=["Método Escalonado", "Gauss", "Gauss-Jordan"])
+        self.opcion_metodo = ctk.CTkComboBox(subframe_acciones, values=["Método Escalonado", "Gauss", "Gauss-Jordan"], **estilo_menu_desplegable())
+        self.opcion_metodo.set("Método Escalonado")
         self.opcion_metodo.pack(side="left", padx=(0, 10))
 
-        self.opcion_numform = ctk.CTkOptionMenu(subframe_acciones, values=["Fracciones", "Decimales"])
+        self.opcion_numform = ctk.CTkComboBox(subframe_acciones, values=["Fracciones", "Decimales"], **estilo_menu_desplegable())
+        self.opcion_numform.set("Fracciones")
         self.opcion_numform.pack(side="left", padx=(0, 10))
 
-        btn_resolver = ctk.CTkButton(subframe_acciones, text="Resolver Sistema", fg_color="green", hover_color="darkgreen", font=ctk.CTkFont(weight="bold"), command=self.accion_resolver)
+        btn_resolver = ctk.CTkButton(subframe_acciones, text="Resolver Sistema", **estilo_boton_principal(), command=self.accion_resolver)
         btn_resolver.pack(side="left")
 
-        self.txt_resultados = ctk.CTkTextbox(self.frame_inf, font=("Courier New", 12))
+        self.txt_resultados = ctk.CTkTextbox(self.frame_inf, font=("Courier New", 12), **estilo_consola_resultado())
         self.txt_resultados.pack(pady=10, padx=10, fill="both", expand=True)
         self._escribir_en_visor("Ingrese los coeficientes en la matriz y presione 'Resolver Sistema'...")
 
@@ -115,8 +154,15 @@ class VistaMatriz(ctk.CTkToplevel):
             for j in range(n + 1):
                 entry = ctk.CTkEntry(self.frame_centro, width=65, justify="center")
                 entry.grid(row=i, column=j, padx=4, pady=4)
+                entry.bind(
+                    "<KeyRelease>",
+                    lambda event: self.actualizar_previsualizacion()
+                )
                 if j == n:
-                    entry.configure(fg_color="#2b2b2b", border_color="#1f538d")
+                    entry.configure(
+                        fg_color=FONDO_TERMINO_INDEPENDIENTE,
+                        border_color="#ffffff"
+                    )
                 fila_entries.append(entry)
             self.matriz_entries.append(fila_entries)
 
@@ -124,6 +170,7 @@ class VistaMatriz(ctk.CTkToplevel):
         for fila in self.matriz_entries:
             for entry in fila:
                 entry.delete(0, "end")
+        self.actualizar_previsualizacion()
         self._escribir_en_visor("Campos limpios. Ingrese un nuevo sistema.")
 
     def obtener_matriz_desde_gui(self):
@@ -141,6 +188,27 @@ class VistaMatriz(ctk.CTkToplevel):
                     raise ValueError(f"El valor '{val_str}' en la fila {i + 1}, columna {j + 1} no es válido.")
             matriz.append(fila_vals)
         return matriz
+
+    def actualizar_previsualizacion(self):
+        """Muestra la matriz escrita antes de seleccionar un método."""
+        if not self.matriz_entries:
+            return
+
+        filas = []
+        for fila_entries in self.matriz_entries:
+            valores = []
+            for entry in fila_entries:
+                texto = entry.get().strip()
+                valores.append(texto if texto else "_")
+            filas.append("[ " + "   ".join(valores) + " ]")
+
+        self._escribir_previsualizacion("\n".join(filas))
+
+    def _escribir_previsualizacion(self, texto):
+        self.txt_previsualizacion.configure(state="normal")
+        self.txt_previsualizacion.delete("1.0", "end")
+        self.txt_previsualizacion.insert("1.0", texto)
+        self.txt_previsualizacion.configure(state="disabled")
 
     def _formatear_valor(self, valor, formato):
         """Formatea un número a fracción o decimal sin perder ceros absolutos."""
