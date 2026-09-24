@@ -249,3 +249,105 @@ def distancia_vectores(vector_u, vector_v):
     """
     diferencia = restar_vectores(vector_u, vector_v)
     return magnitud_vector(diferencia)
+
+
+# ============================================================
+# COMBINACION LINEAL Y CONVERSIONES
+# ============================================================
+
+def determinar_combinacion_lineal(vectores, vector_b):
+    """Determina si b pertenece al espacio generado por los vectores."""
+    if not vectores:
+        raise ValueError("Debe existir al menos un vector.")
+
+    dimension = len(vector_b)
+    if any(len(vector) != dimension for vector in vectores):
+        raise ValueError("Todos los vectores deben tener la dimension de b.")
+
+    from core.lineal.eliminacion import eliminacion_por_filas
+
+    matriz_aumentada = [
+        [vector[i] for vector in vectores] + [vector_b[i]]
+        for i in range(dimension)
+    ]
+    rref, _, _ = eliminacion_por_filas(
+        matriz_aumentada,
+        modo="gauss_jordan"
+    )
+
+    cantidad_variables = len(vectores)
+    rango_a = sum(
+        any(abs(fila[j]) > TOLERANCIA for j in range(cantidad_variables))
+        for fila in rref
+    )
+    rango_aumentada = sum(
+        any(abs(valor) > TOLERANCIA for valor in fila)
+        for fila in rref
+    )
+
+    if rango_a < rango_aumentada:
+        return "incompatible", None, matriz_aumentada
+
+    if rango_a == cantidad_variables:
+        solucion = [0.0] * cantidad_variables
+        for fila in rref:
+            for indice in range(cantidad_variables):
+                if abs(fila[indice] - 1) < TOLERANCIA:
+                    solucion[indice] = fila[-1]
+                    break
+        return "unica", solucion, matriz_aumentada
+
+    return "infinitas", None, matriz_aumentada
+
+
+def matriz_a_vectores(matriz):
+    """Descompone una matriz en sus vectores columna."""
+    if not matriz or any(len(fila) != len(matriz[0]) for fila in matriz):
+        raise ValueError("La matriz debe ser rectangular y no estar vacia.")
+
+    return [
+        [matriz[i][j] for i in range(len(matriz))]
+        for j in range(len(matriz[0]))
+    ]
+
+
+def vectores_a_matriz(vectores):
+    """Construye una matriz colocando los vectores como columnas."""
+    if not vectores:
+        raise ValueError("Debe existir al menos un vector.")
+
+    dimension = len(vectores[0])
+    if any(len(vector) != dimension for vector in vectores):
+        raise ValueError("Todos los vectores deben tener la misma dimension.")
+
+    return [
+        [vector[i] for vector in vectores]
+        for i in range(dimension)
+    ]
+
+
+def matriz_a_ecuacion_vectorial(matriz):
+    """Convierte las columnas de una matriz en una ecuacion vectorial."""
+    vectores = matriz_a_vectores(matriz)
+    nombres = [f"v{i + 1}" for i in range(len(vectores))]
+    ecuacion = " + ".join(
+        f"x{i + 1}{nombre}"
+        for i, nombre in enumerate(nombres)
+    ) + " = b"
+    return vectores, nombres, ecuacion
+
+
+def sistema_a_ecuacion_vectorial(matriz_aumentada):
+    """Convierte una matriz aumentada [A | b] en una ecuacion vectorial."""
+    if not matriz_aumentada or any(
+        len(fila) != len(matriz_aumentada[0])
+        for fila in matriz_aumentada
+    ):
+        raise ValueError("La matriz aumentada debe ser rectangular y no estar vacia.")
+    if len(matriz_aumentada[0]) < 2:
+        raise ValueError("La matriz aumentada debe incluir A y el vector b.")
+
+    matriz = [fila[:-1] for fila in matriz_aumentada]
+    vector_b = [fila[-1] for fila in matriz_aumentada]
+    vectores, nombres, ecuacion = matriz_a_ecuacion_vectorial(matriz)
+    return matriz, vectores, vector_b, nombres, ecuacion

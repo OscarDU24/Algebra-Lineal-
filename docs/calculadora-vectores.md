@@ -142,7 +142,7 @@ u \cdot v = u_1v_1 + u_2v_2 + \cdots + u_nv_n$$
 
 La interfaz muestra cada producto y la suma final. Los vectores deben tener la
 misma dimension.
-
+|
 ### 6.5 Magnitud
 
 Calcula la longitud euclidiana del vector:

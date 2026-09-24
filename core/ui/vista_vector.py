@@ -31,6 +31,9 @@ class VistaVector(ctk.CTkToplevel):
 
         self.vector_u_entries = []
         self.vector_v_entries = []
+        self.vector_entries = []
+        self.vector_b_entries = []
+        self.matriz_entries = []
 
         self.crear_frame_superior()
         self.crear_frame_central()
@@ -84,6 +87,19 @@ class VistaVector(ctk.CTkToplevel):
             side="left",
             padx=5
         )
+
+        self.lbl_dimension_secundaria = ctk.CTkLabel(
+            self.frame_sup,
+            text="Cantidad/columnas:"
+        )
+        self.lbl_dimension_secundaria.pack(side="left", padx=(15, 5))
+
+        self.entry_dimension_secundaria = ctk.CTkEntry(
+            self.frame_sup,
+            width=60
+        )
+        self.entry_dimension_secundaria.insert(0, "2")
+        self.entry_dimension_secundaria.pack(side="left", padx=5)
 
         btn_generar = ctk.CTkButton(
             self.frame_sup,
@@ -185,8 +201,14 @@ class VistaVector(ctk.CTkToplevel):
                 "Producto cruz",
                 "Ángulo entre u y v",
                 "Proyección de u sobre v",
-                "Distancia entre u y v"
+                "Distancia entre u y v",
+                "Combinación lineal",
+                "Vectores a matriz",
+                "Descomponer matriz en vectores",
+                "Matriz a ecuación vectorial",
+                "Sistema a ecuación vectorial"
             ],
+            command=self.cambiar_operacion,
             **estilo_menu_desplegable()
         )
         self.opcion_operacion.set("Suma")
@@ -215,7 +237,7 @@ class VistaVector(ctk.CTkToplevel):
             ],
             **estilo_menu_desplegable()
         )
-        self.opcion_numform.set("Fracciones")
+        self.opcion_numform.set("Decimales")
 
         self.opcion_numform.pack(
             side="left",
@@ -261,6 +283,44 @@ class VistaVector(ctk.CTkToplevel):
 
         self.vector_u_entries.clear()
         self.vector_v_entries.clear()
+        self.vector_entries = []
+        self.vector_b_entries = []
+        self.matriz_entries = []
+
+        operacion = self.opcion_operacion.get()
+
+        if operacion in {
+            "Combinación lineal",
+            "Vectores a matriz",
+            "Descomponer matriz en vectores",
+            "Matriz a ecuación vectorial",
+            "Sistema a ecuación vectorial"
+        }:
+            try:
+                primera_dimension = int(self.entry_dimension.get())
+                segunda_dimension = int(self.entry_dimension_secundaria.get())
+                if primera_dimension <= 0 or segunda_dimension <= 0:
+                    raise ValueError
+
+                if operacion in {"Combinación lineal", "Vectores a matriz"}:
+                    self.crear_vectores_combinacion(
+                        segunda_dimension,
+                        primera_dimension
+                    )
+                    self.crear_vector_b(primera_dimension)
+                elif operacion in {
+                    "Descomponer matriz en vectores",
+                    "Matriz a ecuación vectorial"
+                }:
+                    self.crear_matriz(primera_dimension, segunda_dimension)
+                else:
+                    self.crear_sistema(primera_dimension, segunda_dimension)
+                return
+            except ValueError:
+                self._escribir_en_visor(
+                    "ERROR: Ingrese dimensiones enteras positivas válidas."
+                )
+                return
 
         try:
             dimension = int(
@@ -364,6 +424,127 @@ class VistaVector(ctk.CTkToplevel):
 
         self.actualizar_previsualizacion()
 
+    def cambiar_operacion(self, operacion=None):
+        operacion = operacion or self.opcion_operacion.get()
+        etiquetas = {
+            "Combinación lineal": "Cantidad de vectores:",
+            "Vectores a matriz": "Cantidad de vectores:",
+            "Descomponer matriz en vectores": "Columnas:",
+            "Matriz a ecuación vectorial": "Columnas:",
+            "Sistema a ecuación vectorial": "Variables:"
+        }
+        self.lbl_dimension_secundaria.configure(
+            text=etiquetas.get(operacion, "Cantidad/columnas:")
+        )
+
+    def crear_vectores_combinacion(self, cantidad, dimension):
+        titulo = ctk.CTkLabel(
+            self.frame_centro,
+            text="Vectores generadores",
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        titulo.grid(row=0, column=0, columnspan=cantidad, pady=10)
+
+        for columna in range(cantidad):
+            ctk.CTkLabel(
+                self.frame_centro,
+                text=f"v{columna + 1}",
+                font=ctk.CTkFont(weight="bold")
+            ).grid(row=1, column=columna, padx=8, pady=5)
+            entradas = []
+            for fila in range(dimension):
+                entry = ctk.CTkEntry(self.frame_centro, width=85, justify="center")
+                entry.grid(row=fila + 2, column=columna, padx=5, pady=4)
+                entradas.append(entry)
+            self.vector_entries.append(entradas)
+
+    def crear_vector_b(self, dimension):
+        fila_inicial = dimension + 3
+        ctk.CTkLabel(
+            self.frame_centro,
+            text="Vector objetivo b",
+            font=ctk.CTkFont(size=14, weight="bold")
+        ).grid(row=fila_inicial, column=0, columnspan=2, pady=10)
+
+        for indice in range(dimension):
+            ctk.CTkLabel(
+                self.frame_centro,
+                text=f"b{indice + 1}"
+            ).grid(row=fila_inicial + indice + 1, column=0, padx=8, pady=4)
+            entry = ctk.CTkEntry(self.frame_centro, width=85, justify="center")
+            entry.grid(row=fila_inicial + indice + 1, column=1, padx=8, pady=4)
+            self.vector_b_entries.append(entry)
+
+    def crear_matriz(self, filas, columnas):
+        ctk.CTkLabel(
+            self.frame_centro,
+            text="Matriz A",
+            font=ctk.CTkFont(size=14, weight="bold")
+        ).grid(row=0, column=0, columnspan=columnas, pady=10)
+
+        for fila in range(filas):
+            entradas = []
+            for columna in range(columnas):
+                entry = ctk.CTkEntry(self.frame_centro, width=85, justify="center")
+                entry.grid(row=fila + 1, column=columna, padx=5, pady=4)
+                entradas.append(entry)
+            self.matriz_entries.append(entradas)
+
+    def crear_sistema(self, ecuaciones, variables):
+        self.crear_matriz(ecuaciones, variables)
+        fila_inicial = ecuaciones + 3
+        ctk.CTkLabel(
+            self.frame_centro,
+            text="Vector b",
+            font=ctk.CTkFont(size=14, weight="bold")
+        ).grid(row=fila_inicial, column=0, columnspan=2, pady=10)
+
+        for indice in range(ecuaciones):
+            ctk.CTkLabel(
+                self.frame_centro,
+                text=f"b{indice + 1}"
+            ).grid(row=fila_inicial + indice + 1, column=0, padx=8, pady=4)
+            entry = ctk.CTkEntry(self.frame_centro, width=85, justify="center")
+            entry.grid(row=fila_inicial + indice + 1, column=1, padx=8, pady=4)
+            self.vector_b_entries.append(entry)
+
+    def obtener_vector_entradas(self, entradas, nombre):
+        vector = []
+        for indice, entry in enumerate(entradas):
+            valor = entry.get().strip()
+            if not valor:
+                raise ValueError(f"La componente {nombre}{indice + 1} está vacía.")
+            numero = conv.convertir_a_decimal(valor)
+            if numero is None:
+                raise ValueError(f"El valor '{valor}' en {nombre}{indice + 1} no es válido.")
+            vector.append(numero)
+        return vector
+
+    def obtener_matriz_especial(self):
+        matriz = []
+        for fila_indice, entradas in enumerate(self.matriz_entries):
+            fila = []
+            for columna_indice, entry in enumerate(entradas):
+                valor = entry.get().strip()
+                if not valor:
+                    raise ValueError(
+                        f"A[{fila_indice + 1}][{columna_indice + 1}] está vacía."
+                    )
+                numero = conv.convertir_a_decimal(valor)
+                if numero is None:
+                    raise ValueError(
+                        f"El valor '{valor}' en A[{fila_indice + 1}][{columna_indice + 1}] no es válido."
+                    )
+                fila.append(numero)
+            matriz.append(fila)
+        return matriz
+
+    def matriz_a_string(self, matriz):
+        return "\n".join(
+            "[ " + ", ".join(self.formatear_numero(valor) for valor in fila) + " ]"
+            for fila in matriz
+        )
+
     def actualizar_previsualizacion(self):
         """Muestra los componentes actuales de u y v antes de calcular."""
         if not hasattr(self, "txt_previsualizacion"):
@@ -386,6 +567,17 @@ class VistaVector(ctk.CTkToplevel):
     # ============================================================
 
     def limpiar_entradas(self):
+
+        for entradas in self.vector_entries:
+            for entry in entradas:
+                entry.delete(0, "end")
+
+        for entry in self.vector_b_entries:
+            entry.delete(0, "end")
+
+        for fila in self.matriz_entries:
+            for entry in fila:
+                entry.delete(0, "end")
 
         for entry in self.vector_u_entries:
             entry.delete(
@@ -511,10 +703,17 @@ class VistaVector(ctk.CTkToplevel):
     # ============================================================
 
     def formatear_numero(self, numero):
-        """Formatea un resultado decimal con dos cifras visibles."""
+        """Formatea resultados sin mostrar fracciones desproporcionadas."""
+
+        if abs(numero) < 1e-9:
+            numero = 0.0
 
         if self.opcion_numform.get() == "Fracciones":
-            return conv.convertir_a_fraccion(numero)
+            fraccion = conv.convertir_a_fraccion(numero)
+            denominador = fraccion.split("/", 1)[1] if "/" in fraccion else "1"
+
+            if abs(int(denominador)) <= 100:
+                return fraccion
 
         return f"{numero:.2f}"
 
@@ -537,6 +736,113 @@ class VistaVector(ctk.CTkToplevel):
 
         return "\n".join(resultado)
 
+    def calcular_combinacion_lineal(self):
+        vectores = [
+            self.obtener_vector_entradas(entradas, f"v{indice + 1}")
+            for indice, entradas in enumerate(self.vector_entries)
+        ]
+        vector_b = self.obtener_vector_entradas(self.vector_b_entries, "b")
+        tipo, solucion, _ = ev.determinar_combinacion_lineal(vectores, vector_b)
+
+        salida = [
+            "--- COMBINACIÓN LINEAL ---",
+            "",
+            "Vectores generadores:"
+        ]
+        for indice, vector in enumerate(vectores):
+            salida.append(self.vector_a_string(vector, f"v{indice + 1}"))
+        salida.extend([
+            "",
+            self.vector_a_string(vector_b, "b"),
+            "",
+            f"Clasificación: {tipo}"
+        ])
+        if tipo == "unica":
+            terminos = [
+                f"({self.formatear_numero(valor)})v{indice + 1}"
+                for indice, valor in enumerate(solucion)
+            ]
+            salida.extend([
+                "Coeficientes:",
+                self.vector_a_string(solucion, "c"),
+                "",
+                " + ".join(terminos) + " = b"
+            ])
+        elif tipo == "incompatible":
+            salida.append("b no pertenece al espacio generado por los vectores.")
+        else:
+            salida.append("Existen infinitas combinaciones que producen b.")
+        self._escribir_en_visor("\n".join(salida))
+
+    def calcular_matriz_a_vectores(self):
+        matriz = self.obtener_matriz_especial()
+        vectores = ev.matriz_a_vectores(matriz)
+        salida = ["--- MATRIZ DESCOMPUESTA EN VECTORES ---", "", "A =", self.matriz_a_string(matriz), ""]
+        salida.extend(
+            self.vector_a_string(vector, f"v{indice + 1}")
+            for indice, vector in enumerate(vectores)
+        )
+        self._escribir_en_visor("\n".join(salida))
+
+    def calcular_vectores_a_matriz(self):
+        vectores = [
+            self.obtener_vector_entradas(entradas, f"v{indice + 1}")
+            for indice, entradas in enumerate(self.vector_entries)
+        ]
+        matriz = ev.vectores_a_matriz(vectores)
+        salida = [
+            "--- VECTORES A MATRIZ ---",
+            "",
+            "Vectores de entrada:"
+        ]
+        salida.extend(
+            self.vector_a_string(vector, f"v{indice + 1}")
+            for indice, vector in enumerate(vectores)
+        )
+        salida.extend([
+            "",
+            "Matriz formada con las columnas:",
+            self.matriz_a_string(matriz)
+        ])
+        self._escribir_en_visor("\n".join(salida))
+
+    def calcular_matriz_a_ecuacion(self):
+        matriz = self.obtener_matriz_especial()
+        vectores, nombres, ecuacion = ev.matriz_a_ecuacion_vectorial(matriz)
+        salida = ["--- MATRIZ A ECUACIÓN VECTORIAL ---", "", "A =", self.matriz_a_string(matriz), ""]
+        salida.extend(
+            self.vector_a_string(vector, nombre)
+            for vector, nombre in zip(vectores, nombres)
+        )
+        salida.extend(["", "Ecuación vectorial:", ecuacion])
+        self._escribir_en_visor("\n".join(salida))
+
+    def calcular_sistema_a_ecuacion(self):
+        matriz = self.obtener_matriz_especial()
+        vector_b = self.obtener_vector_entradas(self.vector_b_entries, "b")
+        matriz_aumentada = [
+            fila + [vector_b[indice]]
+            for indice, fila in enumerate(matriz)
+        ]
+        _, vectores, vector_b, nombres, ecuacion = ev.sistema_a_ecuacion_vectorial(
+            matriz_aumentada
+        )
+        salida = [
+            "--- SISTEMA A ECUACIÓN VECTORIAL ---",
+            "",
+            "A =",
+            self.matriz_a_string(matriz),
+            "",
+            self.vector_a_string(vector_b, "b"),
+            ""
+        ]
+        salida.extend(
+            self.vector_a_string(vector, nombre)
+            for vector, nombre in zip(vectores, nombres)
+        )
+        salida.extend(["", "Ecuación vectorial:", ecuacion])
+        self._escribir_en_visor("\n".join(salida))
+
     # ============================================================
     # CALCULAR OPERACION
     # ============================================================
@@ -546,6 +852,17 @@ class VistaVector(ctk.CTkToplevel):
         try:
 
             operacion = self.opcion_operacion.get()
+
+            operaciones_especiales = {
+                "Combinación lineal": self.calcular_combinacion_lineal,
+                "Vectores a matriz": self.calcular_vectores_a_matriz,
+                "Descomponer matriz en vectores": self.calcular_matriz_a_vectores,
+                "Matriz a ecuación vectorial": self.calcular_matriz_a_ecuacion,
+                "Sistema a ecuación vectorial": self.calcular_sistema_a_ecuacion
+            }
+            if operacion in operaciones_especiales:
+                operaciones_especiales[operacion]()
+                return
 
             vector_u = self.obtener_vector_u()
             vector_v = self.obtener_vector_v()
