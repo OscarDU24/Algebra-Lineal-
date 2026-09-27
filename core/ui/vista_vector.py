@@ -34,12 +34,13 @@ class VistaVector(ctk.CTkToplevel):
         self.vector_entries = []
         self.vector_b_entries = []
         self.matriz_entries = []
+        self._ultima_configuracion_generada = None
 
         self.crear_frame_superior()
         self.crear_frame_central()
         self.crear_frame_inferior()
 
-        self.generar_vectores()
+        self.cambiar_operacion()
 
     def al_cerrar(self):
         self.master_dashboard.deiconify()
@@ -58,7 +59,7 @@ class VistaVector(ctk.CTkToplevel):
             fill="x"
         )
 
-        lbl_titulo = ctk.CTkLabel(
+        self.lbl_dimension = ctk.CTkLabel(
             self.frame_sup,
             text="Dimensión:",
             font=ctk.CTkFont(
@@ -67,7 +68,7 @@ class VistaVector(ctk.CTkToplevel):
             )
         )
 
-        lbl_titulo.pack(
+        self.lbl_dimension.pack(
             side="left",
             padx=10,
             pady=10
@@ -87,40 +88,37 @@ class VistaVector(ctk.CTkToplevel):
             side="left",
             padx=5
         )
+        self.entry_dimension.bind("<Return>", self.confirmar_dimensiones)
+        self.entry_dimension.bind("<FocusOut>", self.confirmar_dimensiones)
 
-        self.lbl_dimension_secundaria = ctk.CTkLabel(
+        self.frame_dimension_secundaria = ctk.CTkFrame(
             self.frame_sup,
+            fg_color="transparent"
+        )
+        self.frame_dimension_secundaria.pack(side="left")
+        self.lbl_dimension_secundaria = ctk.CTkLabel(
+            self.frame_dimension_secundaria,
             text="Cantidad/columnas:"
         )
         self.lbl_dimension_secundaria.pack(side="left", padx=(15, 5))
 
         self.entry_dimension_secundaria = ctk.CTkEntry(
-            self.frame_sup,
+            self.frame_dimension_secundaria,
             width=60
         )
         self.entry_dimension_secundaria.insert(0, "2")
         self.entry_dimension_secundaria.pack(side="left", padx=5)
+        self.entry_dimension_secundaria.bind("<Return>", self.confirmar_dimensiones)
+        self.entry_dimension_secundaria.bind("<FocusOut>", self.confirmar_dimensiones)
 
-        btn_generar = ctk.CTkButton(
-            self.frame_sup,
-            text="Generar Vectores",
-            **estilo_boton_secundario(),
-            command=self.generar_vectores
-        )
-
-        btn_generar.pack(
-            side="left",
-            padx=15
-        )
-
-        btn_limpiar = ctk.CTkButton(
+        self.btn_limpiar = ctk.CTkButton(
             self.frame_sup,
             text="Limpiar Valores",
             **estilo_boton_secundario(),
             command=self.limpiar_entradas
         )
 
-        btn_limpiar.pack(
+        self.btn_limpiar.pack(
             side="left",
             padx=5
         )
@@ -159,7 +157,7 @@ class VistaVector(ctk.CTkToplevel):
             **estilo_consola_resultado()
         )
         self.txt_previsualizacion.pack(fill="both", expand=True, padx=8, pady=8)
-        self._escribir_previsualizacion("Genere los vectores y complete sus componentes.")
+        self._escribir_previsualizacion("Seleccione una operación e introduzca sus dimensiones.")
 
     # ============================================================
     # FRAME INFERIOR
@@ -281,151 +279,92 @@ class VistaVector(ctk.CTkToplevel):
         for widget in self.frame_centro.winfo_children():
             widget.destroy()
 
-        self.vector_u_entries.clear()
-        self.vector_v_entries.clear()
+        self.vector_u_entries = []
+        self.vector_v_entries = []
         self.vector_entries = []
         self.vector_b_entries = []
         self.matriz_entries = []
-
+        self.vector_names = []
         operacion = self.opcion_operacion.get()
 
-        if operacion in {
+        operaciones_con_segunda_dimension = {
             "Combinación lineal",
             "Vectores a matriz",
             "Descomponer matriz en vectores",
             "Matriz a ecuación vectorial",
             "Sistema a ecuación vectorial"
-        }:
-            try:
-                primera_dimension = int(self.entry_dimension.get())
-                segunda_dimension = int(self.entry_dimension_secundaria.get())
-                if primera_dimension <= 0 or segunda_dimension <= 0:
-                    raise ValueError
-
-                if operacion in {"Combinación lineal", "Vectores a matriz"}:
-                    self.crear_vectores_combinacion(
-                        segunda_dimension,
-                        primera_dimension
-                    )
-                    self.crear_vector_b(primera_dimension)
-                elif operacion in {
-                    "Descomponer matriz en vectores",
-                    "Matriz a ecuación vectorial"
-                }:
-                    self.crear_matriz(primera_dimension, segunda_dimension)
-                else:
-                    self.crear_sistema(primera_dimension, segunda_dimension)
-                return
-            except ValueError:
-                self._escribir_en_visor(
-                    "ERROR: Ingrese dimensiones enteras positivas válidas."
-                )
-                return
-
+        }
         try:
-            dimension = int(
-                self.entry_dimension.get()
-            )
+            primera_dimension = int(self.entry_dimension.get())
+            if primera_dimension <= 0:
+                raise ValueError("La dimensión o cantidad de filas debe ser positiva.")
 
-            if dimension <= 0:
-                raise ValueError
+            segunda_dimension = None
+            if operacion in operaciones_con_segunda_dimension:
+                segunda_dimension = int(self.entry_dimension_secundaria.get())
+                if segunda_dimension <= 0:
+                    raise ValueError("La segunda dimensión debe ser positiva.")
 
-        except ValueError:
+            if operacion == "Combinación lineal":
+                self.crear_vectores_combinacion(segunda_dimension, primera_dimension)
+                self.crear_vector_b(primera_dimension)
+            elif operacion == "Vectores a matriz":
+                self.crear_vectores_combinacion(segunda_dimension, primera_dimension)
+            elif operacion in {"Descomponer matriz en vectores", "Matriz a ecuación vectorial"}:
+                self.crear_matriz(primera_dimension, segunda_dimension)
+            elif operacion == "Sistema a ecuación vectorial":
+                self.crear_sistema(primera_dimension, segunda_dimension)
+            else:
+                operaciones_con_dos_vectores = {
+                    "Suma", "Resta", "Producto punto", "Producto cruz",
+                    "Ángulo entre u y v", "Proyección de u sobre v",
+                    "Distancia entre u y v"
+                }
+                nombres = ["u", "v"] if operacion in operaciones_con_dos_vectores else [
+                    "v" if operacion in {"Magnitud de v", "Normalizar v"} else "u"
+                ]
 
-            self._escribir_en_visor(
-                "ERROR: Ingrese una dimensión "
-                "entera positiva válida."
-            )
+                for columna, nombre in enumerate(nombres, start=1):
+                    self.vector_names.append(nombre)
+                    ctk.CTkLabel(
+                        self.frame_centro,
+                        text=f"Vector {nombre}",
+                        font=ctk.CTkFont(size=14, weight="bold")
+                    ).grid(row=0, column=columna, padx=12, pady=8)
+                    entradas = []
+                    for fila in range(primera_dimension):
+                        ctk.CTkLabel(
+                            self.frame_centro,
+                            text=f"Componente {fila + 1}"
+                        ).grid(row=fila + 1, column=0, padx=10, pady=4)
+                        entry = ctk.CTkEntry(self.frame_centro, width=100, justify="center")
+                        entry.grid(row=fila + 1, column=columna, padx=10, pady=4)
+                        entry.bind("<KeyRelease>", lambda event: self.actualizar_previsualizacion())
+                        entradas.append(entry)
+                    self.vector_entries.append(entradas)
+                    if nombre == "u":
+                        self.vector_u_entries = entradas
+                    else:
+                        self.vector_v_entries = entradas
 
-            return
-
-        lbl_u = ctk.CTkLabel(
-            self.frame_centro,
-            text="Vector u",
-            font=ctk.CTkFont(
-                size=14,
-                weight="bold"
-            )
-        )
-
-        lbl_u.grid(
-            row=0,
-            column=0,
-            padx=20,
-            pady=10
-        )
-
-        lbl_v = ctk.CTkLabel(
-            self.frame_centro,
-            text="Vector v",
-            font=ctk.CTkFont(
-                size=14,
-                weight="bold"
-            )
-        )
-
-        lbl_v.grid(
-            row=0,
-            column=1,
-            padx=20,
-            pady=10
-        )
-
-        for i in range(dimension):
-
-            lbl_componente = ctk.CTkLabel(
-                self.frame_centro,
-                text=f"Componente {i + 1}"
-            )
-
-            lbl_componente.grid(
-                row=i + 1,
-                column=2,
-                padx=10,
-                pady=4
-            )
-
-            entry_u = ctk.CTkEntry(
-                self.frame_centro,
-                width=100,
-                justify="center"
-            )
-
-            entry_u.grid(
-                row=i + 1,
-                column=0,
-                padx=10,
-                pady=4
-            )
-
-            entry_v = ctk.CTkEntry(
-                self.frame_centro,
-                width=100,
-                justify="center"
-            )
-
-            entry_v.grid(
-                row=i + 1,
-                column=1,
-                padx=10,
-                pady=4
-            )
-
-            entry_u.bind("<KeyRelease>", lambda event: self.actualizar_previsualizacion())
-            entry_v.bind("<KeyRelease>", lambda event: self.actualizar_previsualizacion())
-
-            self.vector_u_entries.append(
-                entry_u
-            )
-
-            self.vector_v_entries.append(
-                entry_v
-            )
-
-        self.actualizar_previsualizacion()
+            self._ultima_configuracion_generada = self._configuracion_actual()
+            self.actualizar_previsualizacion()
+        except ValueError as error:
+            mensaje = str(error) or "Ingrese dimensiones enteras positivas válidas."
+            if "invalid literal for int()" in mensaje:
+                mensaje = "Las dimensiones deben ser enteros positivos."
+            print(f"VALIDACIÓN: {mensaje}")
+            self._escribir_en_visor(f"ERROR: {mensaje}")
 
     def cambiar_operacion(self, operacion=None):
         operacion = operacion or self.opcion_operacion.get()
+        operaciones_con_segunda_dimension = {
+            "Combinación lineal",
+            "Vectores a matriz",
+            "Descomponer matriz en vectores",
+            "Matriz a ecuación vectorial",
+            "Sistema a ecuación vectorial"
+        }
         etiquetas = {
             "Combinación lineal": "Cantidad de vectores:",
             "Vectores a matriz": "Cantidad de vectores:",
@@ -433,9 +372,55 @@ class VistaVector(ctk.CTkToplevel):
             "Matriz a ecuación vectorial": "Columnas:",
             "Sistema a ecuación vectorial": "Variables:"
         }
-        self.lbl_dimension_secundaria.configure(
-            text=etiquetas.get(operacion, "Cantidad/columnas:")
+        operaciones_con_matriz = {
+            "Descomponer matriz en vectores",
+            "Matriz a ecuación vectorial",
+            "Sistema a ecuación vectorial"
+        }
+
+        self.lbl_dimension.configure(
+            text=(
+                "Ecuaciones:"
+                if operacion == "Sistema a ecuación vectorial"
+                else "Filas:"
+                if operacion in operaciones_con_matriz
+                else "Dimensión:"
+            )
         )
+        if operacion in operaciones_con_segunda_dimension:
+            self.lbl_dimension_secundaria.configure(text=etiquetas[operacion])
+            self.frame_dimension_secundaria.pack(side="left", before=self.btn_limpiar)
+        else:
+            self.frame_dimension_secundaria.pack_forget()
+
+        if operacion == "Multiplicación por escalar":
+            self.entry_escalar.pack(side="left", padx=(0, 10), before=self.opcion_numform)
+        else:
+            self.entry_escalar.pack_forget()
+
+        self.generar_vectores()
+
+    def _configuracion_actual(self):
+        operacion = self.opcion_operacion.get()
+        requiere_segunda_dimension = operacion in {
+            "Combinación lineal",
+            "Vectores a matriz",
+            "Descomponer matriz en vectores",
+            "Matriz a ecuación vectorial",
+            "Sistema a ecuación vectorial"
+        }
+        return (
+            operacion,
+            self.entry_dimension.get().strip(),
+            self.entry_dimension_secundaria.get().strip()
+            if requiere_segunda_dimension else None
+        )
+
+    def confirmar_dimensiones(self, event=None):
+        if self._configuracion_actual() != self._ultima_configuracion_generada:
+            self.generar_vectores()
+        if event is not None and event.keysym == "Return":
+            return "break"
 
     def crear_vectores_combinacion(self, cantidad, dimension):
         titulo = ctk.CTkLabel(
@@ -446,6 +431,7 @@ class VistaVector(ctk.CTkToplevel):
         titulo.grid(row=0, column=0, columnspan=cantidad, pady=10)
 
         for columna in range(cantidad):
+            self.vector_names.append(f"v{columna + 1}")
             ctk.CTkLabel(
                 self.frame_centro,
                 text=f"v{columna + 1}",
@@ -455,6 +441,7 @@ class VistaVector(ctk.CTkToplevel):
             for fila in range(dimension):
                 entry = ctk.CTkEntry(self.frame_centro, width=85, justify="center")
                 entry.grid(row=fila + 2, column=columna, padx=5, pady=4)
+                entry.bind("<KeyRelease>", lambda event: self.actualizar_previsualizacion())
                 entradas.append(entry)
             self.vector_entries.append(entradas)
 
@@ -473,6 +460,7 @@ class VistaVector(ctk.CTkToplevel):
             ).grid(row=fila_inicial + indice + 1, column=0, padx=8, pady=4)
             entry = ctk.CTkEntry(self.frame_centro, width=85, justify="center")
             entry.grid(row=fila_inicial + indice + 1, column=1, padx=8, pady=4)
+            entry.bind("<KeyRelease>", lambda event: self.actualizar_previsualizacion())
             self.vector_b_entries.append(entry)
 
     def crear_matriz(self, filas, columnas):
@@ -487,6 +475,7 @@ class VistaVector(ctk.CTkToplevel):
             for columna in range(columnas):
                 entry = ctk.CTkEntry(self.frame_centro, width=85, justify="center")
                 entry.grid(row=fila + 1, column=columna, padx=5, pady=4)
+                entry.bind("<KeyRelease>", lambda event: self.actualizar_previsualizacion())
                 entradas.append(entry)
             self.matriz_entries.append(entradas)
 
@@ -506,6 +495,7 @@ class VistaVector(ctk.CTkToplevel):
             ).grid(row=fila_inicial + indice + 1, column=0, padx=8, pady=4)
             entry = ctk.CTkEntry(self.frame_centro, width=85, justify="center")
             entry.grid(row=fila_inicial + indice + 1, column=1, padx=8, pady=4)
+            entry.bind("<KeyRelease>", lambda event: self.actualizar_previsualizacion())
             self.vector_b_entries.append(entry)
 
     def obtener_vector_entradas(self, entradas, nombre):
@@ -546,15 +536,32 @@ class VistaVector(ctk.CTkToplevel):
         )
 
     def actualizar_previsualizacion(self):
-        """Muestra los componentes actuales de u y v antes de calcular."""
+        """Muestra solo las estructuras que pide la operación activa."""
         if not hasattr(self, "txt_previsualizacion"):
             return
 
-        valores_u = [entry.get().strip() or "_" for entry in self.vector_u_entries]
-        valores_v = [entry.get().strip() or "_" for entry in self.vector_v_entries]
-        texto = "u = [" + ", ".join(valores_u) + "]\n"
-        texto += "v = [" + ", ".join(valores_v) + "]"
-        self._escribir_previsualizacion(texto)
+        lineas = []
+        if self.matriz_entries:
+            lineas.append("A =")
+            lineas.extend(
+                "[ " + ", ".join(entry.get().strip() or "_" for entry in fila) + " ]"
+                for fila in self.matriz_entries
+            )
+
+        for indice, entradas in enumerate(self.vector_entries):
+            if lineas:
+                lineas.append("")
+            nombre = self.vector_names[indice] if indice < len(self.vector_names) else f"v{indice + 1}"
+            valores = [entry.get().strip() or "_" for entry in entradas]
+            lineas.append(f"{nombre} = [ " + ", ".join(valores) + " ]")
+
+        if self.vector_b_entries:
+            if lineas:
+                lineas.append("")
+            valores_b = [entry.get().strip() or "_" for entry in self.vector_b_entries]
+            lineas.append("b = [ " + ", ".join(valores_b) + " ]")
+
+        self._escribir_previsualizacion("\n".join(lineas) or "Sin datos generados.")
 
     def _escribir_previsualizacion(self, texto):
         self.txt_previsualizacion.configure(state="normal")
@@ -864,8 +871,25 @@ class VistaVector(ctk.CTkToplevel):
                 operaciones_especiales[operacion]()
                 return
 
-            vector_u = self.obtener_vector_u()
-            vector_v = self.obtener_vector_v()
+            operaciones_dos_vectores = {
+                "Suma",
+                "Resta",
+                "Producto punto",
+                "Producto cruz",
+                "Ángulo entre u y v",
+                "Proyección de u sobre v",
+                "Distancia entre u y v"
+            }
+            requiere_v = operacion in {"Magnitud de v", "Normalizar v"}
+            vector_u = None
+            vector_v = None
+            if operacion in operaciones_dos_vectores:
+                vector_u = self.obtener_vector_u()
+                vector_v = self.obtener_vector_v()
+            elif requiere_v:
+                vector_v = self.obtener_vector_v()
+            else:
+                vector_u = self.obtener_vector_u()
 
             salida = []
 
@@ -881,19 +905,10 @@ class VistaVector(ctk.CTkToplevel):
                 "=========================================================\n"
             )
 
-            salida.append(
-                self.vector_a_string(
-                    vector_u,
-                    "u"
-                )
-            )
-
-            salida.append(
-                self.vector_a_string(
-                    vector_v,
-                    "v"
-                )
-            )
+            if vector_u is not None:
+                salida.append(self.vector_a_string(vector_u, "u"))
+            if vector_v is not None:
+                salida.append(self.vector_a_string(vector_v, "v"))
 
             salida.append("")
 
@@ -1117,6 +1132,10 @@ class VistaVector(ctk.CTkToplevel):
 
 
         except ValueError as e:
+            mensaje = str(e)
+            if "invalid literal for int()" in mensaje:
+                mensaje = "Ingrese componentes numéricos válidos para los vectores."
+            print(f"VALIDACIÓN: {mensaje}")
 
             self._escribir_en_visor(
                 f"ERROR DE ENTRADA:\n{str(e)}"

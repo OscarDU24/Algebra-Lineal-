@@ -145,7 +145,11 @@ class VistaMatriz(ctk.CTkToplevel):
             n = int(self.entry_n.get())
             if m <= 0 or n <= 0:
                 raise ValueError
-        except ValueError:
+        except ValueError as error:
+            mensaje = str(error)
+            if "invalid literal for int()" in mensaje or not mensaje:
+                mensaje = "Las dimensiones deben ser enteros positivos."
+            print(f"VALIDACIÓN: {mensaje}")
             self._escribir_en_visor("ERROR: Ingrese números enteros positivos válidos para m y n.")
             return
 

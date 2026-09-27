@@ -86,54 +86,90 @@ class VistaMatricial(ctk.CTkToplevel):
         )
         titulo.pack(pady=10)
 
-        frame_datos = ctk.CTkFrame(
+        self.frame_datos = ctk.CTkFrame(
             self.frame_superior,
             fg_color="transparent"
         )
-        frame_datos.pack(pady=5)
+        self.frame_datos.pack(pady=5, fill="x")
 
-        # ----------------------------------------------------
-        # FILAS
-        # ----------------------------------------------------
-        ctk.CTkLabel(frame_datos, text="Filas de A:", text_color=TEXTO_CLARO).grid(row=0, column=0, padx=5)
-        self.entry_filas = ctk.CTkEntry(frame_datos, width=80, placeholder_text="2")
-        self.entry_filas.grid(row=0, column=1, padx=5)
+        self.frame_dimensiones = ctk.CTkFrame(
+            self.frame_datos,
+            fg_color="transparent"
+        )
+        self.frame_dimensiones.pack(side="left", expand=True)
 
-        # ----------------------------------------------------
-        # COLUMNAS
-        # ----------------------------------------------------
-        ctk.CTkLabel(frame_datos, text="Columnas de A:", text_color=TEXTO_CLARO).grid(row=0, column=2, padx=5)
-        self.entry_columnas = ctk.CTkEntry(frame_datos, width=80, placeholder_text="2")
-        self.entry_columnas.grid(row=0, column=3, padx=5)
+        self.frame_dimensiones_matriz = ctk.CTkFrame(
+            self.frame_dimensiones,
+            fg_color="transparent"
+        )
+        self.frame_dimensiones_vector = ctk.CTkFrame(
+            self.frame_dimensiones,
+            fg_color="transparent"
+        )
+        self.frame_dimensiones_cantidad = ctk.CTkFrame(
+            self.frame_dimensiones,
+            fg_color="transparent"
+        )
 
-        # ----------------------------------------------------
-        # CANTIDAD DE VECTORES
-        # ----------------------------------------------------
-        ctk.CTkLabel(frame_datos, text="Cantidad de vectores:", text_color=TEXTO_CLARO).grid(row=0, column=4, padx=5)
-        self.entry_cantidad_vectores = ctk.CTkEntry(frame_datos, width=80, placeholder_text="2")
-        self.entry_cantidad_vectores.grid(row=0, column=5, padx=5)
+        self.lbl_filas = ctk.CTkLabel(self.frame_dimensiones_matriz, text="Filas de A:", text_color=TEXTO_CLARO)
+        self.lbl_filas.pack(side="left", padx=(5, 2))
+        self.entry_filas = ctk.CTkEntry(self.frame_dimensiones_matriz, width=60, placeholder_text="2")
+        self.entry_filas.pack(side="left", padx=(2, 10))
 
-        # ----------------------------------------------------
-        # BOTON GENERAR
-        # ----------------------------------------------------
-        boton_generar = ctk.CTkButton(
-            frame_datos,
+        self.lbl_columnas = ctk.CTkLabel(self.frame_dimensiones_matriz, text="Columnas de A:", text_color=TEXTO_CLARO)
+        self.lbl_columnas.pack(side="left", padx=(5, 2))
+        self.entry_columnas = ctk.CTkEntry(self.frame_dimensiones_matriz, width=60, placeholder_text="2")
+        self.entry_columnas.pack(side="left", padx=(2, 10))
+
+        self.lbl_dimension_vector = ctk.CTkLabel(self.frame_dimensiones_vector, text="Dimensión:", text_color=TEXTO_CLARO)
+        self.lbl_dimension_vector.pack(side="left", padx=(5, 2))
+        self.entry_dimension_vector = ctk.CTkEntry(self.frame_dimensiones_vector, width=60, placeholder_text="2")
+        self.entry_dimension_vector.pack(side="left", padx=(2, 10))
+
+        self.lbl_cantidad_vectores = ctk.CTkLabel(self.frame_dimensiones_cantidad, text="Cantidad de vectores:", text_color=TEXTO_CLARO)
+        self.lbl_cantidad_vectores.pack(side="left", padx=(5, 2))
+        self.entry_cantidad_vectores = ctk.CTkEntry(self.frame_dimensiones_cantidad, width=60, placeholder_text="2")
+        self.entry_cantidad_vectores.insert(0, "2")
+        self.entry_cantidad_vectores.pack(side="left", padx=(2, 10))
+
+        self.frame_botones_generacion = ctk.CTkFrame(
+            self.frame_datos,
+            fg_color="transparent"
+        )
+        self.frame_botones_generacion.pack(side="right")
+        self.boton_generar = ctk.CTkButton(
+            self.frame_botones_generacion,
             text="Generar",
             **estilo_boton_secundario(),
             command=self.generar_datos
         )
-        boton_generar.grid(row=0, column=6, padx=10)
+        self.boton_generar.pack(side="left", padx=5)
 
-        # ----------------------------------------------------
-        # BOTON LIMPIAR
-        # ----------------------------------------------------
-        boton_limpiar = ctk.CTkButton(
-            frame_datos,
+        self.boton_limpiar = ctk.CTkButton(
+            self.frame_botones_generacion,
             text="Limpiar",
             **estilo_boton_secundario(),
             command=self.limpiar
         )
-        boton_limpiar.grid(row=0, column=7, padx=10)
+        self.boton_limpiar.pack(side="left", padx=5)
+
+        self.frame_especial = ctk.CTkFrame(self.frame_datos, fg_color="transparent")
+        self.frame_especial.grid_columnconfigure(0, weight=1)
+        self.frame_especial.grid_columnconfigure(3, weight=1)
+        self.lbl_operacion_especial = ctk.CTkLabel(
+            self.frame_especial,
+            text="Operación especial: requiere una interfaz dedicada",
+            text_color=TEXTO_CLARO,
+            font=estilo_boton_principal()["font"]
+        )
+        self.lbl_operacion_especial.grid(row=0, column=1, padx=10, pady=5)
+        self.boton_abrir_especial = ctk.CTkButton(
+            self.frame_especial,
+            text="Abrir ventana especial",
+            **estilo_boton_principal(),
+            command=self.accion_calcular
+        )
+        self.boton_abrir_especial.grid(row=0, column=2, padx=10, pady=5)
 
     # ========================================================
     # FRAME CENTRAL
@@ -163,7 +199,7 @@ class VistaMatricial(ctk.CTkToplevel):
 
         ctk.CTkLabel(
             self.frame_previsualizacion,
-            text="Vista previa de la ecuación matricial",
+            text="Vista previa de datos",
             font=(FUENTE_CONTROLES, 14, "bold"),
             text_color=TEXTO_CLARO,
         ).pack(pady=(10, 4))
@@ -174,7 +210,7 @@ class VistaMatricial(ctk.CTkToplevel):
             **estilo_consola_resultado(),
         )
         self.txt_previsualizacion.pack(fill="both", expand=True, padx=8, pady=8)
-        self._escribir_previsualizacion("Genere la matriz y complete sus valores.")
+        self._escribir_previsualizacion("Seleccione una operación y configure sus dimensiones.")
 
     # ========================================================
     # FRAME INFERIOR
@@ -209,6 +245,7 @@ class VistaMatricial(ctk.CTkToplevel):
                 "Tabla de Intercambio",
                 "Flujo de Red"
             ],
+            command=self.cambiar_operacion,
             **estilo_menu_desplegable()
         )
         self.menu_operacion.set("A × u")
@@ -217,7 +254,8 @@ class VistaMatricial(ctk.CTkToplevel):
         # ----------------------------------------------------
         # FORMATO
         # ----------------------------------------------------
-        ctk.CTkLabel(self.frame_inferior, text="Formato:", text_color=TEXTO_CLARO).grid(row=0, column=2, padx=5, pady=5)
+        self.lbl_formato = ctk.CTkLabel(self.frame_inferior, text="Formato:", text_color=TEXTO_CLARO)
+        self.lbl_formato.grid(row=0, column=2, padx=5, pady=5)
         
         self.menu_formato = ctk.CTkComboBox(
             self.frame_inferior,
@@ -240,13 +278,13 @@ class VistaMatricial(ctk.CTkToplevel):
         # ----------------------------------------------------
         # CALCULAR
         # ----------------------------------------------------
-        boton_calcular = ctk.CTkButton(
+        self.boton_calcular = ctk.CTkButton(
             self.frame_inferior,
             text="Calcular",
             **estilo_boton_principal(),
             command=self.accion_calcular
         )
-        boton_calcular.grid(row=0, column=5, padx=10, pady=5)
+        self.boton_calcular.grid(row=0, column=5, padx=10, pady=5)
 
         # ----------------------------------------------------
         # RESULTADO
@@ -259,126 +297,229 @@ class VistaMatricial(ctk.CTkToplevel):
             sticky="nsew", padx=10, pady=10
         )
 
-    # ========================================================
-    # GENERAR MATRIZ Y VECTORES
-    # ========================================================
+        self.cambiar_operacion()
 
-    def generar_datos(self):
-        try:
-            filas = int(self.entry_filas.get())
-            columnas = int(self.entry_columnas.get())
-            cantidad_vectores = int(self.entry_cantidad_vectores.get())
+    def cambiar_operacion(self, operacion=None):
+        operacion = operacion or self.menu_operacion.get()
 
-            if filas <= 0 or columnas <= 0 or cantidad_vectores <= 0:
-                raise ValueError
-        except ValueError:
-            self.mostrar_resultado("Error: las dimensiones deben ser enteros mayores que 0.")
+        for frame in (
+            self.frame_dimensiones_matriz,
+            self.frame_dimensiones_vector,
+            self.frame_dimensiones_cantidad
+        ):
+            frame.pack_forget()
+        self.frame_dimensiones.pack_forget()
+        self.frame_especial.pack_forget()
+        self.frame_botones_generacion.pack_forget()
+
+        self.lbl_formato.grid()
+        self.menu_formato.grid()
+        self.boton_calcular.grid()
+        self.entry_escalar.grid_remove()
+
+        especiales = {
+            "Tabla de Intercambio": "Tabla de Intercambio (Modelo Leontief)",
+            "Flujo de Red": "Flujo de Red"
+        }
+        if operacion in especiales:
+            self.lbl_operacion_especial.configure(
+                text=f"{especiales[operacion]}: requiere interfaz dedicada"
+            )
+            self.boton_abrir_especial.configure(
+                text=f"Abrir {especiales[operacion]}"
+            )
+            self.frame_especial.pack(fill="x", expand=True)
+            self.lbl_formato.grid_remove()
+            self.menu_formato.grid_remove()
+            self.boton_calcular.grid_remove()
+            self._limpiar_datos_generados()
+            self._escribir_previsualizacion(
+                "Esta operación se abrirá en una ventana especializada."
+            )
             return
 
+        self.boton_generar.configure(text="Generar datos")
+        self.frame_dimensiones.pack(side="left", expand=True)
+        self.frame_botones_generacion.pack(side="right")
+
+        solo_vectores = {"u + v", "c(u)", "Combinación lineal"}
+        operaciones_con_matriz = {
+            "A × u", "A(u + v)", "A(u + v + ...)", "A(cu)",
+            "A(u + v) = Au + Av", "A(cu) = c(Au)",
+            "Mostrar columnas de A", "Sistema a ecuación vectorial",
+            "Transpuesta de A", "Matriz por escalar (cA)", "Resolver Ax = b"
+        }
+        if operacion in solo_vectores:
+            self.lbl_dimension_vector.configure(text="Dimensión del vector:")
+            self.frame_dimensiones_vector.pack(side="left")
+        elif operacion in operaciones_con_matriz:
+            self.frame_dimensiones_matriz.pack(side="left")
+
+        if operacion in {"A(u + v + ...)", "Combinación lineal"}:
+            self.frame_dimensiones_cantidad.pack(side="left")
+
+        if operacion in {
+            "Multiplicación de vector por escalar",
+            "c(u)", "A(cu)", "A(cu) = c(Au)", "Matriz por escalar (cA)"
+        }:
+            self.entry_escalar.grid()
+
+        self._limpiar_datos_generados()
+        self._escribir_previsualizacion(
+            "Configure las dimensiones y pulse 'Generar datos'."
+        )
+
+    def _limpiar_datos_generados(self):
         for widget in self.frame_centro.winfo_children():
             widget.destroy()
-
         self.matriz_entries = []
         self.vector_entries = []
         self.vector_b_entries = []
         self.vector_names = []
 
-        # MATRIZ A
-        etiqueta_a = ctk.CTkLabel(
-            self.frame_centro,
-            text="MATRIZ A",
-            font=("Arial", 18, "bold")
-        )
-        etiqueta_a.grid(row=0, column=0, columnspan=columnas, pady=10)
+    # ========================================================
+    # GENERAR MATRIZ Y VECTORES
+    # ========================================================
 
-        for i in range(filas):
-            fila_entries = []
-            for j in range(columnas):
-                entry = ctk.CTkEntry(self.frame_centro, width=80)
-                entry.grid(row=i + 1, column=j, padx=5, pady=5)
-                entry.bind("<KeyRelease>", lambda event: self.actualizar_previsualizacion())
-                fila_entries.append(entry)
-            self.matriz_entries.append(fila_entries)
+    def generar_datos(self):
+        operacion = self.menu_operacion.get()
+        operaciones_especiales = {"Tabla de Intercambio", "Flujo de Red"}
+        if operacion in operaciones_especiales:
+            self.accion_calcular()
+            return
 
-        # VECTORES
-        fila_vectores = filas + 3
-        etiqueta_vectores = ctk.CTkLabel(
-            self.frame_centro,
-            text="VECTORES",
-            font=("Arial", 18, "bold")
-        )
-        etiqueta_vectores.grid(row=fila_vectores, column=0, columnspan=cantidad_vectores, pady=10)
+        requiere_matriz = operacion not in {"u + v", "c(u)", "Combinación lineal"}
+        requiere_dimension_vector = operacion in {"u + v", "c(u)", "Combinación lineal"}
+        requiere_b = operacion in {"Resolver Ax = b", "Sistema a ecuación vectorial"}
+        operaciones_con_vector = {
+            "A × u", "A(u + v)", "A(u + v + ...)", "A(cu)",
+            "A(u + v) = Au + Av", "A(cu) = c(Au)", "u + v",
+            "c(u)", "Combinación lineal"
+        }
+        requiere_vectores = operacion in operaciones_con_vector
 
-        for j in range(cantidad_vectores):
-            nombre = self.generar_nombre_vector(j)
-            self.vector_names.append(nombre)
+        try:
+            if requiere_dimension_vector:
+                dimension = int(self.entry_dimension_vector.get())
+                if dimension <= 0:
+                    raise ValueError("La dimensión debe ser mayor que cero.")
+                filas = dimension
+                columnas = dimension
+            elif requiere_matriz:
+                filas = int(self.entry_filas.get())
+                columnas = int(self.entry_columnas.get())
+                if filas <= 0 or columnas <= 0:
+                    raise ValueError("Las dimensiones de A deben ser mayores que cero.")
+            else:
+                filas = columnas = 0
 
-            etiqueta = ctk.CTkLabel(
+            if operacion in {"A(u + v + ...)", "Combinación lineal"}:
+                cantidad_vectores = int(self.entry_cantidad_vectores.get())
+                minimo = 2 if operacion == "A(u + v + ...)" else 1
+                if cantidad_vectores < minimo:
+                    raise ValueError(f"Se requieren al menos {minimo} vectores.")
+            elif operacion == "A(u + v)" or operacion == "A(u + v) = Au + Av" or operacion == "u + v":
+                cantidad_vectores = 2
+            elif requiere_vectores:
+                cantidad_vectores = 1
+            else:
+                cantidad_vectores = 0
+        except ValueError as error:
+            mensaje = str(error)
+            if "invalid literal for int()" in mensaje:
+                mensaje = "Las dimensiones y cantidades deben ser enteros positivos."
+            print(f"VALIDACIÓN: {mensaje}")
+            self.mostrar_resultado(f"Error: {error}")
+            return
+
+        self._limpiar_datos_generados()
+        fila_siguiente = 0
+
+        if requiere_matriz:
+            ctk.CTkLabel(
                 self.frame_centro,
-                text=nombre,
-                font=("Arial", 16, "bold")
-            )
-            etiqueta.grid(row=fila_vectores + 1, column=j, padx=10, pady=5)
+                text="MATRIZ A",
+                font=("Arial", 18, "bold")
+            ).grid(row=0, column=0, columnspan=columnas, pady=10)
+            for i in range(filas):
+                fila_entries = []
+                for j in range(columnas):
+                    entry = ctk.CTkEntry(self.frame_centro, width=80)
+                    entry.grid(row=i + 1, column=j, padx=5, pady=5)
+                    entry.bind("<KeyRelease>", lambda event: self.actualizar_previsualizacion())
+                    fila_entries.append(entry)
+                self.matriz_entries.append(fila_entries)
+            fila_siguiente = filas + 3
 
-        for j in range(cantidad_vectores):
-            entradas = []
-            for i in range(columnas):
+        if requiere_vectores:
+            ctk.CTkLabel(
+                self.frame_centro,
+                text="VECTORES",
+                font=("Arial", 18, "bold")
+            ).grid(row=fila_siguiente, column=0, columnspan=max(cantidad_vectores, 1), pady=10)
+            vector_dimension = columnas if requiere_matriz else filas
+            for j in range(cantidad_vectores):
+                nombre = self.generar_nombre_vector(j)
+                self.vector_names.append(nombre)
+                ctk.CTkLabel(
+                    self.frame_centro,
+                    text=nombre,
+                    font=("Arial", 16, "bold")
+                ).grid(row=fila_siguiente + 1, column=j, padx=10, pady=5)
+                entradas = []
+                for i in range(vector_dimension):
+                    entry = ctk.CTkEntry(self.frame_centro, width=80)
+                    entry.grid(row=fila_siguiente + 2 + i, column=j, padx=10, pady=5)
+                    entry.bind("<KeyRelease>", lambda event: self.actualizar_previsualizacion())
+                    entradas.append(entry)
+                self.vector_entries.append(entradas)
+            fila_siguiente += vector_dimension + 3
+
+        if requiere_b:
+            ctk.CTkLabel(
+                self.frame_centro,
+                text="VECTOR b (términos independientes)",
+                font=("Arial", 18, "bold")
+            ).grid(row=fila_siguiente, column=0, columnspan=max(filas, 1), pady=10)
+            for i in range(filas):
                 entry = ctk.CTkEntry(self.frame_centro, width=80)
-                entry.grid(row=fila_vectores + 2 + i, column=j, padx=10, pady=5)
+                entry.grid(row=fila_siguiente + 1 + i, column=0, padx=5, pady=5)
                 entry.bind("<KeyRelease>", lambda event: self.actualizar_previsualizacion())
-                entradas.append(entry)
-            self.vector_entries.append(entradas)
-
-        # VECTOR b PARA LA ECUACION MATRICIAL Ax = b
-        fila_b = fila_vectores + cantidad_vectores + 3
-        etiqueta_b = ctk.CTkLabel(
-            self.frame_centro,
-            text="VECTOR b (terminos independientes)",
-            font=("Arial", 18, "bold")
-        )
-        etiqueta_b.grid(row=fila_b, column=0, columnspan=filas, pady=10)
-
-        for i in range(filas):
-            entry = ctk.CTkEntry(self.frame_centro, width=80)
-            entry.grid(row=fila_b + 1 + i, column=0, padx=5, pady=5)
-            entry.bind("<KeyRelease>", lambda event: self.actualizar_previsualizacion())
-            self.vector_b_entries.append(entry)
+                self.vector_b_entries.append(entry)
 
         self.actualizar_previsualizacion()
-        self.mostrar_resultado("Matriz y vectores generados correctamente.")
+        self.mostrar_resultado(f"Entradas generadas para: {operacion}.")
 
     def actualizar_previsualizacion(self):
-        """Muestra la estructura de A X = B mientras se capturan los datos."""
+        """Muestra únicamente los datos generados para la operación activa."""
         if not hasattr(self, "txt_previsualizacion"):
             return
 
-        if not self.matriz_entries:
-            self._escribir_previsualizacion("Genere la matriz y complete sus valores.")
+        if not (self.matriz_entries or self.vector_entries or self.vector_b_entries):
+            self._escribir_previsualizacion("Configure la operación y genere sus datos.")
             return
 
-        filas_a = []
-        for fila_entries in self.matriz_entries:
-            valores = [entry.get().strip() or "_" for entry in fila_entries]
-            filas_a.append("[ " + ", ".join(valores) + " ]")
+        lineas = []
+        if self.matriz_entries:
+            lineas.append("A =")
+            lineas.extend(
+                "[ " + ", ".join(entry.get().strip() or "_" for entry in fila) + " ]"
+                for fila in self.matriz_entries
+            )
 
-        valores_x = []
-        if self.vector_entries:
-            valores_x = [entry.get().strip() or "_" for entry in self.vector_entries[0]]
-        else:
-            valores_x = ["_"] * len(self.matriz_entries[0])
+        for indice, entradas in enumerate(self.vector_entries):
+            if lineas:
+                lineas.append("")
+            nombre = self.vector_names[indice] if indice < len(self.vector_names) else f"u{indice + 1}"
+            valores = [entry.get().strip() or "_" for entry in entradas]
+            lineas.append(f"{nombre} = [ " + ", ".join(valores) + " ]")
 
-        valores_b = [entry.get().strip() or "_" for entry in self.vector_b_entries]
-        if not valores_b:
-            valores_b = ["_"] * len(self.matriz_entries)
+        if self.vector_b_entries:
+            valores_b = [entry.get().strip() or "_" for entry in self.vector_b_entries]
+            if lineas:
+                lineas.append("")
+            lineas.append("b = [ " + ", ".join(valores_b) + " ]")
 
-        lineas = ["A = " + filas_a[0]]
-        lineas.extend("    " + fila for fila in filas_a[1:])
-        lineas.append("")
-        lineas.append("X = [ " + valores_x[0] + " ]")
-        lineas.extend("    [ " + valor + " ]" for valor in valores_x[1:])
-        lineas.append("")
-        lineas.append("B = [ " + valores_b[0] + " ]")
-        lineas.extend("    [ " + valor + " ]" for valor in valores_b[1:])
         self._escribir_previsualizacion("\n".join(lineas))
 
     def _escribir_previsualizacion(self, texto):
@@ -833,17 +974,12 @@ class VistaMatricial(ctk.CTkToplevel):
     def limpiar(self):
         self.entry_filas.delete(0, "end")
         self.entry_columnas.delete(0, "end")
+        self.entry_dimension_vector.delete(0, "end")
         self.entry_cantidad_vectores.delete(0, "end")
         self.entry_escalar.delete(0, "end")
 
-        for widget in self.frame_centro.winfo_children():
-            widget.destroy()
-
-        self.matriz_entries = []
-        self.vector_entries = []
-        self.vector_b_entries = []
-        self.vector_names = []
-        self._escribir_previsualizacion("Genere la matriz y complete sus valores.")
+        self._limpiar_datos_generados()
+        self._escribir_previsualizacion("Configure la operación y genere sus datos.")
         self.mostrar_resultado("")
 
 

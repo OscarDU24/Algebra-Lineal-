@@ -99,7 +99,11 @@ class VistaIntercambio(ctk.CTkToplevel):
             dimension = int(self.entry_dimension.get())
             if dimension <= 0:
                 raise ValueError
-        except ValueError:
+        except ValueError as error:
+            mensaje = str(error)
+            if "invalid literal for int()" in mensaje or not mensaje:
+                mensaje = "Indique una cantidad positiva de sectores."
+            print(f"VALIDACIÓN: {mensaje}")
             self.mostrar_resultado("ERROR: indique una cantidad positiva de sectores.")
             return
 

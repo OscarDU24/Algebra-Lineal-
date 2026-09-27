@@ -85,7 +85,11 @@ class VistaFlujoRed(ctk.CTkToplevel):
             ramas = int(self.entry_ramas.get())
             if nodos <= 0 or ramas <= 0:
                 raise ValueError
-        except ValueError:
+        except ValueError as error:
+            mensaje = str(error)
+            if "invalid literal for int()" in mensaje or not mensaje:
+                mensaje = "Nodos y ramas deben ser enteros positivos."
+            print(f"VALIDACIÓN: {mensaje}")
             self.mostrar_resultado("ERROR: nodos y ramas deben ser enteros positivos.")
             return
 
