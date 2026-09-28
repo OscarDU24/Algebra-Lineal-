@@ -116,7 +116,7 @@ class VistaFlujoRed(ctk.CTkToplevel):
         fila_balance = ramas + 3
         ctk.CTkLabel(
             self.area_datos,
-            text="Balance externo por nodo: salidas - entradas = balance",
+            text="Balance externo por nodo (salidas - entradas)",
             text_color=TEXTO_CLARO
         ).grid(row=fila_balance, column=0, columnspan=3, pady=8)
         for indice in range(nodos):
@@ -149,6 +149,26 @@ class VistaFlujoRed(ctk.CTkToplevel):
     def _matriz(self, matriz):
         return vis.matriz_a_string(matriz, self.menu_formato.get())
 
+    def _formatear_expresion_flujo(self, expresion, parametros):
+        constante, coeficientes = expresion
+        terminos = []
+        if abs(constante) >= flujo_red.TOLERANCIA:
+            terminos.append(self._formatear(constante))
+
+        for coeficiente, parametro in zip(coeficientes, parametros):
+            if abs(coeficiente) < flujo_red.TOLERANCIA:
+                continue
+            magnitud = abs(coeficiente)
+            factor = "" if abs(magnitud - 1) < flujo_red.TOLERANCIA else self._formatear(magnitud)
+            termino = f"{factor}{parametro}"
+            if not terminos:
+                terminos.append(termino if coeficiente > 0 else f"-{termino}")
+            else:
+                signo = "+" if coeficiente > 0 else "-"
+                terminos.append(f"{signo} {termino}")
+
+        return " ".join(terminos) if terminos else "0"
+
     def calcular(self):
         try:
             nodos, ramas, balances = self._leer_red()
@@ -157,7 +177,9 @@ class VistaFlujoRed(ctk.CTkToplevel):
             salida = [
                 "ANÁLISIS DE FLUJO DE RED",
                 "",
-                "Convención: salidas - entradas = balance",
+                "Convención interna: salidas - entradas",
+                "Balance externo capturado: salidas externas - entradas externas",
+                "Por conservación, C f = entradas externas - salidas externas.",
                 "",
                 "Matriz de incidencia C:",
                 self._matriz(resultado["incidencia"]),
@@ -177,18 +199,55 @@ class VistaFlujoRed(ctk.CTkToplevel):
             if resultado["tipo"] == "incompatible":
                 salida.append("No existe un flujo que cumpla todos los balances.")
             else:
-                if resultado["variables_libres"]:
-                    salida.append(
-                        "Variables libres: " + ", ".join(
-                            nombres[indice] for indice in resultado["variables_libres"]
+                variables_libres = resultado["variables_libres"]
+                parametros = [f"t{indice + 1}" for indice in range(len(variables_libres))]
+                if variables_libres:
+                    salida.extend([
+                        "",
+                        "Familia de soluciones:",
+                        "Parámetros: " + ", ".join(
+                            f"{nombres[indice]} = {parametro}"
+                            for indice, parametro in zip(variables_libres, parametros)
                         )
+                    ])
+                    salida.extend(
+                        f"{nombre} = {self._formatear_expresion_flujo(expresion, parametros)}"
+                        for nombre, expresion in zip(nombres, resultado["expresiones"])
                     )
-                salida.append("Flujos:")
-                salida.extend(
-                    f"  {nombre} ({origen} -> {destino}) = "
-                    f"{self._formatear(resultado['flujos'][indice])}"
-                    for indice, (nombre, (origen, destino)) in enumerate(zip(nombres, ramas))
-                )
+                    salida.append("Restricciones físicas: todos los flujos deben ser >= 0.")
+
+                    if resultado["factible_no_negativo"] is False:
+                        salida.append("No existe una solución con todos los flujos no negativos.")
+                    elif len(variables_libres) == 1 and resultado["factible_no_negativo"]:
+                        parametro = parametros[0]
+                        minimo, maximo = resultado["intervalo_parametro"]
+                        restriccion = f"{parametro} >= {self._formatear(minimo)}"
+                        if maximo != float("inf"):
+                            restriccion += f" y {parametro} <= {self._formatear(maximo)}"
+                        salida.extend([
+                            f"Intervalo factible: {restriccion}.",
+                            f"Solución factible en el menor valor de {parametro} "
+                            f"({parametro} = {self._formatear(minimo)}):"
+                        ])
+                        salida.extend(
+                            f"  {nombre} ({origen} -> {destino}) = "
+                            f"{self._formatear(resultado['flujos'][indice])}"
+                            for indice, (nombre, (origen, destino)) in enumerate(zip(nombres, ramas))
+                        )
+                    else:
+                        salida.append(
+                            "Hay varias variables libres; el sistema no elige valores arbitrarios. "
+                            "La familia anterior debe restringirse con fi >= 0."
+                        )
+                elif resultado["factible_no_negativo"]:
+                    salida.append("Flujo único no negativo:")
+                    salida.extend(
+                        f"  {nombre} ({origen} -> {destino}) = "
+                        f"{self._formatear(resultado['flujos'][indice])}"
+                        for indice, (nombre, (origen, destino)) in enumerate(zip(nombres, ramas))
+                    )
+                else:
+                    salida.append("La solución algebraica requiere flujos negativos y no es físicamente factible.")
             self.mostrar_resultado("\n".join(salida))
         except (ValueError, TypeError) as error:
             self.mostrar_resultado(f"ERROR: {error}")
