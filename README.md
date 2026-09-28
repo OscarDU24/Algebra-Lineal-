@@ -12,7 +12,7 @@ las referencias de accesibilidad y el plan de pruebas se encuentran en
 Las propuestas que aun no han sido aprobadas para desarrollo se conservan en
 [docs/pendientes-ui-ux.md](docs/pendientes-ui-ux.md).
 
-## Evolución de la interfaz
+## Evolución de la interfaz con el pasar del tiempo
 
 La interfaz actual es resultado de una revisión visual realizada durante el desarrollo
 del proyecto. La versión anterior utilizaba una presentación más clara y ornamental,
