@@ -211,70 +211,631 @@ def parsear_decimal(cadena):
         valor = int(valor)
     return valor
 
+# ==========================================================
+# Motor lógico (backend) de la Calculadora Romana bidireccional
+# Arábigo <-> Romano, explicado como COMBINACIÓN LINEAL:
+#     N = c0*(1000) + c1*(900) + ... + c12*(1)
+#
+# Diseñado para integrarse con una GUI (devuelve resultado + pasos).
+# Solo Python estándar.
+# ==========================================================
+
+
+class ErrorConversion(ValueError):
+    """Error interno de validación o conversión."""
+    pass
+
+# Hecho por Charly y Oscar B)
 
 class CalculadoraRomana:
-    """Convierte enteros del 1 al 3999 entre representación arábiga y romana."""
+    """Backend de la calculadora romana.
+
+    Los métodos principales devuelven:
+
+        (resultado, pasos)
+            cuando la conversión es correcta.
+
+        (None, mensaje_error)
+            cuando ocurre un error.
+
+    Atributos que la GUI puede leer:
+        resultado -> último resultado (str o int; None si hubo error)
+        pasos     -> lista de strings con el procedimiento detallado
+        error     -> mensaje del último error (None si todo salió bien)
+    """
 
     def __init__(self):
-        self.valores = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1]
-        self.simbolos = [
-            "M", "CM", "D", "CD", "C", "XC", "L", "XL",
-            "X", "IX", "V", "IV", "I"
+
+        # Listas de referencia del algoritmo de clase
+        # (orden descendente)
+        self.valores = [
+            1000, 900, 500, 400, 100, 90, 50,
+            40, 10, 9, 5, 4, 1
         ]
+
+        self.simbolos = [
+            "M", "CM", "D", "CD", "C", "XC", "L",
+            "XL", "X", "IX", "V", "IV", "I"
+        ]
+
         self.validos = "MDCLXVI"
+
         self.minimo = 1
         self.maximo = 3999
 
-    def arabigo_a_romano(self, entrada):
-        """Devuelve (numeral_romano, desglose); el numeral es None si falla."""
-        texto = str(entrada).strip()
-        if not texto:
-            return None, "La entrada está vacía."
-        if not texto.isascii() or not texto.isdigit():
-            return None, "Debes ingresar un número entero positivo."
+        # Estado que consume la interfaz
+        self.resultado = None
+        self.pasos = []
+        self.error = None
+        self.encabezado = ""
 
-        numero = int(texto)
-        if not self.minimo <= numero <= self.maximo:
-            return None, f"El número debe estar entre {self.minimo} y {self.maximo}."
+    # ------------------------------------------------------
+    # Utilidades internas
+    # ------------------------------------------------------
 
-        resultado = []
-        pasos = []
-        restante = numero
-        for valor, simbolo in zip(self.valores, self.simbolos):
-            cantidad, restante = divmod(restante, valor)
-            if cantidad:
-                grupo = simbolo * cantidad
-                resultado.append(grupo)
-                pasos.append(f"{cantidad} vez/veces {valor} ({grupo})")
+    def _reiniciar(self):
+        """Limpia el estado antes de cada conversión."""
 
-        desglose = f"Desglose de {numero}: " + " + ".join(pasos)
-        return "".join(resultado), desglose
+        self.resultado = None
+        self.pasos = []
+        self.error = None
+        self.encabezado = ""
+
+    def _agregar_paso(self, texto):
+        """Agrega una línea al historial de pasos."""
+
+        self.pasos.append(texto)
+
+    def _descomponer(self, n):
+        """Devuelve la lista de coeficientes."""
+
+        coeficientes = []
+
+        for i in range(len(self.valores)):
+
+            cantidad = n // self.valores[i]
+
+            coeficientes.append(cantidad)
+
+            n = n % self.valores[i]
+
+        return coeficientes
+
+    def _romano_desde_coeficientes(self, coeficientes):
+        """Arma la cadena romana a partir de los coeficientes."""
+
+        romano = ""
+
+        for i in range(len(coeficientes)):
+
+            romano = romano + (
+                self.simbolos[i] * coeficientes[i]
+            )
+
+        return romano
+
+    def _texto_combinacion(self, coeficientes):
+        """Devuelve la combinación lineal."""
+
+        terminos = []
+
+        for i in range(len(coeficientes)):
+
+            if coeficientes[i] > 0:
+
+                terminos.append(
+                    str(coeficientes[i])
+                    + "·("
+                    + str(self.valores[i])
+                    + ")"
+                )
+
+        return " + ".join(terminos)
+
+    # ------------------------------------------------------
+    # Validaciones
+    # ------------------------------------------------------
+
+    def _validar_arabigo(self, entrada):
+        """Valida y devuelve el número arábigo como int."""
+
+        if isinstance(entrada, bool) or not isinstance(
+            entrada, (int, str)
+        ):
+
+            raise ErrorConversion(
+                "La entrada debe ser un número entero "
+                "(int) o texto con dígitos."
+            )
+
+        if isinstance(entrada, str):
+
+            texto = entrada.strip()
+
+            if texto == "":
+
+                raise ErrorConversion(
+                    "La entrada está vacía."
+                )
+
+            if not texto.isdigit():
+
+                raise ErrorConversion(
+                    "'" + texto
+                    + "' no es un entero positivo válido."
+                )
+
+            numero = int(texto)
+
+        else:
+
+            numero = entrada
+
+        if numero < self.minimo or numero > self.maximo:
+
+            raise ErrorConversion(
+                "El número debe estar entre "
+                + str(self.minimo)
+                + " y "
+                + str(self.maximo)
+                + "."
+            )
+
+        return numero
+
+    def _validar_romano(self, entrada):
+        """Valida y devuelve el romano normalizado."""
+
+        if not isinstance(entrada, str):
+
+            raise ErrorConversion(
+                "El número romano debe ser texto (str)."
+            )
+
+        texto = entrada.strip().upper()
+
+        if texto == "":
+
+            raise ErrorConversion(
+                "La entrada está vacía."
+            )
+
+        for caracter in texto:
+
+            if caracter not in self.validos:
+
+                raise ErrorConversion(
+                    "'"
+                    + caracter
+                    + "' no es un símbolo romano válido "
+                    "(M, D, C, L, X, V, I)."
+                )
+
+        return texto
+
+    # ------------------------------------------------------
+    # Arábigo -> Romano
+    # ------------------------------------------------------
+
+    def arabigo_a_romano(
+        self,
+        entrada,
+        detallar_ceros=False
+    ):
+        """Convierte un número arábigo a romano.
+
+        Retorna:
+
+            (romano, pasos)
+                si la conversión es correcta.
+
+            (None, mensaje_error)
+                si ocurre un error.
+        """
+
+        self._reiniciar()
+
+        try:
+
+            numero = self._validar_arabigo(entrada)
+
+            self.encabezado = (
+                "PROCEDIMIENTO "
+                "(divisiones sucesivas y combinación lineal)"
+            )
+
+            self._agregar_paso(
+                "--- Convertir Decimal "
+                + str(numero)
+                + " a Romano ---"
+            )
+
+            self._agregar_paso(
+                "Divisiones sucesivas (parte entera):"
+            )
+
+            # --------------------------------------------------
+            # Algoritmo de conversión
+            # --------------------------------------------------
+
+            resto = numero
+            coeficientes = []
+
+            for i in range(len(self.valores)):
+
+                valor = self.valores[i]
+
+                cantidad = resto // valor
+
+                nuevo_resto = resto % valor
+
+                coeficientes.append(cantidad)
+
+                if cantidad > 0:
+
+                    self._agregar_paso(
+                        "  "
+                        + str(resto)
+                        + " / "
+                        + str(valor)
+                        + " = "
+                        + str(cantidad)
+                        + "  (Residuo = "
+                        + str(nuevo_resto)
+                        + ")"
+                        + "  ->  "
+                        + str(cantidad)
+                        + " x "
+                        + self.simbolos[i]
+                    )
+
+                elif detallar_ceros:
+
+                    self._agregar_paso(
+                        "  "
+                        + str(resto)
+                        + " / "
+                        + str(valor)
+                        + " = 0"
+                        + "  (Residuo = "
+                        + str(resto)
+                        + ")"
+                        + "  ->  no se usa "
+                        + self.simbolos[i]
+                    )
+
+                resto = nuevo_resto
+
+            # --------------------------------------------------
+            # Construcción del romano
+            # --------------------------------------------------
+
+            romano = self._romano_desde_coeficientes(
+                coeficientes
+            )
+
+            # --------------------------------------------------
+            # Combinación lineal
+            # --------------------------------------------------
+
+            suma = 0
+
+            for i in range(len(coeficientes)):
+
+                suma = (
+                    suma
+                    + coeficientes[i] * self.valores[i]
+                )
+
+            self._agregar_paso(
+                "Combinación lineal: "
+                + str(numero)
+                + " = "
+                + self._texto_combinacion(coeficientes)
+                + "  (suma = "
+                + str(suma)
+                + ")"
+            )
+
+            # --------------------------------------------------
+            # Unión de símbolos
+            # --------------------------------------------------
+
+            partes = []
+
+            for i in range(len(coeficientes)):
+
+                if coeficientes[i] > 0:
+
+                    partes.append(
+                        self.simbolos[i]
+                        * coeficientes[i]
+                    )
+
+            self._agregar_paso(
+                "Uniendo los símbolos de mayor a menor: "
+                + " -> ".join(partes)
+                + " -> "
+                + romano
+            )
+
+            self._agregar_paso(
+                "Resultado Final en Romano: "
+                + romano
+            )
+
+            self.resultado = romano
+
+            return romano, self.pasos
+
+        except ErrorConversion as e:
+
+            self.resultado = None
+            self.error = str(e)
+
+            return None, self.error
+
+    # ------------------------------------------------------
+    # Romano -> Arábigo
+    # ------------------------------------------------------
 
     def romano_a_arabigo(self, entrada):
-        """Devuelve (entero, desglose); el entero es None si falla."""
-        texto = str(entrada).strip().upper()
-        if not texto:
-            return None, "La entrada está vacía."
-        for caracter in texto:
-            if caracter not in self.validos:
-                return None, f"'{caracter}' no es un símbolo romano válido."
+        """Convierte un número romano a arábigo.
 
-        total = 0
-        posicion = 0
-        pasos = []
-        while posicion < len(texto):
-            for valor, simbolo in zip(self.valores, self.simbolos):
-                if texto.startswith(simbolo, posicion):
-                    total += valor
-                    pasos.append(f"{simbolo} = {valor}")
-                    posicion += len(simbolo)
-                    break
-            else:
-                return None, "La cadena romana no se reconoce."
+        Retorna:
 
-        reconstruido, _ = self.arabigo_a_romano(total)
-        if reconstruido != texto:
-            return None, f"'{texto}' no es un numeral romano bien formado."
+            (entero, pasos)
+                si la conversión es correcta.
 
-        desglose = f"Desglose de {texto}: " + " + ".join(pasos) + f" = {total}"
-        return total, desglose
+            (None, mensaje_error)
+                si ocurre un error.
+        """
+
+        self._reiniciar()
+
+        try:
+
+            texto = self._validar_romano(entrada)
+
+            self.encabezado = (
+                "PROCEDIMIENTO "
+                "(suma de valores y combinación lineal)"
+            )
+
+            self._agregar_paso(
+                "--- Convertir Romano "
+                + texto
+                + " a Decimal ---"
+            )
+
+            self._agregar_paso(
+                "Símbolos identificados "
+                "(de izquierda a derecha, "
+                "CM antes que C y M, etc.):"
+            )
+
+            # --------------------------------------------------
+            # Coeficientes
+            # --------------------------------------------------
+
+            coeficientes = [0] * len(self.valores)
+
+            sumandos = []
+
+            pos = 0
+
+            acumulado = 0
+
+            while pos < len(texto):
+
+                encontrado = False
+
+                for i in range(len(self.simbolos)):
+
+                    if texto.startswith(
+                        self.simbolos[i],
+                        pos
+                    ):
+
+                        coeficientes[i] = (
+                            coeficientes[i] + 1
+                        )
+
+                        acumulado = (
+                            acumulado
+                            + self.valores[i]
+                        )
+
+                        sumandos.append(
+                            str(self.valores[i])
+                        )
+
+                        self._agregar_paso(
+                            "  "
+                            + self.simbolos[i]
+                            + " = "
+                            + str(self.valores[i])
+                            + "  (acumulado = "
+                            + str(acumulado)
+                            + ")"
+                        )
+
+                        pos = (
+                            pos
+                            + len(self.simbolos[i])
+                        )
+
+                        encontrado = True
+
+                        break
+
+                if not encontrado:
+
+                    raise ErrorConversion(
+                        "No se pudo interpretar "
+                        "la cadena romana."
+                    )
+
+            # --------------------------------------------------
+            # Combinación lineal
+            # --------------------------------------------------
+
+            self._agregar_paso(
+                "Combinación lineal: "
+                + texto
+                + " = "
+                + self._texto_combinacion(
+                    coeficientes
+                )
+            )
+
+            self._agregar_paso(
+                "Sumando los valores: "
+                + " + ".join(sumandos)
+                + " = "
+                + str(acumulado)
+            )
+
+            # --------------------------------------------------
+            # Verificación de rango
+            # --------------------------------------------------
+
+            if (
+                acumulado < self.minimo
+                or acumulado > self.maximo
+            ):
+
+                raise ErrorConversion(
+                    "El valor obtenido ("
+                    + str(acumulado)
+                    + ") está fuera del rango "
+                    + str(self.minimo)
+                    + "-"
+                    + str(self.maximo)
+                    + "."
+                )
+
+            # --------------------------------------------------
+            # Verificación de formato romano
+            # --------------------------------------------------
+
+            reconstruido = (
+                self._romano_desde_coeficientes(
+                    self._descomponer(acumulado)
+                )
+            )
+
+            self._agregar_paso(
+                "Verificación: "
+                + str(acumulado)
+                + " se escribe "
+                + reconstruido
+                + " con el algoritmo de clase"
+            )
+
+            if reconstruido != texto:
+
+                raise ErrorConversion(
+                    "\""
+                    + texto
+                    + "\" no es un número romano "
+                    "bien formado "
+                    "(su suma da "
+                    + str(acumulado)
+                    + ", que se escribe \""
+                    + reconstruido
+                    + "\")."
+                )
+
+            # --------------------------------------------------
+            # Resultado
+            # --------------------------------------------------
+
+            self._agregar_paso(
+                "Resultado Final en Decimal: "
+                + str(acumulado)
+            )
+
+            self.resultado = acumulado
+
+            return acumulado, self.pasos
+
+        except ErrorConversion as e:
+
+            self.resultado = None
+            self.error = str(e)
+
+            return None, self.error
+
+
+# ==========================================================
+# EJEMPLO DE USO
+# ==========================================================
+
+if __name__ == '__main__':
+
+    calculadora = CalculadoraRomana()
+
+    # ------------------------------------------------------
+    # Arábigo -> Romano
+    # ------------------------------------------------------
+
+    resultado, mensaje = (
+        calculadora.arabigo_a_romano(1994)
+    )
+
+    if resultado is None:
+
+        print("Error:", mensaje)
+
+    else:
+
+        print("=== RESULTADO ===")
+        print(resultado)
+
+        print("\n=== PASO A PASO ===")
+        print("\n".join(mensaje))
+
+    # ------------------------------------------------------
+    # Romano -> Arábigo
+    # ------------------------------------------------------
+
+    print("\n" + "-" * 50 + "\n")
+
+    resultado, mensaje = (
+        calculadora.romano_a_arabigo("MCMXCIV")
+    )
+
+    if resultado is None:
+
+        print("Error:", mensaje)
+
+    else:
+
+        print("=== RESULTADO ===")
+        print(resultado)
+
+        print("\n=== PASO A PASO ===")
+        print("\n".join(mensaje))
+
+    # ------------------------------------------------------
+    # Ejemplo de error
+    # ------------------------------------------------------
+
+    print("\n" + "-" * 50 + "\n")
+
+    resultado, mensaje = (
+        calculadora.romano_a_arabigo("IIII")
+    )
+
+    if resultado is None:
+
+        print("Error:", mensaje)
+
+    else:
+
+        print("=== RESULTADO ===")
+        print(resultado)
+
+        print("\n=== PASO A PASO ===")
+        print("\n".join(mensaje))

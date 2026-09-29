@@ -302,7 +302,8 @@ class VistaSistemasNumericos(ctk.CTkToplevel):
         self.mostrar_resultado(
             "=== RESULTADO ===\n"
             f"{entrada.strip()} = {resultado}\n\n"
-            f"=== PASO A PASO ===\n{mensaje}"
+            f"=== PASO A PASO ===\n"
+            f"{"\n".join(mensaje)}"
         )
 
 
