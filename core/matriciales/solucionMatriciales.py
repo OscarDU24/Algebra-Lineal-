@@ -1,6 +1,14 @@
 from core.lineal.eliminacion import eliminacion_por_filas
+from decimal import Decimal, ROUND_HALF_UP
 
 TOLERANCIA = 1e-9
+
+
+def _formatear_coeficiente(valor):
+    """Redondea valores de salida a dos decimales, compensando ruido binario."""
+    numero = Decimal(str(valor))
+    ajuste = Decimal("0.000000000001") if numero >= 0 else Decimal("-0.000000000001")
+    return f"{(numero + ajuste).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP):.2f}"
 
 
 def crear_matriz_aumentada(matriz, vector_b):
@@ -171,9 +179,10 @@ def parametrizar_solucion(rref):
         if pivote is None:
             continue
 
-        expresion = (
-            str(fila[-1])
-        )
+        termino_constante = fila[-1]
+        partes = []
+        if abs(termino_constante) >= TOLERANCIA:
+            partes.append(_formatear_coeficiente(termino_constante))
 
         for libre in libres:
 
@@ -183,20 +192,18 @@ def parametrizar_solucion(rref):
                 continue
 
             parametro = parametros[libre]
+            coeficiente_solucion = -coeficiente
+            magnitud = abs(coeficiente_solucion)
+            factor = "" if abs(magnitud - 1) < TOLERANCIA else _formatear_coeficiente(magnitud)
+            termino = f"{factor}{parametro}"
 
-            if coeficiente < 0:
-
-                expresion += (
-                    f" + {abs(coeficiente)}{parametro}"
-                )
-
+            if not partes:
+                partes.append(termino if coeficiente_solucion > 0 else f"-{termino}")
             else:
+                signo = "+" if coeficiente_solucion > 0 else "-"
+                partes.append(f"{signo} {termino}")
 
-                expresion += (
-                    f" - {coeficiente}{parametro}"
-                )
-
-        expresiones[pivote] = expresion
+        expresiones[pivote] = " ".join(partes) if partes else "0.00"
 
     return expresiones, parametros
 

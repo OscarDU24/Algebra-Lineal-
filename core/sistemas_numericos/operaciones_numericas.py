@@ -210,3 +210,71 @@ def parsear_decimal(cadena):
     if valor == int(valor):
         valor = int(valor)
     return valor
+
+
+class CalculadoraRomana:
+    """Convierte enteros del 1 al 3999 entre representación arábiga y romana."""
+
+    def __init__(self):
+        self.valores = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1]
+        self.simbolos = [
+            "M", "CM", "D", "CD", "C", "XC", "L", "XL",
+            "X", "IX", "V", "IV", "I"
+        ]
+        self.validos = "MDCLXVI"
+        self.minimo = 1
+        self.maximo = 3999
+
+    def arabigo_a_romano(self, entrada):
+        """Devuelve (numeral_romano, desglose); el numeral es None si falla."""
+        texto = str(entrada).strip()
+        if not texto:
+            return None, "La entrada está vacía."
+        if not texto.isascii() or not texto.isdigit():
+            return None, "Debes ingresar un número entero positivo."
+
+        numero = int(texto)
+        if not self.minimo <= numero <= self.maximo:
+            return None, f"El número debe estar entre {self.minimo} y {self.maximo}."
+
+        resultado = []
+        pasos = []
+        restante = numero
+        for valor, simbolo in zip(self.valores, self.simbolos):
+            cantidad, restante = divmod(restante, valor)
+            if cantidad:
+                grupo = simbolo * cantidad
+                resultado.append(grupo)
+                pasos.append(f"{cantidad} vez/veces {valor} ({grupo})")
+
+        desglose = f"Desglose de {numero}: " + " + ".join(pasos)
+        return "".join(resultado), desglose
+
+    def romano_a_arabigo(self, entrada):
+        """Devuelve (entero, desglose); el entero es None si falla."""
+        texto = str(entrada).strip().upper()
+        if not texto:
+            return None, "La entrada está vacía."
+        for caracter in texto:
+            if caracter not in self.validos:
+                return None, f"'{caracter}' no es un símbolo romano válido."
+
+        total = 0
+        posicion = 0
+        pasos = []
+        while posicion < len(texto):
+            for valor, simbolo in zip(self.valores, self.simbolos):
+                if texto.startswith(simbolo, posicion):
+                    total += valor
+                    pasos.append(f"{simbolo} = {valor}")
+                    posicion += len(simbolo)
+                    break
+            else:
+                return None, "La cadena romana no se reconoce."
+
+        reconstruido, _ = self.arabigo_a_romano(total)
+        if reconstruido != texto:
+            return None, f"'{texto}' no es un numeral romano bien formado."
+
+        desglose = f"Desglose de {texto}: " + " + ".join(pasos) + f" = {total}"
+        return total, desglose

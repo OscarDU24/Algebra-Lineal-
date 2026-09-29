@@ -29,6 +29,7 @@ class VistaSistemasNumericos(ctk.CTkToplevel):
         self.minsize(760, 620)
 
         self.nombres_sistemas = list(op_num.SISTEMAS.keys())  # Binario, Octal, Decimal, Hexadecimal
+        self.calculadora_romana = op_num.CalculadoraRomana()
 
         self.crear_encabezado()
         self.crear_tabs()
@@ -55,7 +56,7 @@ class VistaSistemasNumericos(ctk.CTkToplevel):
 
         ctk.CTkLabel(
             frame,
-            text="Elige abajo qué quieres convertir: Decimal → otra base, u otra base → Decimal.",
+            text="Convierte entre bases numéricas o entre números arábigos y romanos.",
             text_color=TEXTO_CLARO,
         ).pack(pady=(0, 12))
 
@@ -78,10 +79,63 @@ class VistaSistemasNumericos(ctk.CTkToplevel):
 
         tab_dec = self.tabs.add("Decimal → Otra base")
         tab_a_dec = self.tabs.add("Otra base → Decimal")
+        tab_romanos = self.tabs.add("Arábigo ↔ Romano")
 
         # Pasar los módulos dentro de las pestañas
         self.crear_modulo_decimal_a_base(tab_dec)
         self.crear_modulo_base_a_decimal(tab_a_dec)
+        self.crear_modulo_romanos(tab_romanos)
+
+    def crear_modulo_romanos(self, contenedor):
+        ctk.CTkLabel(
+            contenedor,
+            text="Dirección de conversión:",
+            font=("Segoe UI", 14, "bold"),
+            text_color=TEXTO_CLARO,
+        ).pack(anchor="w", padx=20, pady=(18, 6))
+
+        self.selector_modo_romano = ctk.CTkSegmentedButton(
+            contenedor,
+            values=["Arábigo → Romano", "Romano → Arábigo"],
+            command=self.al_cambiar_modo_romano,
+            selected_color=ACENTO,
+            selected_hover_color="#b30000",
+            text_color=TEXTO_CLARO,
+        )
+        self.selector_modo_romano.set("Arábigo → Romano")
+        self.selector_modo_romano.pack(anchor="w", padx=20, pady=(0, 16))
+
+        self.label_numero_romano = ctk.CTkLabel(
+            contenedor,
+            text="Número arábigo (1-3999):",
+            font=("Segoe UI", 14, "bold"),
+            text_color=TEXTO_CLARO,
+        )
+        self.label_numero_romano.pack(anchor="w", padx=20, pady=(0, 4))
+
+        self.entry_numero_romano = ctk.CTkEntry(
+            contenedor,
+            width=300,
+            font=("Consolas", 16),
+            placeholder_text="Ej: 2024"
+        )
+        self.entry_numero_romano.pack(anchor="w", padx=20, pady=(0, 16))
+
+        ctk.CTkButton(
+            contenedor,
+            text="Convertir",
+            **estilo_boton_principal(),
+            command=self.ejecutar_conversion_romana,
+            height=38,
+        ).pack(anchor="w", padx=20, pady=(0, 10))
+
+    def al_cambiar_modo_romano(self, modo):
+        if modo == "Arábigo → Romano":
+            self.label_numero_romano.configure(text="Número arábigo (1-3999):")
+            self.entry_numero_romano.configure(placeholder_text="Ej: 2024")
+        else:
+            self.label_numero_romano.configure(text="Número romano:")
+            self.entry_numero_romano.configure(placeholder_text="Ej: MMXXIV")
 
     # --------------------------------------------------------
     # MÓDULO 1: Decimal -> Binario / Octal / Hexadecimal
@@ -232,6 +286,23 @@ class VistaSistemasNumericos(ctk.CTkToplevel):
         self.mostrar_resultado(
             f"=== RESULTADO ===\n{resultado}\n\n"
             f"=== PROCEDIMIENTO (combinación lineal) ===\n{procedimiento}"
+        )
+
+    def ejecutar_conversion_romana(self):
+        entrada = self.entry_numero_romano.get()
+        if self.selector_modo_romano.get() == "Arábigo → Romano":
+            resultado, mensaje = self.calculadora_romana.arabigo_a_romano(entrada)
+        else:
+            resultado, mensaje = self.calculadora_romana.romano_a_arabigo(entrada)
+
+        if resultado is None:
+            self.mostrar_resultado(f"Error: {mensaje}")
+            return
+
+        self.mostrar_resultado(
+            "=== RESULTADO ===\n"
+            f"{entrada.strip()} = {resultado}\n\n"
+            f"=== PASO A PASO ===\n{mensaje}"
         )
 
 
