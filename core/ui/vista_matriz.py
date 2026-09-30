@@ -2,9 +2,9 @@ from core.ui.ctk_compat import ctk
 from prettytable import PrettyTable, HRuleStyle, VRuleStyle
 
 from core.lineal import conversiones as conv
-from core.lineal.eliminacion import eliminacion_por_filas
-from core.lineal.clasificacion import clasificar_sistema
-from core.lineal.solucion import sustitucion_hacia_atras_detallada, extraer_solucion_rref
+from core.lineal.solucion import (
+    enrutar_resolucion_matricial,
+)
 from core.lineal.verificacion import verificar_solucion
 from core.lineal.visualizacion import imprimir_sistema_ecuaciones
 from core.ui.tema import (
@@ -41,6 +41,7 @@ class VistaMatriz(ctk.CTkToplevel):
         self.protocol("WM_DELETE_WINDOW", self.al_cerrar)
 
         self.matriz_entries = []
+        self.modo_matriz_pura = False
 
         self.crear_frame_superior()
         self.crear_frame_central()
@@ -68,8 +69,8 @@ class VistaMatriz(ctk.CTkToplevel):
         self.entry_m.insert(0, "3")
         self.entry_m.pack(side="left", padx=5)
 
-        lbl_n = ctk.CTkLabel(self.frame_sup, text="Variables (n):", text_color="#ffffff")
-        lbl_n.pack(side="left", padx=(10, 2))
+        self.lbl_n = ctk.CTkLabel(self.frame_sup, text="Variables (n):", text_color="#ffffff")
+        self.lbl_n.pack(side="left", padx=(10, 2))
 
         self.entry_n = ctk.CTkEntry(self.frame_sup, width=50)
         self.entry_n.insert(0, "3")
@@ -119,7 +120,17 @@ class VistaMatriz(ctk.CTkToplevel):
         subframe_acciones = ctk.CTkFrame(self.frame_inf, fg_color="transparent")
         subframe_acciones.pack(fill="x", pady=5, padx=10)
 
-        self.opcion_metodo = ctk.CTkComboBox(subframe_acciones, values=["Método Escalonado", "Gauss", "Gauss-Jordan"], **estilo_menu_desplegable())
+        self.opcion_metodo = ctk.CTkComboBox(
+            subframe_acciones,
+            values=[
+                "Método Escalonado",
+                "Gauss",
+                "Gauss-Jordan",
+                "Matriz pura (A⁻¹)"
+            ],
+            command=self.al_cambiar_metodo,
+            **estilo_menu_desplegable()
+        )
         self.opcion_metodo.set("Método Escalonado")
         self.opcion_metodo.pack(side="left", padx=(0, 10))
 
@@ -127,14 +138,23 @@ class VistaMatriz(ctk.CTkToplevel):
         self.opcion_numform.set("Fracciones")
         self.opcion_numform.pack(side="left", padx=(0, 10))
 
-        btn_resolver = ctk.CTkButton(subframe_acciones, text="Resolver Sistema", **estilo_boton_principal(), command=self.accion_resolver)
-        btn_resolver.pack(side="left")
+        self.btn_resolver = ctk.CTkButton(
+            subframe_acciones,
+            text="Resolver Sistema",
+            **estilo_boton_principal(),
+            command=self.accion_resolver
+        )
+        self.btn_resolver.pack(side="left")
 
         self.txt_resultados = ctk.CTkTextbox(self.frame_inf, font=("Courier New", 12), **estilo_consola_resultado())
         self.txt_resultados.pack(pady=10, padx=10, fill="both", expand=True)
         self._escribir_en_visor("Ingrese los coeficientes en la matriz y presione 'Resolver Sistema'...")
 
     def generar_cuadricula_matriz(self):
+        modo_matriz_pura = self.opcion_metodo.get() == "Matriz pura (A⁻¹)"
+        self.frame_centro.configure(
+            label_text="Matriz de coeficientes A" if modo_matriz_pura else "Matriz editable [A | b]"
+        )
         for widget in self.frame_centro.winfo_children():
             widget.destroy()
 
@@ -145,30 +165,47 @@ class VistaMatriz(ctk.CTkToplevel):
             n = int(self.entry_n.get())
             if m <= 0 or n <= 0:
                 raise ValueError
+            if modo_matriz_pura and m != n:
+                raise ValueError("El modo matriz pura requiere que A sea cuadrada (m = n).")
         except ValueError as error:
             mensaje = str(error)
             if "invalid literal for int()" in mensaje or not mensaje:
                 mensaje = "Las dimensiones deben ser enteros positivos."
             print(f"VALIDACIÓN: {mensaje}")
-            self._escribir_en_visor("ERROR: Ingrese números enteros positivos válidos para m y n.")
+            self._escribir_en_visor(f"ERROR: {mensaje}")
             return
 
+        cantidad_columnas = n if modo_matriz_pura else n + 1
         for i in range(m):
             fila_entries = []
-            for j in range(n + 1):
+            for j in range(cantidad_columnas):
                 entry = ctk.CTkEntry(self.frame_centro, width=65, justify="center")
                 entry.grid(row=i, column=j, padx=4, pady=4)
                 entry.bind(
                     "<KeyRelease>",
                     lambda event: self.actualizar_previsualizacion()
                 )
-                if j == n:
+                if not modo_matriz_pura and j == n:
                     entry.configure(
                         fg_color=FONDO_TERMINO_INDEPENDIENTE,
                         border_color="#ffffff"
                     )
                 fila_entries.append(entry)
             self.matriz_entries.append(fila_entries)
+
+    def al_cambiar_metodo(self, metodo):
+        modo_matriz_pura = metodo == "Matriz pura (A⁻¹)"
+        if modo_matriz_pura == self.modo_matriz_pura:
+            return
+
+        self.modo_matriz_pura = modo_matriz_pura
+        self.lbl_n.configure(
+            text="Columnas (n):" if modo_matriz_pura else "Variables (n):"
+        )
+        self.btn_resolver.configure(
+            text="Calcular inversa" if modo_matriz_pura else "Resolver Sistema"
+        )
+        self.generar_cuadricula_matriz()
 
     def limpiar_entradas(self):
         for fila in self.matriz_entries:
@@ -235,6 +272,32 @@ class VistaMatriz(ctk.CTkToplevel):
             table.add_row(str_fila)
         return str(table)
 
+    def _matriz_cuadrada_a_string(self, matriz, formato):
+        table = PrettyTable()
+        table.hrules = HRuleStyle.HEADER
+        table.vrules = VRuleStyle.FRAME
+        table.field_names = [f"C{i + 1}" for i in range(len(matriz))]
+        for fila in matriz:
+            table.add_row([self._formatear_valor(valor, formato) for valor in fila])
+        return str(table)
+
+    def mostrar_matriz_inversa(self, matriz_a, matriz_inversa, formato):
+        salida = [
+            "=========================================================",
+            "          CÁLCULO DE LA MATRIZ INVERSA (A⁻¹)",
+            "=========================================================",
+            "",
+            "Matriz original A de coeficientes recibida con éxito.",
+            "Procesando reducción por Gauss-Jordan en [A | I]...",
+            "",
+            "Matriz original A:",
+            self._matriz_cuadrada_a_string(matriz_a, formato),
+            "",
+            "Matriz Inversa Resultante:",
+            self._matriz_cuadrada_a_string(matriz_inversa, formato),
+        ]
+        self._escribir_en_visor("\n".join(salida))
+
     def _escribir_en_visor(self, texto):
         self.txt_resultados.configure(state="normal")
         self.txt_resultados.delete("0.0", "end")
@@ -242,6 +305,22 @@ class VistaMatriz(ctk.CTkToplevel):
         self.txt_resultados.configure(state="disabled")
 
     def accion_resolver(self):
+        metodo_gui = self.opcion_metodo.get()
+        formato = "fr" if self.opcion_numform.get() == "Fracciones" else "dc"
+        formato_fracciones = formato == "fr"
+
+        if metodo_gui == "Matriz pura (A⁻¹)":
+            try:
+                filas = int(self.entry_m.get())
+                variables = int(self.entry_n.get())
+                if filas != variables:
+                    raise ValueError(
+                        "El modo matriz pura requiere que A sea cuadrada (m = n)."
+                    )
+            except ValueError as error:
+                self._escribir_en_visor(f"ERROR: {error}")
+                return
+
         try:
             matriz_original = self.obtener_matriz_desde_gui()
         except ValueError as e:
@@ -249,8 +328,23 @@ class VistaMatriz(ctk.CTkToplevel):
             return
 
         m = len(matriz_original)
+        if metodo_gui == "Matriz pura (A⁻¹)":
+            try:
+                resultado = enrutar_resolucion_matricial(
+                    matriz_original,
+                    vector_b=None,
+                    formato_fracciones=formato_fracciones
+                )
+                self.mostrar_matriz_inversa(
+                    matriz_original,
+                    resultado["matriz_inversa"],
+                    formato
+                )
+            except ValueError as error:
+                self._escribir_en_visor(f"ERROR: {error}")
+            return
+
         n = len(matriz_original[0]) - 1
-        metodo_gui = self.opcion_metodo.get()
 
         if metodo_gui == "Método Escalonado":
             modo = "escalonado"
@@ -259,9 +353,18 @@ class VistaMatriz(ctk.CTkToplevel):
         else:
             modo = "gauss_jordan"
 
-        formato = "fr" if self.opcion_numform.get() == "Fracciones" else "dc"
-
-        matriz_resultado, pasos, columnas_pivote = eliminacion_por_filas(matriz_original, modo)
+        matriz_a = [fila[:-1] for fila in matriz_original]
+        vector_b = [fila[-1] for fila in matriz_original]
+        resultado = enrutar_resolucion_matricial(
+            matriz_a,
+            vector_b=vector_b,
+            formato_fracciones=formato_fracciones,
+            metodo=modo
+        )
+        matriz_resultado = resultado["matriz_resultado"]
+        pasos = resultado["pasos"]
+        columnas_pivote = resultado["pivotes"]
+        clasificacion = resultado["clasificacion"]
 
         salida = []
         salida.append("=========================================================")
@@ -292,8 +395,6 @@ class VistaMatriz(ctk.CTkToplevel):
             salida.append(self._matriz_a_string(matriz_resultado, formato))
             salida.append("")
 
-        clasificacion = clasificar_sistema(matriz_resultado, columnas_pivote)
-
         salida.append("=========================================================")
         salida.append("   ANÁLISIS DE PIVOTES Y CLASIFICACIÓN DEL SISTEMA")
         salida.append("=========================================================")
@@ -314,10 +415,11 @@ class VistaMatriz(ctk.CTkToplevel):
 
         if clasificacion == "Sistema Consistente Determinado":
             if modo == "gauss_jordan":
-                x = extraer_solucion_rref(matriz_resultado, n)
+                x = resultado["solucion"]
                 salida.append("--- Solución leída directamente de la RREF ---")
             else:
-                x, pasadas_despeje = sustitucion_hacia_atras_detallada(matriz_resultado, n)
+                x = resultado["solucion"]
+                pasadas_despeje = resultado["pasos_despeje"]
                 salida.append("--- Sustitución Hacia Atrás Paso a Paso ---")
                 for paso_txt in pasadas_despeje:
                     salida.append(f"{paso_txt}\n")
