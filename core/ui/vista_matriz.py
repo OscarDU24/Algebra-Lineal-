@@ -4,6 +4,7 @@ from prettytable import PrettyTable, HRuleStyle, VRuleStyle
 from core.lineal import conversiones as conv
 from core.lineal.solucion import (
     enrutar_resolucion_matricial,
+    multiplicar_matrices,
 )
 from core.lineal.verificacion import verificar_solucion
 from core.lineal.visualizacion import imprimir_sistema_ecuaciones
@@ -13,6 +14,7 @@ from core.ui.tema import (
     FONDO_TERMINAL,
     FONDO_TERMINO_INDEPENDIENTE,
     FUENTE_CONTROLES,
+    TEXTO_CLARO,
     estilo_boton_principal,
     estilo_boton_secundario,
     estilo_consola_resultado,
@@ -42,6 +44,7 @@ class VistaMatriz(ctk.CTkToplevel):
 
         self.matriz_entries = []
         self.modo_matriz_pura = False
+        self.incluir_b_variable = ctk.BooleanVar(value=False)
 
         self.crear_frame_superior()
         self.crear_frame_central()
@@ -134,6 +137,16 @@ class VistaMatriz(ctk.CTkToplevel):
         self.opcion_metodo.set("Método Escalonado")
         self.opcion_metodo.pack(side="left", padx=(0, 10))
 
+        self.checkbox_incluir_b = ctk.CTkCheckBox(
+            subframe_acciones,
+            text="Incluir términos independientes (b)",
+            variable=self.incluir_b_variable,
+            command=self.al_cambiar_inclusion_b,
+            text_color=TEXTO_CLARO,
+            fg_color="#fe0000",
+            hover_color="#b30000",
+        )
+
         self.opcion_numform = ctk.CTkComboBox(subframe_acciones, values=["Fracciones", "Decimales"], **estilo_menu_desplegable())
         self.opcion_numform.set("Fracciones")
         self.opcion_numform.pack(side="left", padx=(0, 10))
@@ -150,10 +163,11 @@ class VistaMatriz(ctk.CTkToplevel):
         self.txt_resultados.pack(pady=10, padx=10, fill="both", expand=True)
         self._escribir_en_visor("Ingrese los coeficientes en la matriz y presione 'Resolver Sistema'...")
 
-    def generar_cuadricula_matriz(self):
+    def generar_cuadricula_matriz(self, valores_matriz=None):
         modo_matriz_pura = self.opcion_metodo.get() == "Matriz pura (A⁻¹)"
+        incluir_b = not modo_matriz_pura or self.incluir_b_variable.get()
         self.frame_centro.configure(
-            label_text="Matriz de coeficientes A" if modo_matriz_pura else "Matriz editable [A | b]"
+            label_text="Matriz editable [A | b]" if incluir_b else "Matriz de coeficientes A"
         )
         for widget in self.frame_centro.winfo_children():
             widget.destroy()
@@ -175,7 +189,7 @@ class VistaMatriz(ctk.CTkToplevel):
             self._escribir_en_visor(f"ERROR: {mensaje}")
             return
 
-        cantidad_columnas = n if modo_matriz_pura else n + 1
+        cantidad_columnas = n + 1 if incluir_b else n
         for i in range(m):
             fila_entries = []
             for j in range(cantidad_columnas):
@@ -185,13 +199,18 @@ class VistaMatriz(ctk.CTkToplevel):
                     "<KeyRelease>",
                     lambda event: self.actualizar_previsualizacion()
                 )
-                if not modo_matriz_pura and j == n:
+                if incluir_b and j == n:
                     entry.configure(
                         fg_color=FONDO_TERMINO_INDEPENDIENTE,
                         border_color="#ffffff"
                     )
+                if valores_matriz and j < n and i < len(valores_matriz) and j < len(valores_matriz[i]):
+                    valor_previo = valores_matriz[i][j]
+                    if valor_previo:
+                        entry.insert(0, valor_previo)
                 fila_entries.append(entry)
             self.matriz_entries.append(fila_entries)
+        self.actualizar_previsualizacion()
 
     def al_cambiar_metodo(self, metodo):
         modo_matriz_pura = metodo == "Matriz pura (A⁻¹)"
@@ -202,10 +221,43 @@ class VistaMatriz(ctk.CTkToplevel):
         self.lbl_n.configure(
             text="Columnas (n):" if modo_matriz_pura else "Variables (n):"
         )
+        if modo_matriz_pura:
+            self.checkbox_incluir_b.pack(side="left", padx=(0, 10))
+        else:
+            self.checkbox_incluir_b.pack_forget()
+            self.incluir_b_variable.set(False)
         self.btn_resolver.configure(
-            text="Calcular inversa" if modo_matriz_pura else "Resolver Sistema"
+            text=(
+                "Resolver Ax = b con A⁻¹"
+                if modo_matriz_pura and self.incluir_b_variable.get()
+                else "Calcular inversa"
+                if modo_matriz_pura
+                else "Resolver Sistema"
+            )
         )
         self.generar_cuadricula_matriz()
+
+    def al_cambiar_inclusion_b(self):
+        try:
+            cantidad_columnas_a = int(self.entry_n.get())
+        except ValueError:
+            incluia_b_antes = not self.incluir_b_variable.get()
+            cantidad_columnas_a = max(
+                (len(fila) - 1) if incluia_b_antes else len(fila)
+                for fila in self.matriz_entries
+            ) if self.matriz_entries else 0
+        valores_matriz = [
+            [entry.get() for entry in fila[:cantidad_columnas_a]]
+            for fila in self.matriz_entries
+        ]
+        self.btn_resolver.configure(
+            text=(
+                "Resolver Ax = b con A⁻¹"
+                if self.incluir_b_variable.get()
+                else "Calcular inversa"
+            )
+        )
+        self.generar_cuadricula_matriz(valores_matriz)
 
     def limpiar_entradas(self):
         for fila in self.matriz_entries:
@@ -231,19 +283,34 @@ class VistaMatriz(ctk.CTkToplevel):
         return matriz
 
     def actualizar_previsualizacion(self):
-        """Muestra la matriz escrita antes de seleccionar un método."""
+        """Muestra A sola o el sistema Ax=b según las entradas visibles."""
         if not self.matriz_entries:
             return
 
-        filas = []
+        incluir_b = (
+            not self.modo_matriz_pura
+            or self.incluir_b_variable.get()
+        )
+        try:
+            cantidad_columnas_a = int(self.entry_n.get())
+        except ValueError:
+            cantidad_columnas_a = max(
+                (len(fila) - 1) if incluir_b else len(fila)
+                for fila in self.matriz_entries
+            )
+        lineas = ["Vista previa de Ax = b:" if incluir_b else "Matriz A:"]
         for fila_entries in self.matriz_entries:
-            valores = []
-            for entry in fila_entries:
-                texto = entry.get().strip()
-                valores.append(texto if texto else "_")
-            filas.append("[ " + "   ".join(valores) + " ]")
+            valores_a = [
+                entry.get().strip() or "_"
+                for entry in fila_entries[:cantidad_columnas_a]
+            ]
+            fila = "[ " + "   ".join(valores_a)
+            if incluir_b and len(fila_entries) > cantidad_columnas_a:
+                valor_b = fila_entries[cantidad_columnas_a].get().strip() or "_"
+                fila += "   |   " + valor_b
+            lineas.append(fila + " ]")
 
-        self._escribir_previsualizacion("\n".join(filas))
+        self._escribir_previsualizacion("\n".join(lineas))
 
     def _escribir_previsualizacion(self, texto):
         self.txt_previsualizacion.configure(state="normal")
@@ -281,7 +348,57 @@ class VistaMatriz(ctk.CTkToplevel):
             table.add_row([self._formatear_valor(valor, formato) for valor in fila])
         return str(table)
 
-    def mostrar_matriz_inversa(self, matriz_a, matriz_inversa, formato):
+    def _matriz_aumentada_inversa_a_string(self, matriz, dimension, formato):
+        table = PrettyTable()
+        table.hrules = HRuleStyle.HEADER
+        table.vrules = VRuleStyle.FRAME
+        table.field_names = (
+            [f"A{i + 1}" for i in range(dimension)]
+            + ["|"]
+            + [f"I{i + 1}" for i in range(dimension)]
+        )
+        for fila in matriz:
+            table.add_row(
+                [self._formatear_valor(valor, formato) for valor in fila[:dimension]]
+                + ["|"]
+                + [self._formatear_valor(valor, formato) for valor in fila[dimension:]]
+            )
+        return str(table)
+
+    def _descripcion_paso_inversa(self, operacion, formato):
+        tipo = operacion["tipo"]
+        if tipo == "inicial":
+            return "Matriz aumentada inicial [A | I]:"
+        if tipo == "intercambio":
+            return (
+                f"F{operacion['fila'] + 1} ↔ "
+                f"F{operacion['otra_fila'] + 1}"
+            )
+        if tipo == "normalizar":
+            return (
+                f"F{operacion['fila'] + 1} = F{operacion['fila'] + 1} / "
+                f"{self._formatear_valor(operacion['pivote'], formato)}"
+            )
+        if tipo == "eliminar":
+            return (
+                f"F{operacion['fila'] + 1} = F{operacion['fila'] + 1} - "
+                f"({self._formatear_valor(operacion['factor'], formato)}) * "
+                f"F{operacion['fila_pivote'] + 1}"
+            )
+        return "Operación elemental de fila:"
+
+    def mostrar_matriz_inversa(
+        self,
+        matriz_a,
+        matriz_inversa,
+        pasos,
+        producto_verificacion,
+        formato,
+        vector_b=None,
+        vector_solucion=None,
+        producto_solucion=None
+    ):
+        dimension = len(matriz_a)
         salida = [
             "=========================================================",
             "          CÁLCULO DE LA MATRIZ INVERSA (A⁻¹)",
@@ -293,9 +410,61 @@ class VistaMatriz(ctk.CTkToplevel):
             "Matriz original A:",
             self._matriz_cuadrada_a_string(matriz_a, formato),
             "",
+            "Pasos de reducción por Gauss-Jordan en [A | I]:",
+        ]
+        for operacion, matriz_paso in pasos:
+            salida.append(self._descripcion_paso_inversa(operacion, formato))
+            salida.append(
+                self._matriz_aumentada_inversa_a_string(
+                    matriz_paso,
+                    dimension,
+                    formato
+                )
+            )
+            salida.append("")
+
+        salida.extend([
             "Matriz Inversa Resultante:",
             self._matriz_cuadrada_a_string(matriz_inversa, formato),
-        ]
+        ])
+        if vector_b is not None:
+            salida.extend([
+                "",
+                "Resolución del sistema Ax = b usando la inversa:",
+                "b = [ " + ", ".join(
+                    self._formatear_valor(valor, formato)
+                    for valor in vector_b
+                ) + " ]ᵀ",
+                "x = A⁻¹ · b:"
+            ])
+            for indice, fila in enumerate(matriz_inversa):
+                terminos = [
+                    f"({self._formatear_valor(coeficiente, formato)})"
+                    f"({self._formatear_valor(vector_b[columna], formato)})"
+                    for columna, coeficiente in enumerate(fila)
+                ]
+                salida.append(
+                    f"x{indice + 1} = " + " + ".join(terminos)
+                    + f" = {self._formatear_valor(vector_solucion[indice], formato)}"
+                )
+            salida.extend([
+                "",
+                "Vector solución x = [x1, x2, ..., xn]ᵀ:",
+                "[ " + ", ".join(
+                    self._formatear_valor(valor, formato)
+                    for valor in vector_solucion
+                ) + " ]ᵀ",
+                "Producto matricial A⁻¹ · b:",
+                "\n".join(
+                    f"| {self._formatear_valor(fila[0], formato)} |"
+                    for fila in producto_solucion
+                ),
+            ])
+        salida.extend([
+            "",
+            "Comprobación: A · A⁻¹ = Matriz Identidad (I)",
+            self._matriz_cuadrada_a_string(producto_verificacion, formato),
+        ])
         self._escribir_en_visor("\n".join(salida))
 
     def _escribir_en_visor(self, texto):
@@ -330,18 +499,46 @@ class VistaMatriz(ctk.CTkToplevel):
         m = len(matriz_original)
         if metodo_gui == "Matriz pura (A⁻¹)":
             try:
+                incluir_b = self.incluir_b_variable.get()
+                n = int(self.entry_n.get())
+                matriz_a = [fila[:n] for fila in matriz_original]
+                vector_b = [fila[n] for fila in matriz_original] if incluir_b else None
                 resultado = enrutar_resolucion_matricial(
-                    matriz_original,
+                    matriz_a,
                     vector_b=None,
                     formato_fracciones=formato_fracciones
                 )
+                producto_solucion = None
+                vector_solucion = None
+                if vector_b is not None:
+                    vector_b_columna = [[valor] for valor in vector_b]
+                    producto_solucion = multiplicar_matrices(
+                        resultado["matriz_inversa"],
+                        vector_b_columna
+                    )
+                    vector_solucion = [fila[0] for fila in producto_solucion]
+                producto_verificacion = multiplicar_matrices(
+                    matriz_a,
+                    resultado["matriz_inversa"]
+                )
                 self.mostrar_matriz_inversa(
-                    matriz_original,
+                    matriz_a,
                     resultado["matriz_inversa"],
-                    formato
+                    resultado["pasos"],
+                    producto_verificacion,
+                    formato,
+                    vector_b=vector_b,
+                    vector_solucion=vector_solucion,
+                    producto_solucion=producto_solucion
                 )
             except ValueError as error:
-                self._escribir_en_visor(f"ERROR: {error}")
+                if "no se puede calcular su inversa" in str(error):
+                    self._escribir_en_visor(
+                        "Error: El sistema es singular (Determinante = 0), "
+                        "por lo tanto la matriz A no tiene inversa"
+                    )
+                else:
+                    self._escribir_en_visor(f"ERROR: {error}")
             return
 
         n = len(matriz_original[0]) - 1
