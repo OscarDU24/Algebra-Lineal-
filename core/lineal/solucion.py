@@ -3,8 +3,8 @@ from fractions import Fraction
 TOLERANCIA_INVERSA = 1e-10
 
 
-def invertir_matriz_gauss_jordan(matriz):
-    """Calcula la inversa de una matriz cuadrada mediante Gauss-Jordan."""
+def invertir_matriz_gauss_jordan(matriz, devolver_pasos=False):
+    """Calcula A^-1 con Gauss-Jordan; opcionalmente devuelve la traza de [A | I]."""
     if not matriz or any(len(fila) != len(matriz) for fila in matriz):
         raise ValueError("La matriz debe ser cuadrada y no estar vacía.")
 
@@ -13,6 +13,7 @@ def invertir_matriz_gauss_jordan(matriz):
         list(fila) + [1.0 if fila_indice == columna else 0.0 for columna in range(dimension)]
         for fila_indice, fila in enumerate(matriz)
     ]
+    pasos = [({"tipo": "inicial"}, [fila[:] for fila in aumentada])]
 
     for columna in range(dimension):
         fila_pivote = max(
@@ -29,10 +30,26 @@ def invertir_matriz_gauss_jordan(matriz):
                 aumentada[fila_pivote],
                 aumentada[columna]
             )
+            pasos.append((
+                {
+                    "tipo": "intercambio",
+                    "fila": columna,
+                    "otra_fila": fila_pivote,
+                },
+                [fila[:] for fila in aumentada]
+            ))
 
         pivote = aumentada[columna][columna]
         aumentada[columna] = [valor / pivote for valor in aumentada[columna]]
         fila_pivote_normalizada = aumentada[columna][:]
+        pasos.append((
+            {
+                "tipo": "normalizar",
+                "fila": columna,
+                "pivote": pivote,
+            },
+            [fila[:] for fila in aumentada]
+        ))
 
         for indice_fila in range(dimension):
             if indice_fila == columna:
@@ -51,8 +68,20 @@ def invertir_matriz_gauss_jordan(matriz):
                 )
                 fila_nueva.append(valor_nuevo)
             aumentada[indice_fila] = fila_nueva
+            pasos.append((
+                {
+                    "tipo": "eliminar",
+                    "fila": indice_fila,
+                    "fila_pivote": columna,
+                    "factor": factor,
+                },
+                [fila[:] for fila in aumentada]
+            ))
 
-    return [fila[dimension:] for fila in aumentada]
+    inversa = [fila[dimension:] for fila in aumentada]
+    if devolver_pasos:
+        return inversa, pasos
+    return inversa
 
 
 def multiplicar_matriz_por_vector(matriz, vector):
@@ -66,6 +95,32 @@ def multiplicar_matriz_por_vector(matriz, vector):
         sum(valor * componente for valor, componente in zip(fila, vector))
         for fila in matriz
     ]
+
+
+def multiplicar_matrices(matriz_a, matriz_b):
+    """Multiplica dos matrices rectangulares compatibles usando listas."""
+    if not matriz_a or not matriz_b:
+        raise ValueError("Las matrices no pueden estar vacías.")
+    if any(len(fila) != len(matriz_a[0]) for fila in matriz_a):
+        raise ValueError("La matriz A debe ser rectangular.")
+    if any(len(fila) != len(matriz_b[0]) for fila in matriz_b):
+        raise ValueError("La matriz B debe ser rectangular.")
+    if len(matriz_a[0]) != len(matriz_b):
+        raise ValueError("Las columnas de A deben coincidir con las filas de B.")
+
+    filas_a = len(matriz_a)
+    columnas_a = len(matriz_a[0])
+    columnas_b = len(matriz_b[0])
+    resultado = []
+    for fila_a in range(filas_a):
+        fila_resultado = []
+        for columna_b in range(columnas_b):
+            suma = 0.0
+            for indice in range(columnas_a):
+                suma += matriz_a[fila_a][indice] * matriz_b[indice][columna_b]
+            fila_resultado.append(suma)
+        resultado.append(fila_resultado)
+    return resultado
 
 
 def resolver_sistema_por_inversa(matriz, vector_b):
@@ -85,9 +140,14 @@ def enrutar_resolucion_matricial(
 ):
     """Selecciona entre inversa de A (b=None) y resolución de Ax=b."""
     if vector_b is None:
+        matriz_inversa, pasos = invertir_matriz_gauss_jordan(
+            matriz_A,
+            devolver_pasos=True
+        )
         return {
             "modo": "matriz_pura",
-            "matriz_inversa": invertir_matriz_gauss_jordan(matriz_A),
+            "matriz_inversa": matriz_inversa,
+            "pasos": pasos,
             "formato_fracciones": bool(formato_fracciones),
         }
 
