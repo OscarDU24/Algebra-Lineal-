@@ -3,6 +3,7 @@
 # ============================================================
 
 from core.ui.ctk_compat import ctk
+from core.ui.audio_manager import reproducir_sonido_error
 # Importamos la lógica pura (ajusta la ruta si es necesario)
 from core.sistemas import operaciones_sistemas as op_sis
 
@@ -187,6 +188,7 @@ class VistaSistemas(ctk.CTkToplevel):
             self.mostrar_resultado(f"Error durante el cálculo:\n{str(e)}")
 
     def mostrar_resultado(self, texto):
+        reproducir_sonido_error(self, texto)
         self.texto_resultado.delete("1.0", "end")
         self.texto_resultado.insert("1.0", texto)
 

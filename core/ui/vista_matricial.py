@@ -3,6 +3,7 @@
 # ============================================================
 
 from core.ui.ctk_compat import ctk
+from core.ui.audio_manager import reproducir_sonido_error
 
 from core.matriciales import conversionesMatriciales as conv
 from core.matriciales import operacionesMatriciales as op
@@ -537,6 +538,7 @@ class VistaMatricial(ctk.CTkToplevel):
     # ========================================================
 
     def mostrar_resultado(self, texto):
+        reproducir_sonido_error(self, texto)
         self.texto_resultado.delete("1.0", "end")
         self.texto_resultado.insert("1.0", texto)
 

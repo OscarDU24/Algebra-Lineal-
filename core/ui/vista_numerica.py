@@ -3,7 +3,11 @@
 # ============================================================
 
 from core.ui.ctk_compat import ctk
+<<<<<<< Updated upstream
 # Importamos la lógica adaptada
+=======
+from core.ui.audio_manager import reproducir_sonido_error
+>>>>>>> Stashed changes
 from core.sistemas_numericos import operaciones_numericas as op_num
 
 class VistaSistemasNumericos(ctk.CTkToplevel):
@@ -116,6 +120,7 @@ class VistaSistemasNumericos(ctk.CTkToplevel):
         self.mostrar_resultado(salida_final)
 
     def mostrar_resultado(self, texto):
+        reproducir_sonido_error(self, texto)
         self.texto_resultado.delete("1.0", "end")
         self.texto_resultado.insert("1.0", texto)
 

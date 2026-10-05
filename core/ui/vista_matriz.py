@@ -1,4 +1,5 @@
 from core.ui.ctk_compat import ctk
+from core.ui.audio_manager import reproducir_sonido_error
 from prettytable import PrettyTable, HRuleStyle, VRuleStyle
 
 # 1. IMPORTACIONES ADAPTADAS A TU NUEVA ESTRUCTURA (core/lineal/...)
@@ -32,6 +33,12 @@ class VistaMatriz(ctk.CTkToplevel):
 
         # Almacenamiento bidimensional para los widgets CTkEntry
         self.matriz_entries = []
+<<<<<<< Updated upstream
+=======
+        self.modo_matriz_pura = False
+        # El checkbox solo afecta al modo inversa: permite usar b para resolver Ax=b.
+        self.incluir_b_variable = ctk.BooleanVar(value=False)
+>>>>>>> Stashed changes
 
         # Estructura de la interfaz
         self.crear_frame_superior()
@@ -109,7 +116,17 @@ class VistaMatriz(ctk.CTkToplevel):
         self.txt_resultados.pack(pady=10, padx=10, fill="both", expand=True)
         self._escribir_en_visor("Ingrese los coeficientes en la matriz y presione 'Resolver Sistema'...")
 
+<<<<<<< Updated upstream
     def generar_cuadricula_matriz(self):
+=======
+    def generar_cuadricula_matriz(self, valores_matriz=None):
+        modo_matriz_pura = self.opcion_metodo.get() == "Matriz pura (A⁻¹)"
+        # En modo sistema siempre existe TI; en modo inversa depende del checkbox.
+        incluir_b = not modo_matriz_pura or self.incluir_b_variable.get()
+        self.frame_centro.configure(
+            label_text="Matriz editable [A | b]" if incluir_b else "Matriz de coeficientes A"
+        )
+>>>>>>> Stashed changes
         for widget in self.frame_centro.winfo_children():
             widget.destroy()
 
@@ -133,6 +150,58 @@ class VistaMatriz(ctk.CTkToplevel):
                     entry.configure(fg_color="#2b2b2b", border_color="#1f538d")
                 fila_entries.append(entry)
             self.matriz_entries.append(fila_entries)
+<<<<<<< Updated upstream
+=======
+        self.actualizar_previsualizacion()
+
+    def al_cambiar_metodo(self, metodo):
+        modo_matriz_pura = metodo == "Matriz pura (A⁻¹)"
+        if modo_matriz_pura == self.modo_matriz_pura:
+            return
+
+        self.modo_matriz_pura = modo_matriz_pura
+        self.lbl_n.configure(
+            text="Columnas (n):" if modo_matriz_pura else "Variables (n):"
+        )
+        if modo_matriz_pura:
+            self.checkbox_incluir_b.pack(side="left", padx=(0, 10))
+        else:
+            self.checkbox_incluir_b.pack_forget()
+            self.incluir_b_variable.set(False)
+        self.btn_resolver.configure(
+            text=(
+                "Resolver Ax = b con A⁻¹"
+                if modo_matriz_pura and self.incluir_b_variable.get()
+                else "Calcular inversa"
+                if modo_matriz_pura
+                else "Resolver Sistema"
+            )
+        )
+        self.generar_cuadricula_matriz()
+
+    def al_cambiar_inclusion_b(self):
+        try:
+            cantidad_columnas_a = int(self.entry_n.get())
+        except ValueError:
+            incluia_b_antes = not self.incluir_b_variable.get()
+            cantidad_columnas_a = max(
+                (len(fila) - 1) if incluia_b_antes else len(fila)
+                for fila in self.matriz_entries
+            ) if self.matriz_entries else 0
+        valores_matriz = [
+            [entry.get() for entry in fila[:cantidad_columnas_a]]
+            for fila in self.matriz_entries
+        ]
+        # Regenerar añade o quita la columna b sin perder los coeficientes ya ingresados.
+        self.btn_resolver.configure(
+            text=(
+                "Resolver Ax = b con A⁻¹"
+                if self.incluir_b_variable.get()
+                else "Calcular inversa"
+            )
+        )
+        self.generar_cuadricula_matriz(valores_matriz)
+>>>>>>> Stashed changes
 
     def limpiar_entradas(self):
         for fila in self.matriz_entries:
@@ -178,7 +247,141 @@ class VistaMatriz(ctk.CTkToplevel):
             table.add_row(str_fila)
         return str(table)
 
+<<<<<<< Updated upstream
+=======
+    def _matriz_cuadrada_a_string(self, matriz, formato):
+        table = PrettyTable()
+        table.hrules = HRuleStyle.HEADER
+        table.vrules = VRuleStyle.FRAME
+        table.field_names = [f"C{i + 1}" for i in range(len(matriz))]
+        for fila in matriz:
+            table.add_row([self._formatear_valor(valor, formato) for valor in fila])
+        return str(table)
+
+    def _matriz_aumentada_inversa_a_string(self, matriz, dimension, formato):
+        table = PrettyTable()
+        table.hrules = HRuleStyle.HEADER
+        table.vrules = VRuleStyle.FRAME
+        table.field_names = (
+            [f"A{i + 1}" for i in range(dimension)]
+            + ["|"]
+            + [f"I{i + 1}" for i in range(dimension)]
+        )
+        for fila in matriz:
+            table.add_row(
+                [self._formatear_valor(valor, formato) for valor in fila[:dimension]]
+                + ["|"]
+                + [self._formatear_valor(valor, formato) for valor in fila[dimension:]]
+            )
+        return str(table)
+
+    def _descripcion_paso_inversa(self, operacion, formato):
+        tipo = operacion["tipo"]
+        if tipo == "inicial":
+            return "Matriz aumentada inicial [A | I]:"
+        if tipo == "intercambio":
+            return (
+                f"F{operacion['fila'] + 1} ↔ "
+                f"F{operacion['otra_fila'] + 1}"
+            )
+        if tipo == "normalizar":
+            return (
+                f"F{operacion['fila'] + 1} = F{operacion['fila'] + 1} / "
+                f"{self._formatear_valor(operacion['pivote'], formato)}"
+            )
+        if tipo == "eliminar":
+            return (
+                f"F{operacion['fila'] + 1} = F{operacion['fila'] + 1} - "
+                f"({self._formatear_valor(operacion['factor'], formato)}) * "
+                f"F{operacion['fila_pivote'] + 1}"
+            )
+        return "Operación elemental de fila:"
+
+    def mostrar_matriz_inversa(
+        self,
+        matriz_a,
+        matriz_inversa,
+        pasos,
+        producto_verificacion,
+        formato,
+        vector_b=None,
+        vector_solucion=None,
+        producto_solucion=None
+    ):
+        dimension = len(matriz_a)
+        salida = [
+            "=========================================================",
+            "          CÁLCULO DE LA MATRIZ INVERSA (A⁻¹)",
+            "=========================================================",
+            "",
+            "Matriz original A de coeficientes recibida con éxito.",
+            "Procesando reducción por Gauss-Jordan en [A | I]...",
+            "",
+            "Matriz original A:",
+            self._matriz_cuadrada_a_string(matriz_a, formato),
+            "",
+            "Pasos de reducción por Gauss-Jordan en [A | I]:",
+        ]
+        # La traza guarda la descripción estructurada y una copia de [A | I] tras cada operación.
+        for operacion, matriz_paso in pasos:
+            salida.append(self._descripcion_paso_inversa(operacion, formato))
+            salida.append(
+                self._matriz_aumentada_inversa_a_string(
+                    matriz_paso,
+                    dimension,
+                    formato
+                )
+            )
+            salida.append("")
+
+        salida.extend([
+            "Matriz Inversa Resultante:",
+            self._matriz_cuadrada_a_string(matriz_inversa, formato),
+        ])
+        if vector_b is not None:
+            # En el modo combinado, b se conserva aparte de A y se aplica x = A^-1 b.
+            salida.extend([
+                "",
+                "Resolución del sistema Ax = b usando la inversa:",
+                "b = [ " + ", ".join(
+                    self._formatear_valor(valor, formato)
+                    for valor in vector_b
+                ) + " ]ᵀ",
+                "x = A⁻¹ · b:"
+            ])
+            for indice, fila in enumerate(matriz_inversa):
+                terminos = [
+                    f"({self._formatear_valor(coeficiente, formato)})"
+                    f"({self._formatear_valor(vector_b[columna], formato)})"
+                    for columna, coeficiente in enumerate(fila)
+                ]
+                salida.append(
+                    f"x{indice + 1} = " + " + ".join(terminos)
+                    + f" = {self._formatear_valor(vector_solucion[indice], formato)}"
+                )
+            salida.extend([
+                "",
+                "Vector solución x = [x1, x2, ..., xn]ᵀ:",
+                "[ " + ", ".join(
+                    self._formatear_valor(valor, formato)
+                    for valor in vector_solucion
+                ) + " ]ᵀ",
+                "Producto matricial A⁻¹ · b:",
+                "\n".join(
+                    f"| {self._formatear_valor(fila[0], formato)} |"
+                    for fila in producto_solucion
+                ),
+            ])
+        salida.extend([
+            "",
+            "Comprobación: A · A⁻¹ = Matriz Identidad (I)",
+            self._matriz_cuadrada_a_string(producto_verificacion, formato),
+        ])
+        self._escribir_en_visor("\n".join(salida))
+
+>>>>>>> Stashed changes
     def _escribir_en_visor(self, texto):
+        reproducir_sonido_error(self, texto)
         self.txt_resultados.configure(state="normal")
         self.txt_resultados.delete("0.0", "end")
         self.txt_resultados.insert("0.0", texto)
@@ -192,6 +395,57 @@ class VistaMatriz(ctk.CTkToplevel):
             return
 
         m = len(matriz_original)
+<<<<<<< Updated upstream
+=======
+        if metodo_gui == "Matriz pura (A⁻¹)":
+            try:
+                incluir_b = self.incluir_b_variable.get()
+                n = int(self.entry_n.get())
+                # La cuadrícula puede ser [A] o [A | b]; separar ambos datos antes de invertir.
+                matriz_a = [fila[:n] for fila in matriz_original]
+                vector_b = [fila[n] for fila in matriz_original] if incluir_b else None
+                # La inversión siempre recibe solo A; b se usa después en el producto A^-1 b.
+                resultado = enrutar_resolucion_matricial(
+                    matriz_a,
+                    vector_b=None,
+                    formato_fracciones=formato_fracciones
+                )
+                producto_solucion = None
+                vector_solucion = None
+                if vector_b is not None:
+                    # Convertir b a matriz columna permite reutilizar el producto matricial general.
+                    vector_b_columna = [[valor] for valor in vector_b]
+                    producto_solucion = multiplicar_matrices(
+                        resultado["matriz_inversa"],
+                        vector_b_columna
+                    )
+                    vector_solucion = [fila[0] for fila in producto_solucion]
+                # Comprobar numéricamente que A por su inversa aproxima la identidad.
+                producto_verificacion = multiplicar_matrices(
+                    matriz_a,
+                    resultado["matriz_inversa"]
+                )
+                self.mostrar_matriz_inversa(
+                    matriz_a,
+                    resultado["matriz_inversa"],
+                    resultado["pasos"],
+                    producto_verificacion,
+                    formato,
+                    vector_b=vector_b,
+                    vector_solucion=vector_solucion,
+                    producto_solucion=producto_solucion
+                )
+            except ValueError as error:
+                if "no se puede calcular su inversa" in str(error):
+                    self._escribir_en_visor(
+                        "Error: El sistema es singular (Determinante = 0), "
+                        "por lo tanto la matriz A no tiene inversa"
+                    )
+                else:
+                    self._escribir_en_visor(f"ERROR: {error}")
+            return
+
+>>>>>>> Stashed changes
         n = len(matriz_original[0]) - 1
         metodo_gui = self.opcion_metodo.get()
 
