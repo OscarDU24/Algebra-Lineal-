@@ -3,6 +3,7 @@
 # ============================================================
 
 from core.ui.ctk_compat import ctk
+from core.ui.audio_manager import reproducir_sonido_error
 # Importamos la lógica pura (ajusta la ruta si es necesario)
 from core.limites import operaciones_limites as op_lim
 from core.ui.tema import (
@@ -122,6 +123,7 @@ class VistaLimites(ctk.CTkToplevel):
         self.mostrar_resultado(resultado)
 
     def mostrar_resultado(self, texto):
+        reproducir_sonido_error(self, texto)
         self.texto_resultado.delete("1.0", "end")
         self.texto_resultado.insert("1.0", texto)
 

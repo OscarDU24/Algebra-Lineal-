@@ -9,6 +9,7 @@ def invertir_matriz_gauss_jordan(matriz, devolver_pasos=False):
         raise ValueError("La matriz debe ser cuadrada y no estar vacía.")
 
     dimension = len(matriz)
+    # Las operaciones se aplican a [A | I]; al convertir A en I, el bloque derecho queda como A^-1.
     aumentada = [
         list(fila) + [1.0 if fila_indice == columna else 0.0 for columna in range(dimension)]
         for fila_indice, fila in enumerate(matriz)
@@ -16,16 +17,19 @@ def invertir_matriz_gauss_jordan(matriz, devolver_pasos=False):
     pasos = [({"tipo": "inicial"}, [fila[:] for fila in aumentada])]
 
     for columna in range(dimension):
+        # Pivoteo parcial: usar el mayor pivote disponible reduce inestabilidad numérica.
         fila_pivote = max(
             range(columna, dimension),
             key=lambda indice: abs(aumentada[indice][columna])
         )
         if abs(aumentada[fila_pivote][columna]) < TOLERANCIA_INVERSA:
+            # Una columna sin pivote utilizable indica que A es singular.
             raise ValueError(
                 "La matriz A no es invertible; no se puede calcular su inversa."
             )
 
         if fila_pivote != columna:
+            # El intercambio lleva el pivote seleccionado a la diagonal.
             aumentada[columna], aumentada[fila_pivote] = (
                 aumentada[fila_pivote],
                 aumentada[columna]
@@ -40,7 +44,9 @@ def invertir_matriz_gauss_jordan(matriz, devolver_pasos=False):
             ))
 
         pivote = aumentada[columna][columna]
+        # Normalizar hace que el pivote de esta columna sea 1.
         aumentada[columna] = [valor / pivote for valor in aumentada[columna]]
+        # Se conserva una copia fija para que las eliminaciones usen la misma fila pivote.
         fila_pivote_normalizada = aumentada[columna][:]
         pasos.append((
             {
@@ -59,6 +65,7 @@ def invertir_matriz_gauss_jordan(matriz, devolver_pasos=False):
                 aumentada[indice_fila][columna] = 0.0
                 continue
 
+            # Anular la columna pivote en las demás filas, incluida la parte derecha de [A | I].
             fila_actual = aumentada[indice_fila]
             fila_nueva = []
             for indice_elemento in range(len(fila_actual)):
@@ -78,6 +85,7 @@ def invertir_matriz_gauss_jordan(matriz, devolver_pasos=False):
                 [fila[:] for fila in aumentada]
             ))
 
+    # El bloque izquierdo ya es I; las columnas restantes contienen A^-1.
     inversa = [fila[dimension:] for fila in aumentada]
     if devolver_pasos:
         return inversa, pasos
@@ -112,6 +120,7 @@ def multiplicar_matrices(matriz_a, matriz_b):
     columnas_a = len(matriz_a[0])
     columnas_b = len(matriz_b[0])
     resultado = []
+    # Cada elemento resultante es el producto punto de una fila de A y una columna de B.
     for fila_a in range(filas_a):
         fila_resultado = []
         for columna_b in range(columnas_b):
@@ -128,6 +137,7 @@ def resolver_sistema_por_inversa(matriz, vector_b):
     if len(matriz) != len(vector_b):
         raise ValueError("El vector b debe tener una componente por cada fila de A.")
 
+    # Despeje matricial: x = A^-1 b.
     inversa = invertir_matriz_gauss_jordan(matriz)
     return multiplicar_matriz_por_vector(inversa, vector_b)
 
@@ -140,6 +150,7 @@ def enrutar_resolucion_matricial(
 ):
     """Selecciona entre inversa de A (b=None) y resolución de Ax=b."""
     if vector_b is None:
+        # Sin términos independientes, este modo devuelve la matriz inversa y su traza.
         matriz_inversa, pasos = invertir_matriz_gauss_jordan(
             matriz_A,
             devolver_pasos=True
@@ -159,6 +170,7 @@ def enrutar_resolucion_matricial(
     from core.lineal.clasificacion import clasificar_sistema
     from core.lineal.eliminacion import eliminacion_por_filas
 
+    # Con b presente, construir [A | b] y conservar el flujo de resolución de sistemas.
     matriz_aumentada = [
         list(fila) + [vector_b[indice]]
         for indice, fila in enumerate(matriz_A)
