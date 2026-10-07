@@ -1,4 +1,5 @@
 from core.ui.ctk_compat import ctk
+from core.ui.audio_manager import reproducir_sonido_error
 from prettytable import PrettyTable, HRuleStyle, VRuleStyle
 
 from core.lineal import conversiones as conv
@@ -44,6 +45,7 @@ class VistaMatriz(ctk.CTkToplevel):
 
         self.matriz_entries = []
         self.modo_matriz_pura = False
+        # El checkbox solo afecta al modo inversa: permite usar b para resolver Ax=b.
         self.incluir_b_variable = ctk.BooleanVar(value=False)
 
         self.crear_frame_superior()
@@ -165,6 +167,7 @@ class VistaMatriz(ctk.CTkToplevel):
 
     def generar_cuadricula_matriz(self, valores_matriz=None):
         modo_matriz_pura = self.opcion_metodo.get() == "Matriz pura (A⁻¹)"
+        # En modo sistema siempre existe TI; en modo inversa depende del checkbox.
         incluir_b = not modo_matriz_pura or self.incluir_b_variable.get()
         self.frame_centro.configure(
             label_text="Matriz editable [A | b]" if incluir_b else "Matriz de coeficientes A"
@@ -250,6 +253,7 @@ class VistaMatriz(ctk.CTkToplevel):
             [entry.get() for entry in fila[:cantidad_columnas_a]]
             for fila in self.matriz_entries
         ]
+        # Regenerar añade o quita la columna b sin perder los coeficientes ya ingresados.
         self.btn_resolver.configure(
             text=(
                 "Resolver Ax = b con A⁻¹"
@@ -412,6 +416,7 @@ class VistaMatriz(ctk.CTkToplevel):
             "",
             "Pasos de reducción por Gauss-Jordan en [A | I]:",
         ]
+        # La traza guarda la descripción estructurada y una copia de [A | I] tras cada operación.
         for operacion, matriz_paso in pasos:
             salida.append(self._descripcion_paso_inversa(operacion, formato))
             salida.append(
@@ -428,6 +433,7 @@ class VistaMatriz(ctk.CTkToplevel):
             self._matriz_cuadrada_a_string(matriz_inversa, formato),
         ])
         if vector_b is not None:
+            # En el modo combinado, b se conserva aparte de A y se aplica x = A^-1 b.
             salida.extend([
                 "",
                 "Resolución del sistema Ax = b usando la inversa:",
@@ -468,6 +474,7 @@ class VistaMatriz(ctk.CTkToplevel):
         self._escribir_en_visor("\n".join(salida))
 
     def _escribir_en_visor(self, texto):
+        reproducir_sonido_error(self, texto)
         self.txt_resultados.configure(state="normal")
         self.txt_resultados.delete("0.0", "end")
         self.txt_resultados.insert("0.0", texto)
@@ -501,8 +508,10 @@ class VistaMatriz(ctk.CTkToplevel):
             try:
                 incluir_b = self.incluir_b_variable.get()
                 n = int(self.entry_n.get())
+                # La cuadrícula puede ser [A] o [A | b]; separar ambos datos antes de invertir.
                 matriz_a = [fila[:n] for fila in matriz_original]
                 vector_b = [fila[n] for fila in matriz_original] if incluir_b else None
+                # La inversión siempre recibe solo A; b se usa después en el producto A^-1 b.
                 resultado = enrutar_resolucion_matricial(
                     matriz_a,
                     vector_b=None,
@@ -511,12 +520,14 @@ class VistaMatriz(ctk.CTkToplevel):
                 producto_solucion = None
                 vector_solucion = None
                 if vector_b is not None:
+                    # Convertir b a matriz columna permite reutilizar el producto matricial general.
                     vector_b_columna = [[valor] for valor in vector_b]
                     producto_solucion = multiplicar_matrices(
                         resultado["matriz_inversa"],
                         vector_b_columna
                     )
                     vector_solucion = [fila[0] for fila in producto_solucion]
+                # Comprobar numéricamente que A por su inversa aproxima la identidad.
                 producto_verificacion = multiplicar_matrices(
                     matriz_a,
                     resultado["matriz_inversa"]

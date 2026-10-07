@@ -3,6 +3,7 @@
 # ============================================================
 
 from core.ui.ctk_compat import ctk
+from core.ui.audio_manager import reproducir_sonido_error
 from core.sistemas_numericos import operaciones_numericas as op_num
 from core.ui.tema import (
     ACENTO,
@@ -246,6 +247,7 @@ class VistaSistemasNumericos(ctk.CTkToplevel):
         self.texto_resultado.pack(fill="both", expand=True, padx=10, pady=10)
 
     def mostrar_resultado(self, texto):
+        reproducir_sonido_error(self, texto)
         self.texto_resultado.delete("1.0", "end")
         self.texto_resultado.insert("1.0", texto)
 

@@ -1,4 +1,5 @@
 from core.ui.ctk_compat import ctk
+from core.ui.audio_manager import reproducir_sonido_error
 from core.matriciales import visualizacionMatriciales as vis
 from core.vectores import conversionesVectores as conv
 from core.vectores import flujo_red
@@ -258,5 +259,6 @@ class VistaFlujoRed(ctk.CTkToplevel):
         return f"{valor:.2f}"
 
     def mostrar_resultado(self, texto):
+        reproducir_sonido_error(self, texto)
         self.texto_resultado.delete("1.0", "end")
         self.texto_resultado.insert("1.0", texto)
