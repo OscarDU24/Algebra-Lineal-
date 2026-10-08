@@ -280,9 +280,11 @@ class VistaMatriz(ctk.CTkToplevel):
                     raise ValueError(f"La casilla en la fila {i + 1}, columna {j + 1} está vacía.")
                 try:
                     val_num = conv.convertir_a_decimal(val_str)
-                    fila_vals.append(val_num)
                 except ValueError:
                     raise ValueError(f"El valor '{val_str}' en la fila {i + 1}, columna {j + 1} no es válido.")
+                if val_num is None:
+                    raise ValueError(f"El valor '{val_str}' en la fila {i + 1}, columna {j + 1} no es válido.")
+                fila_vals.append(val_num)
             matriz.append(fila_vals)
         return matriz
 

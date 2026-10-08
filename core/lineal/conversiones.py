@@ -25,7 +25,7 @@ def convertir_a_decimal(entrada):
     try:
         # Tratar de convertir a fraccion
         return float(Fraction(entrada))
-    except ValueError:
+    except (ValueError, ZeroDivisionError):
         # En caso de no poder hacerlo, tratar de convertir
         # a decimal
         try:
@@ -50,4 +50,3 @@ def convertir_a_fraccion(entrada):
         return f"{fraccion.numerator}"
     
     return f"{fraccion.numerator}/{fraccion.denominator}"
-

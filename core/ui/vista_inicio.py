@@ -23,6 +23,7 @@ class VistaInicio:
         ("Sistemas e independencia", "Analiza sistemas lineales y relaciones entre vectores."),
         ("Límites", "Evalúa límites y continuidad con el módulo de cálculo."),
         ("Sistemas numéricos", "Convierte entre bases y entre números arábigos y romanos."),
+        ("Determinantes y Factorización LU", "Calcula determinantes y resuelve sistemas Ax=b mediante LU."),
     ]
 
     def __init__(self, root, audio_manager, al_iniciar):
@@ -134,7 +135,6 @@ class VistaInicio:
         self.audio.establecer_musica_habilitada(self.var_musica.get())
 
     def _iniciar(self):
-        self.audio.reproducir_efecto("calcular")
         if self.ventana_ayuda is not None and self.ventana_ayuda.winfo_exists():
             self.ventana_ayuda.destroy()
         self.frame.destroy()

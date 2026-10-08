@@ -110,6 +110,13 @@ class Dashboard:
         self.crear_tarjeta(1, 0, "Sistemas de Ecuaciones Lineales", self.abrir_sistemas, "EcLinealICON.png")
         self.crear_tarjeta(1, 1, "Evaluación de Límites", self.abrir_limites, "LimitesICON.png")
         self.crear_tarjeta(1, 2, "Sistemas numéricos", self.abrir_sistemas_numericos, "SisNumICON.png")
+        self.crear_tarjeta(
+            2,
+            1,
+            "Determinantes y Factorización LU",
+            self.abrir_determinantes,
+            None,
+        )
 
         # ==========================================
         # BARRA DE ESTADO INFERIOR
@@ -181,23 +188,28 @@ class Dashboard:
         preview_frame.pack(padx=8, pady=(8, 4))
         preview_frame.pack_propagate(False)
 
-        ruta_icono = Path(__file__).resolve().parents[1] / "assets" / nombre_icono
-        try:
-            imagen_original = Image.open(ruta_icono).convert("RGBA")
-            imagen_icono = ImageTk.PhotoImage(
-                imagen_original.resize((132, 132), Image.Resampling.LANCZOS)
-            )
-            self.iconos = getattr(self, "iconos", [])
-            self.iconos.append(imagen_icono)
-        except Exception as error:
-            print(f"Advertencia: No se pudo cargar el icono {nombre_icono}: {error}")
-            imagen_original = None
-            imagen_icono = None
+        imagen_original = None
+        imagen_icono = None
+        if nombre_icono is None:
+            texto_icono = "det(A)\nLU"
+        else:
+            ruta_icono = Path(__file__).resolve().parents[1] / "assets" / nombre_icono
+            try:
+                imagen_original = Image.open(ruta_icono).convert("RGBA")
+                imagen_icono = ImageTk.PhotoImage(
+                    imagen_original.resize((132, 132), Image.Resampling.LANCZOS)
+                )
+                self.iconos = getattr(self, "iconos", [])
+                self.iconos.append(imagen_icono)
+                texto_icono = ""
+            except Exception as error:
+                print(f"Advertencia: No se pudo cargar el icono {nombre_icono}: {error}")
+                texto_icono = "Icono no disponible"
 
         boton_icono = tk.Button(
             preview_frame,
             image=imagen_icono,
-            text="Icono no disponible" if imagen_icono is None else "",
+            text=texto_icono,
             fg="#fe0000",
             bg="#ffffff",
             activebackground="#ffffff",
@@ -207,6 +219,8 @@ class Dashboard:
             cursor="hand2",
             command=lambda: self._activar_modulo(comando)
         )
+        if self.audio_manager is not None:
+            self.audio_manager.registrar_control_sonido(boton_icono, "interfaces")
         boton_icono.pack(expand=True, fill="both")
 
         # Etiqueta inferior con el nombre del módulo
@@ -220,18 +234,16 @@ class Dashboard:
             pady=12
         )
         lbl_nombre.pack(side="bottom", fill="x")
+        if self.audio_manager is not None:
+            self.audio_manager.registrar_control_sonido(lbl_nombre, "interfaces")
 
         def seleccionar(event=None):
             card_frame.configure(highlightbackground="#fe0000", highlightthickness=2)
-            if self.audio_manager is not None:
-                self.audio_manager.reproducir_efecto("cursor")
 
         def deseleccionar(event=None):
             card_frame.configure(highlightbackground="#000000", highlightthickness=1)
 
         def activar(event=None):
-            if self.audio_manager is not None:
-                self.audio_manager.reproducir_efecto("calcular")
             self._activar_modulo(comando)
 
         for widget in (card_frame, preview_frame, lbl_nombre):
@@ -283,13 +295,22 @@ class Dashboard:
         margen = max(20, ancho * 0.035)
         espacio = max(12, ancho * 0.025)
         ancho_tarjeta = min(310, (ancho - 2 * margen - 2 * espacio) / 3)
-        alto_tarjeta = min(240, max(155, alto * 0.235))
+        tiene_tres_filas = len(self.tarjetas) > 6
+        alto_tarjeta = (
+            min(175, max(125, alto * 0.22))
+            if tiene_tres_filas
+            else min(240, max(155, alto * 0.235))
+        )
         centros_x = [
             margen + ancho_tarjeta / 2,
             ancho / 2,
             ancho - margen - ancho_tarjeta / 2,
         ]
-        centros_y = [alto * 0.405, alto * 0.705]
+        centros_y = (
+            [alto * 0.32, alto * 0.56, alto * 0.80]
+            if tiene_tres_filas
+            else [alto * 0.405, alto * 0.705]
+        )
 
         for tarjeta in self.tarjetas:
             x = centros_x[tarjeta["column"]]
@@ -431,6 +452,12 @@ class Dashboard:
         print("Abriendo módulo de Sistemas Numéricos...")
         from core.ui.vista_numerica import VistaSistemasNumericos
         self._abrir_ventana(VistaSistemasNumericos)
+
+    def abrir_determinantes(self):
+        self.lbl_estado.config(text="Módulo activo: Determinantes y Factorización LU")
+        print("Abriendo módulo de Determinantes...")
+        from core.ui.vista_determinantes import VistaDeterminantes
+        self._abrir_ventana(VistaDeterminantes)
         
     def proximamente(self):
         messagebox.showinfo("Próximamente", "Este módulo aún está en desarrollo.")
