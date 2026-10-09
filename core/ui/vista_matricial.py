@@ -244,7 +244,8 @@ class VistaMatricial(ctk.CTkToplevel):
                 "Matriz por escalar (cA)",
                 "Resolver Ax = b",
                 "Tabla de Intercambio",
-                "Flujo de Red"
+                "Flujo de Red",
+                "Matrices Particionadas"
             ],
             command=self.cambiar_operacion,
             **estilo_menu_desplegable()
@@ -320,7 +321,8 @@ class VistaMatricial(ctk.CTkToplevel):
 
         especiales = {
             "Tabla de Intercambio": "Tabla de Intercambio (Modelo Leontief)",
-            "Flujo de Red": "Flujo de Red"
+            "Flujo de Red": "Flujo de Red",
+            "Matrices Particionadas": "Matrices Particionadas"
         }
         if operacion in especiales:
             self.lbl_operacion_especial.configure(
@@ -384,7 +386,9 @@ class VistaMatricial(ctk.CTkToplevel):
 
     def generar_datos(self):
         operacion = self.menu_operacion.get()
-        operaciones_especiales = {"Tabla de Intercambio", "Flujo de Red"}
+        operaciones_especiales = {
+            "Tabla de Intercambio", "Flujo de Red", "Matrices Particionadas"
+        }
         if operacion in operaciones_especiales:
             self.accion_calcular()
             return
@@ -915,6 +919,13 @@ class VistaMatricial(ctk.CTkToplevel):
 
         VistaFlujoRed(self)
 
+    def abrir_particiones(self):
+        """Abre las operaciones por bloques desde el módulo matricial."""
+        self.withdraw()
+        from core.ui.particiones_gui import VistaParticiones
+
+        VistaParticiones(self)
+
     # ========================================================
     # ACCION PRINCIPAL
     # ========================================================
@@ -928,6 +939,9 @@ class VistaMatricial(ctk.CTkToplevel):
                 return
             if operacion == "Flujo de Red":
                 self.abrir_flujo_red()
+                return
+            if operacion == "Matrices Particionadas":
+                self.abrir_particiones()
                 return
 
             if operacion == "A × u":
