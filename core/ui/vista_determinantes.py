@@ -1,4 +1,4 @@
-"""Interfaz de HeyAlgb para determinantes y sistemas resueltos mediante LU."""
+"""Interfaz de HeyAlgb para el cálculo de determinantes."""
 
 from core.ui.ctk_compat import ctk
 from core.ui.audio_manager import reproducir_sonido_error
@@ -15,7 +15,7 @@ from core.ui.tema import (
 
 
 class VistaDeterminantes(ctk.CTkToplevel):
-    """Ventana secundaria para determinantes y resolución de Ax=b mediante LU."""
+    """Ventana secundaria para calcular determinantes."""
 
     def __init__(self, master):
         super().__init__(master)
@@ -27,7 +27,6 @@ class VistaDeterminantes(ctk.CTkToplevel):
         self.minsize(820, 650)
         self.protocol("WM_DELETE_WINDOW", self.al_cerrar)
         self.entradas_matriz = []
-        self.entradas_b = []
         self.crear_interfaz()
         self.generar_matriz()
 
@@ -47,7 +46,7 @@ class VistaDeterminantes(ctk.CTkToplevel):
         ).pack(side="left", padx=12, pady=10)
         ctk.CTkLabel(
             encabezado,
-            text="Aritmética racional · Cofactores · LU",
+            text="Aritmética racional · Sarrus · Cofactores · LU",
             text_color=TEXTO_CLARO,
             font=("Consolas", 12),
         ).pack(side="right", padx=12)
@@ -83,7 +82,7 @@ class VistaDeterminantes(ctk.CTkToplevel):
 
         self.area_datos = ctk.CTkScrollableFrame(
             self,
-            label_text="Matriz de coeficientes A y vector b",
+            label_text="Matriz A",
             **estilo_panel_contenedor(),
         )
         self.area_datos.pack(fill="both", expand=True, padx=15, pady=6)
@@ -113,22 +112,14 @@ class VistaDeterminantes(ctk.CTkToplevel):
         ).pack(anchor="w", padx=10, pady=(7, 0))
         acciones = ctk.CTkFrame(self.panel_resultado, fg_color="transparent")
         acciones.pack(fill="x", padx=8, pady=6)
-        self.menu_operacion = ctk.CTkComboBox(
-            acciones,
-            values=[
-                "Determinante",
-                "Resolver sistema (LU)",
-                "Resolver sistema (Cramer)",
-            ],
-            width=190,
-            command=self.cambiar_operacion,
-            **estilo_menu_desplegable(),
-        )
-        self.menu_operacion.set("Determinante")
-        self.menu_operacion.pack(side="left", padx=(0, 8))
         self.menu_metodo = ctk.CTkComboBox(
             acciones,
-            values=["Automático", "Cofactores", "LU / Triangulación"],
+            values=[
+                "Automático",
+                "Regla de Sarrus",
+                "Cofactores",
+                "LU / Triangulación",
+            ],
             width=190,
             **estilo_menu_desplegable(),
         )
@@ -162,12 +153,11 @@ class VistaDeterminantes(ctk.CTkToplevel):
         for widget in self.area_datos.winfo_children():
             widget.destroy()
         self.entradas_matriz = []
-        self.entradas_b = []
 
         self.frame_matriz = ctk.CTkFrame(self.area_datos, fg_color="transparent")
         self.frame_matriz.pack(anchor="n", pady=(8, 12))
         ctk.CTkLabel(
-            self.frame_matriz, text="Matriz A", text_color=TEXTO_CLARO
+            self.frame_matriz, text="Matriz A (determinante)", text_color=TEXTO_CLARO
         ).grid(row=0, column=0, columnspan=orden, pady=(0, 5))
         for fila in range(orden):
             entradas_fila = []
@@ -180,37 +170,17 @@ class VistaDeterminantes(ctk.CTkToplevel):
                 entradas_fila.append(entrada)
             self.entradas_matriz.append(entradas_fila)
 
-        self.frame_vector = ctk.CTkFrame(self.area_datos, fg_color="transparent")
-        self.frame_vector.pack(anchor="n", pady=(0, 8))
-        ctk.CTkLabel(
-            self.frame_vector,
-            text="Vector b (para resolver Ax = b)",
-            text_color=TEXTO_CLARO,
-        ).grid(row=0, column=0, columnspan=orden, pady=(0, 5))
-        for columna in range(orden):
-            entrada = ctk.CTkEntry(self.frame_vector, width=72, justify="center")
-            entrada.grid(row=1, column=columna, padx=3, pady=3)
-            self.entradas_b.append(entrada)
-
-        self.actualizar_vector_visible()
+        self._actualizar_metodos(orden)
         self.actualizar_eficiencia()
         self.mostrar_resultado("Ingrese los valores de A y elija la operación.")
 
-    def actualizar_vector_visible(self):
-        if self.menu_operacion.get() != "Determinante":
-            self.frame_vector.pack(anchor="n", pady=(0, 8))
-        else:
-            self.frame_vector.pack_forget()
-
-    def cambiar_operacion(self, valor=None):
-        operacion = valor or self.menu_operacion.get()
-        if operacion == "Determinante":
-            self.menu_metodo.pack(
-                side="left", padx=(0, 8), before=self.btn_calcular
-            )
-        else:
-            self.menu_metodo.pack_forget()
-        self.actualizar_vector_visible()
+    def _actualizar_metodos(self, orden):
+        metodos = ["Automático", "Cofactores", "LU / Triangulación"]
+        if orden in (3, 4):
+            metodos.insert(1, "Regla de Sarrus")
+        self.menu_metodo.configure(values=metodos)
+        if self.menu_metodo.get() not in metodos:
+            self.menu_metodo.set("Automático")
 
     def _leer_matriz(self):
         if not self.entradas_matriz:
@@ -233,57 +203,51 @@ class VistaDeterminantes(ctk.CTkToplevel):
             matriz.append(fila)
         return matriz
 
-    def _leer_vector_b(self):
-        vector = []
-        for indice, entrada in enumerate(self.entradas_b):
-            texto = entrada.get().strip()
-            if not texto:
-                raise ValueError(f"La componente b{indice + 1} está vacía.")
-            try:
-                vector.append(op_det.convertir_entrada(texto))
-            except ValueError as error:
-                raise ValueError(f"b{indice + 1}: {error}") from error
-        return vector
-
     def actualizar_eficiencia(self, _evento=None):
         try:
             matriz = self._leer_matriz()
         except ValueError:
-            self._escribir_eficiencia(
+            texto = (
                 "Complete la matriz cuadrada con valores numéricos para ver la "
                 "recomendación antes de calcular."
             )
+            if len(self.entradas_matriz) > 4:
+                texto += (
+                    "\nADVERTENCIA: Regla de Sarrus no soportada para matrices "
+                    "de orden mayor que 4."
+                )
+            self._escribir_eficiencia(
+                texto
+            )
             return
         analisis, metodo = op_det.analizar_eficiencia_determinante(matriz)
-        self._escribir_eficiencia(f"{analisis}\nMétodo sugerido: {metodo}")
+        texto = f"{analisis}\nMétodo sugerido: {metodo}"
+        if len(matriz) > 4:
+            texto += (
+                "\nADVERTENCIA: Regla de Sarrus no soportada para matrices "
+                "de orden mayor que 4."
+            )
+        self._escribir_eficiencia(texto)
 
     def calcular(self):
         try:
             matriz = self._leer_matriz()
             formato = self.menu_formato.get()
-            operacion = self.menu_operacion.get()
-            if operacion == "Resolver sistema (LU)":
-                texto = op_det.resolver_sistema_lu_a_string(
-                    matriz, self._leer_vector_b(), formato
+            metodo = self.menu_metodo.get()
+            if metodo == "Automático":
+                metodo = (
+                    "Automático directo"
+                    if len(matriz) <= 3
+                    else "LU / Triangulación"
                 )
-            elif operacion == "Resolver sistema (Cramer)":
-                texto = op_det.resolver_sistema_cramer_a_string(
-                    matriz, self._leer_vector_b(), formato
-                )
+            if metodo == "Regla de Sarrus":
+                texto = op_det.determinante_sarrus_a_string(matriz, formato)
+            elif metodo == "Cofactores":
+                texto = op_det.determinante_cofactores_a_string(matriz, formato)
+            elif metodo == "LU / Triangulación":
+                texto = op_det.determinante_lu_a_string(matriz, formato)
             else:
-                metodo = self.menu_metodo.get()
-                if metodo == "Automático":
-                    metodo = (
-                        "Automático directo"
-                        if len(matriz) <= 3
-                        else "LU / Triangulación"
-                    )
-                if metodo == "Cofactores":
-                    texto = op_det.determinante_cofactores_a_string(matriz, formato)
-                elif metodo == "LU / Triangulación":
-                    texto = op_det.determinante_lu_a_string(matriz, formato)
-                else:
-                    texto = op_det.determinante_directo_a_string(matriz, formato)
+                texto = op_det.determinante_directo_a_string(matriz, formato)
             self.mostrar_resultado(texto)
         except ValueError as error:
             self.mostrar_resultado(f"ERROR: {error}")
@@ -292,8 +256,6 @@ class VistaDeterminantes(ctk.CTkToplevel):
         for entradas in self.entradas_matriz:
             for entrada in entradas:
                 entrada.delete(0, "end")
-        for entrada in self.entradas_b:
-            entrada.delete(0, "end")
         self.actualizar_eficiencia()
         self.mostrar_resultado("Campos limpios.")
 

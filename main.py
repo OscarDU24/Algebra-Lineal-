@@ -1,7 +1,22 @@
+from pathlib import Path
+import ctypes
+import sys
 import tkinter as tk
+from PIL import Image, ImageTk
+
 from core.ui.audio_manager import AudioManager
 from core.ui.dashboard import Dashboard
 from core.ui.vista_inicio import VistaInicio
+
+
+if sys.platform == "win32":
+    try:
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            "com.heyalgb.algebralineal.v1"
+        )
+    except OSError as error:
+        print(f"No se pudo establecer la identidad de HeyAlgb en Windows: {error}")
+
 
 def main():
     root = tk.Tk()
@@ -16,6 +31,22 @@ def main():
     root.minsize(min(760, ancho), min(600, alto))
     root.resizable(True, True)
     root.title("HeyAlgb · Álgebra Lineal")
+
+    carpeta_iconos = Path(__file__).resolve().parent / "core" / "assets"
+    ruta_icono = carpeta_iconos / "HeyAlgbICON.png"
+    with Image.open(ruta_icono) as imagen:
+        icono_ventana = ImageTk.PhotoImage(
+            imagen.convert("RGBA").resize((64, 64), Image.Resampling.LANCZOS)
+        )
+    root.iconphoto(True, icono_ventana)
+    root.icono_ventana = icono_ventana
+
+    if sys.platform == "win32":
+        ruta_icono_windows = carpeta_iconos / "HeyAlgbICON.ico"
+        try:
+            root.iconbitmap(str(ruta_icono_windows))
+        except (OSError, tk.TclError) as error:
+            print(f"No se pudo cargar el icono de Windows: {error}")
 
     audio = AudioManager()
     root.audio_manager = audio

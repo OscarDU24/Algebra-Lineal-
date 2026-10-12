@@ -103,7 +103,7 @@ class Dashboard:
         # ==========================================
         # Fila 0
         self.crear_tarjeta(0, 0, "Operaciones Básicas de Matrices", self.abrir_matrices, "MatrIndvICON.png")
-        self.crear_tarjeta(0, 1, "Productos entre Matrices\n(Vectores)", self.abrir_vectores, "EcVectorialesCON.png")
+        self.crear_tarjeta(0, 1, "Operaciones Vectoriales", self.abrir_vectores, "EcVectorialesCON.png")
         self.crear_tarjeta(0, 2, "Ecuaciones matriciales", self.abrir_ec_matriciales, "EcMatriciaIesCON.png")
 
         # Fila 1
@@ -115,7 +115,7 @@ class Dashboard:
             1,
             "Determinantes y Factorización LU",
             self.abrir_determinantes,
-            None,
+            "DeterminantesICON.png",
         )
 
         # ==========================================

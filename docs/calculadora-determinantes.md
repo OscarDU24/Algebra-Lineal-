@@ -1,10 +1,11 @@
 # Módulo de determinantes y factorización LU
 
 El módulo se abre desde la tarjeta **Determinantes y Factorización LU** del
-Dashboard. Permite calcular determinantes y resolver sistemas cuadrados
-\(A x = b\). La interfaz está en `core/ui/vista_determinantes.py` y las
-operaciones matemáticas integradas en
-`core/determinantes/operaciones_determinantes.py`.
+Dashboard y permite calcular determinantes. La interfaz está en
+`core/ui/vista_determinantes.py` y las operaciones matemáticas integradas en
+`core/determinantes/operaciones_determinantes.py`. La resolución de sistemas
+mediante Cramer o LU ahora pertenece al módulo **Sistemas de Ecuaciones
+Lineales** (`core/sistemas/operaciones_sistemas.py`).
 
 Los módulos reutilizables del prototipo también se conservaron en
 `core/determinantes/`: `operacionesDeterminantes.py`,
@@ -38,8 +39,14 @@ carpeta de reciclaje; la aplicación principal usa
 - **Automático:** usa el procedimiento directo para matrices de orden 1, 2 y 3
   (caso 1x1, regla \(ad-bc\) y regla de Sarrus, respectivamente). Para órdenes
   mayores usa LU.
+- **Regla de Sarrus:** disponible manualmente para matrices 3×3 y 4×4. En 3×3
+  desglosa las operaciones, sustituciones, productos y sumas de las diagonales.
+  En 4×4 muestra tres etapas de permutaciones de columnas y sus diagonales
+  firmadas; la suma de las etapas equivale al determinante.
 - **Cofactores:** expande recursivamente por la primera fila. Es útil para
-  estudiar el procedimiento en matrices pequeñas; su costo crece rápidamente
+  estudiar el procedimiento en matrices pequeñas. El informe dibuja cada menor,
+  muestra los cálculos 2×2 con productos cruzados, calcula cada aporte con su
+  signo posicional y termina con la suma firmada. Su costo crece rápidamente
   con el orden.
 - **LU / Triangulación:** realiza eliminación gaussiana con pivoteo parcial.
   Los multiplicadores se guardan en \(L\), la matriz triangular resultante es
@@ -57,27 +64,12 @@ distinto de cero, la matriz es singular y el resultado es cero. El informe
 muestra la matriz inicial, los intercambios y pasos de eliminación, \(L\), \(U\),
 la diagonal, el signo y el determinante resultante.
 
-### Resolver sistemas
-
-- **Resolver sistema (LU):** calcula \(P A = L U\), reordena el vector como
-  \(P b\), resuelve \(L y = P b\) por sustitución hacia adelante y luego
-  \(U x = y\) por sustitución hacia atrás. Muestra las matrices \(L\) y \(U\),
-  el vector intermedio \(y\) y cada componente de la solución.
-- **Resolver sistema (Cramer):** conserva la alternativa del prototipo. Calcula
-  el determinante principal y los determinantes de las matrices con una columna
-  reemplazada por \(b\). Si el determinante principal es cero, informa que
-  Cramer no permite obtener una solución única.
-
-La factorización LU del módulo requiere una matriz no singular para resolver el
-sistema; si \(A\) es singular, muestra un error en vez de presentar una solución
-única inexistente.
-
 ## Pruebas
 
-La suite `tests/test_determinantes.py` contiene pruebas de regresión para el
-signo debido al pivoteo, la concordancia entre LU y cofactores, la solución con
-permutación de filas, matrices singulares, recomendaciones por orden y
-validación de entradas.
+Las suites `tests/test_determinantes.py` y `tests/test_sistemas.py` cubren el
+signo debido al pivoteo, la concordancia entre LU, cofactores y Sarrus 4×4,
+el desglose de Sarrus 3×3 y 4×4, la resolución LU/Cramer, matrices singulares,
+recomendaciones por orden y validación de entradas.
 
 Desde la raíz del repositorio se puede ejecutar con:
 

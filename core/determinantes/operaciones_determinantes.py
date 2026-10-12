@@ -55,23 +55,85 @@ def _matriz_a_string(matriz, formato):
     )
 
 
-def _determinante_cofactores(matriz):
+def _expandir_cofactores_detallado(
+    matriz, filas_origen, columnas_origen, formato, nivel=0, nombre_matriz="M"
+):
     orden = len(matriz)
+    prefijo = "  " * nivel
     if orden == 1:
-        return matriz[0][0]
+        return matriz[0][0], [f"{prefijo}Determinante de 1 × 1: {_formatear(matriz[0][0], formato)}"]
     if orden == 2:
-        return matriz[0][0] * matriz[1][1] - matriz[0][1] * matriz[1][0]
+        a, b = matriz[0]
+        c, d = matriz[1]
+        primero = a * d
+        segundo = b * c
+        resultado = primero - segundo
+        lineas = [
+            f"{prefijo}Operación: det({nombre_matriz}) = "
+            f"({_formatear(a, formato)} * {_formatear(d, formato)}) - "
+            f"({_formatear(b, formato)} * {_formatear(c, formato)}) = "
+            f"{_formatear(primero, formato)} - {_formatear(segundo, formato)} "
+            f"= {_formatear(resultado, formato)}"
+        ]
+        return resultado, lineas
 
-    resultado = Fraction(0)
+    aportes = []
+    lineas = []
     for columna, valor in enumerate(matriz[0]):
-        if valor == 0:
-            continue
+        signo = 1 if columna % 2 == 0 else -1
+        fila_original = filas_origen[0]
+        columna_original = columnas_origen[columna]
         menor = [
             fila[:columna] + fila[columna + 1:]
             for fila in matriz[1:]
         ]
-        resultado += (-1 if columna % 2 else 1) * valor * _determinante_cofactores(menor)
-    return resultado
+        filas_menor = filas_origen[1:]
+        columnas_menor = (
+            columnas_origen[:columna] + columnas_origen[columna + 1:]
+        )
+        lineas.append(
+            f"{prefijo}Elemento a{fila_original + 1},{columna_original + 1} = "
+            f"{_formatear(valor, formato)} (Signo: {'+1' if signo > 0 else '-1'})"
+        )
+        lineas.append(
+            f"{prefijo}Submatriz M{fila_original + 1},{columna_original + 1}:"
+        )
+        lineas.extend(
+            f"{prefijo}[ " + "   ".join(
+                _formatear(elemento, formato) for elemento in fila
+            ) + " ]"
+            for fila in menor
+        )
+        determinante_menor, desarrollo_menor = _expandir_cofactores_detallado(
+            menor,
+            filas_menor,
+            columnas_menor,
+            formato,
+            nivel + 1,
+            f"M{fila_original + 1},{columna_original + 1}",
+        )
+        lineas.extend(desarrollo_menor)
+        aporte = signo * valor * determinante_menor
+        aportes.append(aporte)
+        lineas.append(
+            f"{prefijo}Aporte: {_formatear(valor, formato)} * "
+            f"{'+1' if signo > 0 else '-1'} * "
+            f"{_formatear(determinante_menor, formato)} = "
+            f"{_formatear(aporte, formato)}"
+        )
+        lineas.append("")
+
+    resultado = sum(aportes, Fraction(0))
+    expresion_aportes = " ".join(
+        ("+" if aporte >= 0 else "-")
+        + f" {_formatear(abs(aporte), formato)}"
+        for aporte in aportes
+    ).lstrip("+ ")
+    lineas.extend([
+        f"{prefijo}Suma final de aportes: {expresion_aportes} = "
+        f"{_formatear(resultado, formato)}",
+    ])
+    return resultado, lineas
 
 
 def analizar_eficiencia_determinante(matriz):
@@ -187,7 +249,7 @@ def _factorizar_lu(matriz):
     return inferior, superior, permutacion, intercambios, pasos, singular
 
 
-def _determinante_lu_valor(matriz):
+def determinante_lu_valor(matriz):
     _, superior, _, intercambios, _, singular = _factorizar_lu(matriz)
     if singular:
         return Fraction(0)
@@ -246,172 +308,180 @@ def determinante_lu_a_string(matriz, formato="Decimales"):
     return "\n".join(salida)
 
 
-def resolver_sistema_cramer_a_string(matriz_A, vector_b, formato="Decimales"):
-    """Conserva la alternativa Cramer del prototipo con cálculo racional exacto."""
-    matriz = _validar_matriz(matriz_A)
-    if not isinstance(vector_b, (list, tuple)) or len(vector_b) != len(matriz):
-        raise ValueError("El vector b debe tener una componente por cada fila de A.")
-    try:
-        vector = [
-            valor if isinstance(valor, Fraction) else Fraction(str(valor))
-            for valor in vector_b
-        ]
-    except (ValueError, TypeError, ZeroDivisionError) as error:
-        raise ValueError("El vector b contiene un valor no numérico.") from error
-
-    determinante_principal = _determinante_lu_valor(matriz)
-    salida = [
-        "RESOLUCIÓN DEL SISTEMA Ax = b MEDIANTE LA REGLA DE CRAMER",
-        "Matriz A:",
-        _matriz_a_string(matriz, formato),
-        "Vector b: [ " + "   ".join(_formatear(valor, formato) for valor in vector) + " ]",
-        "",
-        f"D = det(A) = {_formatear(determinante_principal, formato)}",
-        "",
-    ]
-    if determinante_principal == 0:
-        salida.append(
-            "D = 0; la Regla de Cramer no permite obtener una solución única."
-        )
-        return "\n".join(salida)
-
-    soluciones = []
-    for columna in range(len(matriz)):
-        matriz_cramer = [fila[:] for fila in matriz]
-        for fila in range(len(matriz)):
-            matriz_cramer[fila][columna] = vector[fila]
-        determinante_columna = _determinante_lu_valor(matriz_cramer)
-        solucion = determinante_columna / determinante_principal
-        soluciones.append(solucion)
-        salida.extend([
-            f"Matriz A{columna + 1} (columna {columna + 1} reemplazada por b):",
-            _matriz_a_string(matriz_cramer, formato),
-            f"D{columna + 1} = det(A{columna + 1}) = "
-            f"{_formatear(determinante_columna, formato)}",
-            f"x{columna + 1} = D{columna + 1} / D = "
-            f"{_formatear(determinante_columna, formato)} / "
-            f"{_formatear(determinante_principal, formato)} = "
-            f"{_formatear(solucion, formato)}",
-            "",
-        ])
-    salida.extend([
-        "SOLUCIÓN:",
-        "[ " + "   ".join(_formatear(valor, formato) for valor in soluciones) + " ]",
-    ])
-    return "\n".join(salida)
-
-
-def resolver_sistema_lu_a_string(matriz_A, vector_b, formato="Decimales"):
-    """Resuelve Ax=b con pivoteo parcial y muestra sustituciones Ly=Pb y Ux=y."""
-    matriz = _validar_matriz(matriz_A)
-    if not isinstance(vector_b, (list, tuple)) or len(vector_b) != len(matriz):
-        raise ValueError("El vector b debe tener una componente por cada fila de A.")
-    try:
-        vector = [
-            valor if isinstance(valor, Fraction) else Fraction(str(valor))
-            for valor in vector_b
-        ]
-    except (ValueError, TypeError, ZeroDivisionError) as error:
-        raise ValueError("El vector b contiene un valor no numérico.") from error
-
-    inferior, superior, permutacion, intercambios, _, singular = (
-        _factorizar_lu(matriz)
-    )
-    if singular:
-        raise ValueError(
-            "La matriz A es singular; la factorización LU no permite obtener "
-            "una solución única."
-        )
-
-    permutado = [vector[indice] for indice in permutacion]
-    y = []
-    salida = [
-        "RESOLUCIÓN DEL SISTEMA Ax = b MEDIANTE FACTORIZACIÓN LU",
-        "P·A = L·U; por tanto, L·y = P·b y U·x = y.",
-        "",
-        "Matriz A:",
-        _matriz_a_string(matriz, formato),
-        "Vector b: [ " + "   ".join(_formatear(valor, formato) for valor in vector) + " ]",
-        f"Intercambios de filas: {intercambios}",
-        "",
-        "MATRIZ L:",
-        _matriz_a_string(inferior, formato),
-        "",
-        "MATRIZ U:",
-        _matriz_a_string(superior, formato),
-    ]
-    if permutacion != list(range(len(matriz))):
-        salida.append(
-            "Vector permutado P·b: [ "
-            + "   ".join(_formatear(valor, formato) for valor in permutado)
-            + " ]"
-        )
-
-    salida.extend(["", "SUSTITUCIÓN HACIA ADELANTE: L·y = P·b"])
-    for fila in range(len(matriz)):
-        conocidos = sum(
-            inferior[fila][columna] * y[columna]
-            for columna in range(fila)
-        )
-        y_fila = permutado[fila] - conocidos
-        y.append(y_fila)
-        salida.append(
-            f"y{fila + 1} = "
-            f"{_formatear(permutado[fila], formato)} − "
-            f"{_formatear(conocidos, formato)} = "
-            f"{_formatear(y_fila, formato)}"
-        )
-
-    x = [Fraction(0) for _ in matriz]
-    salida.extend(["", "SUSTITUCIÓN HACIA ATRÁS: U·x = y"])
-    for fila in range(len(matriz) - 1, -1, -1):
-        conocidos = sum(
-            superior[fila][columna] * x[columna]
-            for columna in range(fila + 1, len(matriz))
-        )
-        x[fila] = (y[fila] - conocidos) / superior[fila][fila]
-        salida.append(
-            f"x{fila + 1} = "
-            f"({_formatear(y[fila], formato)} − {_formatear(conocidos, formato)}) "
-            f"/ {_formatear(superior[fila][fila], formato)} = "
-            f"{_formatear(x[fila], formato)}"
-        )
-
-    salida.extend([
-        "",
-        "SOLUCIÓN:",
-        "[ " + "   ".join(_formatear(valor, formato) for valor in x) + " ]",
-    ])
-    return "\n".join(salida)
-
-
 def determinante_cofactores_a_string(matriz, formato="Decimales"):
-    """Presenta la expansión por la primera fila y su resultado recursivo."""
+    """Presenta la expansión por cofactores y el desarrollo de cada menor."""
     normalizada = _validar_matriz(matriz)
+    determinante, desarrollo = _expandir_cofactores_detallado(
+        normalizada,
+        list(range(len(normalizada))),
+        list(range(len(normalizada))),
+        formato,
+    )
     salida = [
         "MATRIZ A:",
         _matriz_a_string(normalizada, formato),
         "",
         "EXPANSIÓN POR COFACTORES DE LA PRIMERA FILA:",
     ]
-    aportes = []
-    for columna, valor in enumerate(normalizada[0]):
-        menor = [
-            fila[:columna] + fila[columna + 1:]
-            for fila in normalizada[1:]
-        ]
-        det_menor = _determinante_cofactores(menor) if menor else Fraction(1)
-        signo = -1 if columna % 2 else 1
-        aporte = signo * valor * det_menor
-        aportes.append(aporte)
-        salida.append(
-            f"a1,{columna + 1}: signo {signo:+d}; "
-            f"det(M1,{columna + 1}) = {_formatear(det_menor, formato)}; "
-            f"aporte = {_formatear(valor, formato)} × {signo:+d} × "
-            f"{_formatear(det_menor, formato)} = {_formatear(aporte, formato)}"
-        )
-    determinante = sum(aportes, Fraction(0))
+    salida.extend(desarrollo)
     salida.extend(["", f"det(A) = {_formatear(determinante, formato)}"])
+    return "\n".join(salida)
+
+
+def _producto_diagonal_sarrus_4x4(
+    matriz_extendida, columnas_ext, columnas_originales, ascendente
+):
+    nombres = []
+    valores = []
+    for fila in range(4):
+        indice_columna = columnas_ext - fila if ascendente else columnas_ext + fila
+        columna_original = columnas_originales[indice_columna]
+        nombres.append(f"a{fila + 1}{columna_original + 1}")
+        valores.append(matriz_extendida[fila][indice_columna])
+    producto = Fraction(1)
+    for valor in valores:
+        producto *= valor
+    return nombres, valores, producto
+
+
+def _sarrus_4x4_etapa(
+    matriz, orden_columnas, signo_etapa, numero, descripcion, formato
+):
+    columnas_extendidas = orden_columnas + orden_columnas[:3]
+    matriz_extendida = [
+        [fila[columna] for columna in columnas_extendidas]
+        for fila in matriz
+    ]
+    terminos = []
+    for ascendente in (False, True):
+        inicios = range(3, 7) if ascendente else range(4)
+        for indice, inicio in enumerate(inicios):
+            nombres, valores, producto = _producto_diagonal_sarrus_4x4(
+                matriz_extendida, inicio, columnas_extendidas, ascendente
+            )
+            signo = signo_etapa * (1 if indice % 2 == 0 else -1)
+            terminos.append((nombres, valores, producto, signo))
+
+    subtotal = sum(
+        (signo * producto for _, _, producto, signo in terminos),
+        Fraction(0),
+    )
+    expresion = " ".join(
+        f"{'+' if signo > 0 else '−'} ({' * '.join(nombres)})"
+        for nombres, _, _, signo in terminos
+    )
+    sustitucion = " ".join(
+        f"{'+' if signo > 0 else '−'} "
+        f"({' x '.join(_formatear(valor, formato) for valor in valores)})"
+        for _, valores, _, signo in terminos
+    )
+    productos = " ".join(
+        f"{'+' if signo > 0 else '−'} ({_formatear(producto, formato)})"
+        for _, _, producto, signo in terminos
+    )
+    prefijo = f"ETAPA {numero} ({'+' if signo_etapa > 0 else '−'}):"
+    salida = [
+        prefijo,
+        f"Permutación aplicada: {descripcion}",
+        "Matriz extendida:",
+        _matriz_a_string(matriz_extendida, formato),
+        f"Operación: {expresion}",
+        f"Sustitución: {sustitucion}",
+        f"Sumas parciales: {productos}",
+        f"Resultado de la etapa: {_formatear(subtotal, formato)}",
+    ]
+    return salida, subtotal
+
+
+def determinante_sarrus_a_string(matriz, formato="Decimales"):
+    """Explica Sarrus para 3x3 y su extensión por permutaciones para 4x4."""
+    normalizada = _validar_matriz(matriz)
+    orden = len(normalizada)
+    if orden not in (3, 4):
+        raise ValueError(
+            "La Regla de Sarrus solo está soportada para matrices 3 × 3 y 4 × 4."
+        )
+
+    salida = ["MATRIZ A:", _matriz_a_string(normalizada, formato), ""]
+    if orden == 3:
+        diagonales_positivas = (
+            ((0, 0), (1, 1), (2, 2)),
+            ((1, 0), (2, 1), (0, 2)),
+            ((2, 0), (0, 1), (1, 2)),
+        )
+        diagonales_negativas = (
+            ((2, 0), (1, 1), (0, 2)),
+            ((0, 0), (2, 1), (1, 2)),
+            ((1, 0), (0, 1), (2, 2)),
+        )
+
+        def datos_diagonales(diagonales):
+            expresion = []
+            sustitucion = []
+            productos = []
+            for coordenadas in diagonales:
+                valores = [
+                    normalizada[fila][columna]
+                    for fila, columna in coordenadas
+                ]
+                expresion.append(
+                    "*".join(
+                        f"a{fila + 1}{columna + 1}"
+                        for fila, columna in coordenadas
+                    )
+                )
+                sustitucion.append(
+                    "x".join(_formatear(valor, formato) for valor in valores)
+                )
+                producto = Fraction(1)
+                for valor in valores:
+                    producto *= valor
+                productos.append(producto)
+            return expresion, sustitucion, productos
+
+        op_pos, sub_pos, prod_pos = datos_diagonales(diagonales_positivas)
+        op_neg, sub_neg, prod_neg = datos_diagonales(diagonales_negativas)
+        suma_positiva = sum(prod_pos, Fraction(0))
+        suma_negativa = sum(prod_neg, Fraction(0))
+        determinante = suma_positiva - suma_negativa
+        salida.extend([
+            "Regla de Sarrus:",
+            f"Operación: ({' + '.join(op_pos)}) - ({' + '.join(op_neg)})",
+            f"Sustitución: ({' + '.join(sub_pos)}) - ({' + '.join(sub_neg)})",
+            "Sumas parciales: ("
+            + " + ".join(_formatear(valor, formato) for valor in prod_pos)
+            + ") - ("
+            + " + ".join(_formatear(valor, formato) for valor in prod_neg)
+            + ")",
+            f"Resultado: {_formatear(suma_positiva, formato)} - "
+            f"{_formatear(suma_negativa, formato)} = "
+            f"{_formatear(determinante, formato)}",
+            f"RESULTADO: det(A) = {_formatear(determinante, formato)}",
+        ])
+        return "\n".join(salida)
+
+    etapas = (
+        ((0, 1, 2, 3), 1, "ninguna; matriz original"),
+        ((0, 2, 1, 3), -1, "C2 ↔ C3"),
+        ((0, 2, 3, 1), 1, "C3 ↔ C4 sobre la etapa 2"),
+    )
+    subtotales = []
+    for numero, (orden_columnas, signo, descripcion) in enumerate(etapas, start=1):
+        if numero > 1:
+            salida.append("")
+        texto_etapa, subtotal = _sarrus_4x4_etapa(
+            normalizada, orden_columnas, signo, numero, descripcion, formato
+        )
+        salida.extend(texto_etapa)
+        subtotales.append(subtotal)
+
+    determinante = sum(subtotales, Fraction(0))
+    salida.extend([
+        "",
+        "Suma de resultados parciales: "
+        + " + ".join(_formatear(valor, formato) for valor in subtotales),
+        f"RESULTADO: det(A) = {_formatear(determinante, formato)}",
+    ])
     return "\n".join(salida)
 
 
@@ -440,20 +510,5 @@ def determinante_directo_a_string(matriz, formato="Decimales"):
             f"RESULTADO: det(A) = {_formatear(resultado, formato)}",
         ])
     else:
-        a, b, c = normalizada[0]
-        d, e, f = normalizada[1]
-        g, h, i = normalizada[2]
-        positivas = (a * e * i, b * f * g, c * d * h)
-        negativas = (c * e * g, b * d * i, a * f * h)
-        resultado = sum(positivas, Fraction(0)) - sum(negativas, Fraction(0))
-        salida.extend([
-            "Regla de Sarrus:",
-            "Diagonales positivas: " + " + ".join(
-                _formatear(valor, formato) for valor in positivas
-            ) + f" = {_formatear(sum(positivas, Fraction(0)), formato)}",
-            "Diagonales negativas: " + " + ".join(
-                _formatear(valor, formato) for valor in negativas
-            ) + f" = {_formatear(sum(negativas, Fraction(0)), formato)}",
-            f"RESULTADO: det(A) = {_formatear(resultado, formato)}",
-        ])
+        return determinante_sarrus_a_string(normalizada, formato)
     return "\n".join(salida)
