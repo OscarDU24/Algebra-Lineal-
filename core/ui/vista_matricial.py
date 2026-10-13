@@ -10,6 +10,7 @@ from core.matriciales import operacionesMatriciales as op
 from core.matriciales import solucionMatriciales as sol
 from core.matriciales import verificacionMatriciales as ver
 from core.matriciales import visualizacionMatriciales as vis
+from core.sistemas import operaciones_sistemas as op_sis
 from core.ui.tema import (
     FONDO_CALCULADORA,
     TEXTO_CLARO,
@@ -242,9 +243,11 @@ class VistaMatricial(ctk.CTkToplevel):
                 "Sistema a ecuación vectorial",
                 "Transpuesta de A",
                 "Matriz por escalar (cA)",
+                "Inversa de una Matriz",
                 "Resolver Ax = b",
                 "Tabla de Intercambio",
-                "Flujo de Red"
+                "Flujo de Red",
+                "Matrices Particionadas"
             ],
             command=self.cambiar_operacion,
             **estilo_menu_desplegable()
@@ -320,7 +323,8 @@ class VistaMatricial(ctk.CTkToplevel):
 
         especiales = {
             "Tabla de Intercambio": "Tabla de Intercambio (Modelo Leontief)",
-            "Flujo de Red": "Flujo de Red"
+            "Flujo de Red": "Flujo de Red",
+            "Matrices Particionadas": "Matrices Particionadas"
         }
         if operacion in especiales:
             self.lbl_operacion_especial.configure(
@@ -348,7 +352,8 @@ class VistaMatricial(ctk.CTkToplevel):
             "A × u", "A(u + v)", "A(u + v + ...)", "A(cu)",
             "A(u + v) = Au + Av", "A(cu) = c(Au)",
             "Mostrar columnas de A", "Sistema a ecuación vectorial",
-            "Transpuesta de A", "Matriz por escalar (cA)", "Resolver Ax = b"
+            "Transpuesta de A", "Matriz por escalar (cA)",
+            "Inversa de una Matriz", "Resolver Ax = b"
         }
         if operacion in solo_vectores:
             self.lbl_dimension_vector.configure(text="Dimensión del vector:")
@@ -382,9 +387,30 @@ class VistaMatricial(ctk.CTkToplevel):
     # GENERAR MATRIZ Y VECTORES
     # ========================================================
 
+    @staticmethod
+    def _leer_entero_positivo(entrada):
+        valor = entrada.get().strip()
+        if not valor:
+            raise ValueError(
+                "Las dimensiones y cantidades deben ser enteros positivos."
+            )
+        try:
+            numero = int(valor)
+        except ValueError as error:
+            raise ValueError(
+                "Las dimensiones y cantidades deben ser enteros positivos."
+            ) from error
+        if numero <= 0:
+            raise ValueError(
+                "Las dimensiones y cantidades deben ser enteros positivos."
+            )
+        return numero
+
     def generar_datos(self):
         operacion = self.menu_operacion.get()
-        operaciones_especiales = {"Tabla de Intercambio", "Flujo de Red"}
+        operaciones_especiales = {
+            "Tabla de Intercambio", "Flujo de Red", "Matrices Particionadas"
+        }
         if operacion in operaciones_especiales:
             self.accion_calcular()
             return
@@ -401,21 +427,26 @@ class VistaMatricial(ctk.CTkToplevel):
 
         try:
             if requiere_dimension_vector:
-                dimension = int(self.entry_dimension_vector.get())
-                if dimension <= 0:
-                    raise ValueError("La dimensión debe ser mayor que cero.")
+                dimension = self._leer_entero_positivo(
+                    self.entry_dimension_vector
+                )
                 filas = dimension
                 columnas = dimension
             elif requiere_matriz:
-                filas = int(self.entry_filas.get())
-                columnas = int(self.entry_columnas.get())
-                if filas <= 0 or columnas <= 0:
-                    raise ValueError("Las dimensiones de A deben ser mayores que cero.")
+                filas = self._leer_entero_positivo(self.entry_filas)
+                columnas = self._leer_entero_positivo(self.entry_columnas)
+                if operacion == "Inversa de una Matriz" and filas != columnas:
+                    raise ValueError(
+                        "Solo las matrices cuadradas tienen inversa. "
+                        "Filas y columnas de A deben ser iguales."
+                    )
             else:
                 filas = columnas = 0
 
             if operacion in {"A(u + v + ...)", "Combinación lineal"}:
-                cantidad_vectores = int(self.entry_cantidad_vectores.get())
+                cantidad_vectores = self._leer_entero_positivo(
+                    self.entry_cantidad_vectores
+                )
                 minimo = 2 if operacion == "A(u + v + ...)" else 1
                 if cantidad_vectores < minimo:
                     raise ValueError(f"Se requieren al menos {minimo} vectores.")
@@ -427,10 +458,8 @@ class VistaMatricial(ctk.CTkToplevel):
                 cantidad_vectores = 0
         except ValueError as error:
             mensaje = str(error)
-            if "invalid literal for int()" in mensaje:
-                mensaje = "Las dimensiones y cantidades deben ser enteros positivos."
             print(f"VALIDACIÓN: {mensaje}")
-            self.mostrar_resultado(f"Error: {error}")
+            self.mostrar_resultado(f"Error: {mensaje}")
             return
 
         self._limpiar_datos_generados()
@@ -840,6 +869,26 @@ class VistaMatricial(ctk.CTkToplevel):
         ]
         self.mostrar_resultado("\n".join(salida))
 
+    def invertir_matriz(self):
+        if not self.matriz_entries:
+            raise ValueError("Primero debe generar la matriz.")
+        matriz = []
+        for indice_fila, fila_entries in enumerate(self.matriz_entries):
+            fila = []
+            for indice_columna, entry in enumerate(fila_entries):
+                valor = op_sis.convertir_a_fraccion(entry.get().strip())
+                if valor is None:
+                    raise ValueError(
+                        f"El elemento A[{indice_fila + 1},{indice_columna + 1}] "
+                        "no es un número válido."
+                    )
+                fila.append(valor)
+            matriz.append(fila)
+        texto = op_sis.invertir_matriz_a_string(
+            matriz, self.menu_formato.get()
+        )
+        self.mostrar_resultado(texto)
+
     def resolver_ax_b(self):
         matriz = self.obtener_matriz()
         vector_b = self.obtener_vector_b()
@@ -915,6 +964,13 @@ class VistaMatricial(ctk.CTkToplevel):
 
         VistaFlujoRed(self)
 
+    def abrir_particiones(self):
+        """Abre las operaciones por bloques desde el módulo matricial."""
+        self.withdraw()
+        from core.ui.particiones_gui import VistaParticiones
+
+        VistaParticiones(self)
+
     # ========================================================
     # ACCION PRINCIPAL
     # ========================================================
@@ -928,6 +984,9 @@ class VistaMatricial(ctk.CTkToplevel):
                 return
             if operacion == "Flujo de Red":
                 self.abrir_flujo_red()
+                return
+            if operacion == "Matrices Particionadas":
+                self.abrir_particiones()
                 return
 
             if operacion == "A × u":
@@ -956,6 +1015,8 @@ class VistaMatricial(ctk.CTkToplevel):
                 self.mostrar_transpuesta()
             elif operacion == "Matriz por escalar (cA)":
                 self.multiplicar_matriz_escalar()
+            elif operacion == "Inversa de una Matriz":
+                self.invertir_matriz()
             elif operacion == "Resolver Ax = b":
                 self.resolver_ax_b()
 

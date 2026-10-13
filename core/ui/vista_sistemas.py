@@ -12,7 +12,9 @@ from core.ui.tema import (
     estilo_boton_principal,
     estilo_boton_secundario,
     estilo_consola_resultado,
+    estilo_menu_desplegable,
     estilo_panel_contenedor,
+    TEXTO_CLARO,
 )
 
 class VistaSistemas(ctk.CTkToplevel):
@@ -67,6 +69,24 @@ class VistaSistemas(ctk.CTkToplevel):
             command=self.cambiar_modo
         )
         self.selector_modo.pack(pady=10)
+
+        self.frame_metodo_sistema = ctk.CTkFrame(
+            self.frame_superior, fg_color="transparent"
+        )
+        ctk.CTkLabel(
+            self.frame_metodo_sistema,
+            text="Método de resolución:",
+            text_color=TEXTO_CLARO,
+        ).pack(side="left", padx=(0, 8))
+        self.selector_metodo_sistema = ctk.CTkComboBox(
+            self.frame_metodo_sistema,
+            values=["Gauss-Jordan", "Factorización LU", "Regla de Cramer"],
+            width=210,
+            **estilo_menu_desplegable(),
+        )
+        self.selector_metodo_sistema.set("Gauss-Jordan")
+        self.selector_metodo_sistema.pack(side="left")
+        self.frame_metodo_sistema.pack(pady=(0, 8))
 
         # Controles de dimensiones
         frame_datos = ctk.CTkFrame(self.frame_superior, fg_color="transparent")
@@ -123,6 +143,10 @@ class VistaSistemas(ctk.CTkToplevel):
 
     def cambiar_modo(self, value):
         self.mostrar_resultado(f"Modo cambiado a: {value}\nPor favor, genera la cuadrícula nuevamente.")
+        if value == "Sistema (Ax = b)":
+            self.frame_metodo_sistema.pack(pady=(0, 8), before=self.frame_superior.winfo_children()[-1])
+        else:
+            self.frame_metodo_sistema.pack_forget()
         self.generar_cuadricula()
 
     def generar_cuadricula(self):
@@ -269,7 +293,17 @@ class VistaSistemas(ctk.CTkToplevel):
                         raise ValueError("Se encontraron valores no válidos en el vector b.")
                     vector_b.append(val)
                 
-                resultado = op_sis.resolver_sistema(matriz_A, vector_b)
+                metodo = self.selector_metodo_sistema.get()
+                if metodo == "Factorización LU":
+                    resultado = op_sis.resolver_sistema_lu_a_string(
+                        matriz_A, vector_b
+                    )
+                elif metodo == "Regla de Cramer":
+                    resultado = op_sis.resolver_sistema_cramer_a_string(
+                        matriz_A, vector_b
+                    )
+                else:
+                    resultado = op_sis.resolver_sistema(matriz_A, vector_b)
                 self.mostrar_resultado(resultado)
 
             else:

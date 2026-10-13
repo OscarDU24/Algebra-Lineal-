@@ -10,8 +10,10 @@ class AudioManager:
 
     EFECTOS = {
         "cursor": "CursorSelect.mp3",
+        "seleccionar": "ChoiceSelect.mp3",
         "calcular": "CalcularAct.mp3",
         "limpiar": "LimpiarAct.mp3",
+        "interfaces": "InterfacesSwitch.mp3",
         "error": "ErrorDT.mp3",
     }
     CONTROLES_INTERACTIVOS = {
@@ -34,6 +36,7 @@ class AudioManager:
         self._efectos = {}
         self._ultimo_hover = 0.0
         self._ultimo_control_hover = None
+        self._hover_pendiente = None
 
         try:
             import pygame
@@ -120,6 +123,8 @@ class AudioManager:
         boton_encontrado = None
         while actual is not None:
             nombre_clase = actual.__class__.__name__
+            if hasattr(actual, "_heyalg_efecto_clic"):
+                return actual
             if nombre_clase in {"CTkComboBox", "CTkSegmentedButton"}:
                 return actual
             if (
@@ -133,43 +138,59 @@ class AudioManager:
             actual = getattr(actual, "master", None)
         return boton_encontrado
 
+    def registrar_control_sonido(self, widget, efecto_clic):
+        """Registra controles personalizados que no son botones Tk/CustomTkinter."""
+        widget._heyalg_efecto_clic = efecto_clic
+
+    def _actualizar_control_bajo_cursor(self, raiz):
+        self._hover_pendiente = None
+        if not raiz.winfo_exists():
+            return
+
+        x, y = raiz.winfo_pointerxy()
+        widget = raiz.winfo_containing(x, y)
+        control = self._control_interactivo(widget, raiz) if widget is not None else None
+        identidad = id(control) if control is not None else None
+        if identidad == self._ultimo_control_hover:
+            return
+
+        self._ultimo_control_hover = identidad
+        if control is not None:
+            self.reproducir_efecto("cursor")
+
     def instalar_sonidos_interfaz(self, raiz):
         """Inyecta los sonidos globalmente en la ventana sin romper los comandos existentes."""
-        def al_entrar(event):
-            control = self._control_interactivo(event.widget, raiz)
-            if control is None:
-                return
-            identidad = id(control)
-            if identidad != self._ultimo_control_hover:
-                self._ultimo_control_hover = identidad
-                self.reproducir_efecto("cursor")
-
-        def al_salir(event):
-            control = self._control_interactivo(event.widget, raiz)
-            if control is not None and id(control) == self._ultimo_control_hover:
-                self._ultimo_control_hover = None
+        def programar_actualizacion_hover(_event):
+            if self._hover_pendiente is not None:
+                raiz.after_cancel(self._hover_pendiente)
+            self._hover_pendiente = raiz.after_idle(
+                lambda: self._actualizar_control_bajo_cursor(raiz)
+            )
 
         def al_pulsar(event):
             control = self._control_interactivo(event.widget, raiz)
             if control is None:
                 return
-            if control.__class__.__name__ in {"CTkComboBox", "CTkSegmentedButton"}:
-                self.reproducir_efecto("cursor")
+            efecto_registrado = getattr(control, "_heyalg_efecto_clic", None)
+            if efecto_registrado is not None:
+                self.reproducir_efecto(efecto_registrado)
                 return
-            try:
-                texto = str(control.cget("text")).casefold()
-            except Exception:
-                texto = ""
+            if control.__class__.__name__ in {"CTkComboBox", "CTkSegmentedButton"}:
+                self.reproducir_efecto("seleccionar")
+                return
+            texto = str(control.cget("text")).casefold()
             if "limpiar" in texto:
                 self.reproducir_efecto("limpiar")
-            elif any(palabra in texto for palabra in ("calcular", "resolver", "convertir", "iniciar")):
+            elif "iniciar" in texto:
+                self.reproducir_efecto("interfaces")
+            elif any(palabra in texto for palabra in ("calcular", "resolver", "convertir")):
                 self.reproducir_efecto("calcular")
             else:
-                self.reproducir_efecto("cursor")  # Efecto sutil por defecto al pulsar cualquier otro botón
+                self.reproducir_efecto("seleccionar")
 
         # add="+" asegura que el sonido conviva con las funciones nativas del botón
-        raiz.bind_all("<Enter>", al_entrar, add="+")
-        raiz.bind_all("<Leave>", al_salir, add="+")
+        raiz.bind_all("<Enter>", programar_actualizacion_hover, add="+")
+        raiz.bind_all("<Leave>", programar_actualizacion_hover, add="+")
         raiz.bind_all("<ButtonPress-1>", al_pulsar, add="+")
 
     def cerrar(self):
