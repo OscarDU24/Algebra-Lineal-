@@ -33,7 +33,7 @@ def main():
     root.title("HeyAlgb · Álgebra Lineal")
 
     carpeta_iconos = Path(__file__).resolve().parent / "core" / "assets"
-    ruta_icono = carpeta_iconos / "HeyAlgbICON.png"
+    ruta_icono = carpeta_iconos / "HeyAlgbLogoBlanco.png"
     with Image.open(ruta_icono) as imagen:
         icono_ventana = ImageTk.PhotoImage(
             imagen.convert("RGBA").resize((64, 64), Image.Resampling.LANCZOS)
