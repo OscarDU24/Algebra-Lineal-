@@ -30,7 +30,7 @@ def biseccionar(f, a, b, error_max):
         salida += f"f(b) = {f_b:.4f}\n"
         salida += f"f(c) = {f_c:.4f}\n"
         salida += f"\n"
-        salida += f"Error = {error:.4f}\n"
+        salida += f"Error = {error}\n"
 
         if (f_a > 0) == (f_c > 0):
             a = c
