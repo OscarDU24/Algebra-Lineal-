@@ -1,3 +1,4 @@
+import math
 import sympy as sp
 
 def biseccionar(f, a, b, error_max):
@@ -6,17 +7,84 @@ def biseccionar(f, a, b, error_max):
     f_b = 0.0
     f_c = 0.0
     error = 0.0
-    expr = sp.sympify(f)
     salida = ""
     i = 0
+
+    x = sp.Symbol('x', real=True)
+
+    # Comprobaciones iniciales
+    if not isinstance(f, str) or not f.strip():
+        salida += "Error: Debe introducir una funcion."
+        return c, salida
+
+    try:
+        expr = sp.sympify(f, locals={'x': x})
+    except sp.SympifyError:
+        return -1, "Error: La funcion introducida no es valida o contiene errores."
+
+    # Comprobar que la funcion dependa solamente de x
+    if expr.free_symbols - {x}:
+        return -1, "Error: La funcion contiene variables no permitidas."
+
+    if x not in expr.free_symbols:
+        return -1, "Error: La funcion debe depender de la variable x."
+
+    # Funcion auxiliar de evaluacion
+
+    def evaluar(punto):
+        resultado = sp.N(expr.subs(x, punto))
+
+        # Comprobar que el resultado sea real
+        if resultado.is_real is not True:
+            raise ValueError("La funcion no produce un resultado real.")
+
+        resultado = float(resultado)
+
+        # Comprobar que el resultado sea finito
+        if not math.isfinite(resultado):
+            raise ValueError("La funcion produce un resultado no finito.")
+        
+        return resultado
+
+    # --------------------------------------------------
+    # 4. Evaluacion inicial de los extremos
+    # --------------------------------------------------
+
+    try:
+        f_a = evaluar(a)
+        f_b = evaluar(b)
+    except Exception as e:
+        return c, f"Error: La funcion no esta definida en los extremos del intervalo. {e}"
+
+    # Comprobar si alguno de los extremos es una raiz
+    if f_a == 0:
+        return a, "Resultado: La raiz se encuentra en el extremo izquierdo."
+    if f_b == 0:
+        return b, "Resultado: La raiz se encuentra en el extremo derecho."
+    
+    # Comprobar que exista un cambio de signo
+    if (f_a > 0) == (f_b > 0):
+        return -1, "Error: El intervalo no presenta un cambio de signo."
 
     while True:
         c = (a + b)/2
 
+        # Evitar que el intervalo deje de reducirse
+        if c == a or c == b:
+            salida += "Error: Se alcanzo el limite de precision numerica.\n"
+            break
+
+        # Evaluar la funcion en el punto medio
+        try:
+            f_c = evaluar(c)
+
+        except Exception:
+            salida += "Error: No fue posible evaluar la funcion en el punto medio.\n"
+            break
+
         # Nota: Reemplazar la funcion fija por una dinamica con ayuda de SymPy
-        f_a = expr.subs('x', a)
-        f_b = expr.subs('x', b)
-        f_c = expr.subs('x', c)
+        f_a = evaluar(a)
+        f_b = evaluar(b)
         error = abs(f_c)
 
         salida += f"----------------------------------------\n"
@@ -34,10 +102,18 @@ def biseccionar(f, a, b, error_max):
 
         if (f_a > 0) == (f_c > 0):
             a = c
-        else:
+        elif (f_b > 0) == (f_c > 0):
             b = c
+        else:
+            salida += f"Error: No hay cambio de signo en la iteracion {i}\n"
+            salida += "El intervalo introducido no es valido para el metodo de biseccion\n"
+            return -1, salida
 
         if(error <= error_max):
+            break
+        # Comprobar si se encontro la raiz exacta
+        if f_c == 0:
+            salida += "Se encontro una raiz exacta.\n"
             break
 
         i += 1
@@ -49,6 +125,9 @@ def biseccionar(f, a, b, error_max):
     return c, salida
 
 
-resultado, salida = biseccionar("(x**4) + (-5 * x**3) + (0.5 * x**2) + (-11 * x) + (10)",5.1, 5.3, 0.0001)
+if __name__ == "__main__":
+    resultado, salida = biseccionar("(x**4) + (-5 * x**3) + (0.5 * x**2) + (-11 * x) + (10)",5.1, 5.3, 0.0001)
+    print(salida)
 
-print(salida)
+    resultado, salida = biseccionar("(x**4) + (-5 * x**3) + (0.5 * x**2) + (-11 * x) + (10)",5.3, 5.1, 0.0001)
+    print(salida)
