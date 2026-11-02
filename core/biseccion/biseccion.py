@@ -1,5 +1,5 @@
-import math
 import sympy as sp
+from math import isfinite
 
 def biseccionar(f, a, b, error_max):
     c = 0.0
@@ -41,7 +41,7 @@ def biseccionar(f, a, b, error_max):
         resultado = float(resultado)
 
         # Comprobar que el resultado sea finito
-        if not math.isfinite(resultado):
+        if not isfinite(resultado):
             raise ValueError("La funcion produce un resultado no finito.")
         
         return resultado
