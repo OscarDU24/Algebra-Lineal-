@@ -328,12 +328,14 @@ función, los extremos y la tolerancia. Su callback `calcular` invoca
 la comparación con SciPy. `borrar` limpia los campos.
 
 [`core/ui/vista_errores.py`](../core/ui/vista_errores.py) organiza las
-herramientas en cuatro pestañas:
+herramientas en cinco pestañas:
 
-1. Errores y propagación.
-2. Truncamiento y redondeo.
-3. Punto flotante.
-4. Verificación de matrices con Gauss-Jordan.
+1. **Errores:** valor aproximado y valor exacto.
+2. **Propagación:** función, punto de evaluación \(x\) e incertidumbre
+   \(\Delta x\).
+3. **Truncamiento y redondeo.**
+4. **Punto flotante.**
+5. **Gauss-Jordan:** verificación de inversas.
 
 Los callbacks `calcular_errores`, `calcular_propagacion`,
 `calcular_redondeo`, `demostrar_float` y `calcular_verificacion` enlazan los

@@ -34,11 +34,13 @@ class VistaErrores(ctk.CTkFrame):
 
         self.pestanas = ctk.CTkTabview(self)
         self.pestanas.pack(fill="both", expand=True, padx=15, pady=(0, 15))
-        self.pestana_calculo = self.pestanas.add("Errores y propagación")
+        self.pestana_errores = self.pestanas.add("Errores")
+        self.pestana_propagacion = self.pestanas.add("Propagación")
         self.pestana_redondeo = self.pestanas.add("Truncamiento y redondeo")
         self.pestana_float = self.pestanas.add("Punto flotante")
         self.pestana_verificacion = self.pestanas.add("Gauss-Jordan")
-        self._crear_pestana_calculo()
+        self._crear_pestana_errores()
+        self._crear_pestana_propagacion()
         self._crear_pestana_redondeo()
         self._crear_pestana_float()
         self._crear_pestana_verificacion()
@@ -53,39 +55,57 @@ class VistaErrores(ctk.CTkFrame):
         salida.pack(fill="both", expand=True, padx=8, pady=8)
         return salida
 
-    def _crear_pestana_calculo(self):
-        panel = ctk.CTkFrame(self.pestana_calculo, **estilo_panel_contenedor())
+    def _crear_pestana_errores(self):
+        panel = ctk.CTkFrame(self.pestana_errores, **estilo_panel_contenedor())
         panel.pack(fill="x", padx=6, pady=6)
         self._crear_campo(panel, "Valor aproximado", "aproximado", "3.14", 0, 0)
         self._crear_campo(panel, "Valor exacto", "exacto", "3.14159265", 0, 2)
 
-        ctk.CTkLabel(
-            panel,
-            text="Función para propagación f(x)",
-            text_color=TEXTO_CLARO,
-        ).grid(row=1, column=0, padx=8, pady=(8, 2), sticky="w")
-        self.campo_funcion = ctk.CTkEntry(panel, width=300)
-        self.campo_funcion.insert(0, "x**2")
-        self.campo_funcion.grid(row=2, column=0, columnspan=2, padx=8, pady=(0, 8), sticky="ew")
-        self.campo_x = self._crear_campo(panel, "x", "x", "2", 1, 2)
-        self.campo_delta_x = self._crear_campo(panel, "Δx", "delta_x", "0.01", 1, 4)
-
-        botones = ctk.CTkFrame(self.pestana_calculo, fg_color="transparent")
-        botones.pack(fill="x", padx=6, pady=4)
+        acciones = ctk.CTkFrame(self.pestana_errores, fg_color="transparent")
+        acciones.pack(fill="x", padx=6, pady=4)
         ctk.CTkButton(
-            botones,
+            acciones,
             text="Calcular errores",
             command=self.calcular_errores,
             **estilo_boton_principal(),
-        ).pack(side="left", padx=(0, 8))
+        ).pack(side="left")
+        self.salida_errores = self._crear_salida(self.pestana_errores)
+        self._mostrar(
+            self.salida_errores,
+            "Ingrese un valor aproximado y uno exacto para calcular sus errores.",
+        )
+
+    def _crear_pestana_propagacion(self):
+        panel = ctk.CTkFrame(self.pestana_propagacion, **estilo_panel_contenedor())
+        panel.pack(fill="x", padx=6, pady=6)
+        ctk.CTkLabel(
+            panel,
+            text="Función f(x)",
+            text_color=TEXTO_CLARO,
+        ).grid(row=0, column=0, padx=8, pady=(8, 2), sticky="w")
+        self.campo_funcion = ctk.CTkEntry(panel, width=300)
+        self.campo_funcion.insert(0, "x**2")
+        self.campo_funcion.grid(
+            row=1, column=0, columnspan=2, padx=8, pady=(0, 8), sticky="ew"
+        )
+        self.campo_x = self._crear_campo(panel, "x", "x", "2", 1, 0)
+        self.campo_delta_x = self._crear_campo(
+            panel, "Δx", "delta_x", "0.01", 1, 2
+        )
+
+        acciones = ctk.CTkFrame(self.pestana_propagacion, fg_color="transparent")
+        acciones.pack(fill="x", padx=6, pady=4)
         ctk.CTkButton(
-            botones,
+            acciones,
             text="Propagar error",
             command=self.calcular_propagacion,
-            **estilo_boton_secundario(),
+            **estilo_boton_principal(),
         ).pack(side="left")
-        self.salida_calculo = self._crear_salida(self.pestana_calculo)
-        self._mostrar(self.salida_calculo, "Compare los valores o estime Δy ≈ f'(x)·Δx.")
+        self.salida_propagacion = self._crear_salida(self.pestana_propagacion)
+        self._mostrar(
+            self.salida_propagacion,
+            "Ingrese f(x), x y Δx para estimar la propagación del error.",
+        )
 
     def _crear_pestana_redondeo(self):
         panel = ctk.CTkFrame(self.pestana_redondeo, **estilo_panel_contenedor())
@@ -116,7 +136,10 @@ class VistaErrores(ctk.CTkFrame):
             **estilo_boton_principal(),
         ).pack(anchor="w", padx=10, pady=(0, 10))
         self.salida_float = self._crear_salida(self.pestana_float, 260)
-        self.demostrar_float()
+        self._mostrar(
+            self.salida_float,
+            "Presione «Ejecutar demostración» para ver los resultados de punto flotante.",
+        )
 
     def _crear_pestana_verificacion(self):
         panel = ctk.CTkFrame(self.pestana_verificacion, **estilo_panel_contenedor())
@@ -223,7 +246,7 @@ class VistaErrores(ctk.CTkFrame):
             )
         except (ValueError, ArithmeticError) as error:
             texto = f"ERROR: {error}"
-        self._mostrar(self.salida_calculo, texto)
+        self._mostrar(self.salida_errores, texto)
 
     def calcular_propagacion(self):
         try:
@@ -241,7 +264,7 @@ class VistaErrores(ctk.CTkFrame):
             )
         except (ValueError, ArithmeticError) as error:
             texto = f"ERROR: {error}"
-        self._mostrar(self.salida_calculo, texto)
+        self._mostrar(self.salida_propagacion, texto)
 
     def calcular_redondeo(self):
         try:
