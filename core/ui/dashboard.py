@@ -111,11 +111,17 @@ class Dashboard:
         self.crear_tarjeta(1, 1, "Evaluación de Límites", self.abrir_limites, "LimitesICON.png")
         self.crear_tarjeta(1, 2, "Sistemas numéricos", self.abrir_sistemas_numericos, "SisNumICON.png")
         self.crear_tarjeta(
-            2,
-            1,
+            2, 0,
             "Determinantes y Factorización LU",
             self.abrir_determinantes,
             "DeterminantesICON.png",
+        )
+        self.crear_tarjeta(
+            2,
+            1,
+            "Métodos Numéricos",
+            self.abrir_metodos_numericos,
+            "metNumericosICON.png",
         )
 
         # ==========================================
@@ -452,6 +458,12 @@ class Dashboard:
         print("Abriendo módulo de Sistemas Numéricos...")
         from core.ui.vista_numerica import VistaSistemasNumericos
         self._abrir_ventana(VistaSistemasNumericos)
+
+    def abrir_metodos_numericos(self):
+        self.lbl_estado.config(text="Módulo activo: Métodos Numéricos")
+        print("Abriendo módulo de Métodos Numéricos...")
+        from core.ui.vista_metodos_numericos import VistaMetodosNumericos
+        self._abrir_ventana(VistaMetodosNumericos)
 
     def abrir_determinantes(self):
         self.lbl_estado.config(text="Módulo activo: Determinantes y Factorización LU")
