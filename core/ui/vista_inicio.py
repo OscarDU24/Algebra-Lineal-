@@ -805,6 +805,7 @@ class VistaInicio:
         if self._wipe_activo:
             return
         self._wipe_activo = True
+        self.audio.reproducir_efecto("interfaces")
         self._animar_wipe(0)
 
     def _animar_wipe(self, paso):
