@@ -1,8 +1,12 @@
 import unittest
 
+import numpy as np
+
 from core.metodos_numericos.biseccion import (
     COLUMNAS_TABLA,
+    analizar_intervalos,
     formatear_tabla,
+    muestrear_funcion,
     resolver_biseccion,
 )
 from core.metodos_numericos.operaciones_errores import (
@@ -37,6 +41,18 @@ class BiseccionTests(unittest.TestCase):
         self.assertEqual(resultado["criterio_paro"], "raíz exacta")
         self.assertEqual(resultado["raiz"], 0)
 
+    def test_tolerancia_se_aplica_al_ancho_del_intervalo_no_al_porcentaje(self):
+        resultado = resolver_biseccion(
+            "x - 1000000.1",
+            900000,
+            1100000,
+            1,
+        )
+
+        self.assertEqual(resultado["criterio_paro"], "ancho del intervalo")
+        self.assertEqual(resultado["iteraciones"], resultado["iteraciones_teoricas"])
+        self.assertLessEqual(abs(resultado["raiz"] - 1000000.1), 1)
+
     def test_biseccion_rechaza_intervalo_sin_cambio_de_signo(self):
         with self.assertRaisesRegex(ValueError, "cambio de signo"):
             resolver_biseccion("x**2 + 1", -1, 1, 1e-6)
@@ -59,6 +75,52 @@ class BiseccionTests(unittest.TestCase):
 
         self.assertEqual(resultado["tabla"], [])
         self.assertIn("Iteración", formatear_tabla(resultado))
+
+    def test_detecta_dos_intervalos_para_funcion_con_dos_raices(self):
+        resultado = analizar_intervalos("x**2 - 4", -3, 3, 601)
+
+        self.assertEqual(len(resultado["intervalos"]), 2)
+        self.assertLess(resultado["intervalos"][0]["a"], -2)
+        self.assertGreaterEqual(resultado["intervalos"][0]["b"], -2)
+        self.assertLessEqual(resultado["intervalos"][1]["a"], 2)
+        self.assertGreaterEqual(resultado["intervalos"][1]["b"], 2)
+
+    def test_detecta_raiz_que_coincide_con_punto_muestreado(self):
+        resultado = analizar_intervalos("x", -1, 1, 5)
+
+        self.assertEqual(len(resultado["intervalos"]), 1)
+        intervalo = resultado["intervalos"][0]
+        self.assertIn(intervalo["raiz_muestreada"], (intervalo["a"], intervalo["b"]))
+
+    def test_no_conecta_cambio_de_signo_a_traves_de_punto_indefinido(self):
+        resultado = analizar_intervalos("1/x", -1, 1, 5)
+
+        self.assertEqual(resultado["intervalos"], [])
+
+    def test_muestrea_funcion_para_graficar_sin_seleccionar_intervalos(self):
+        resultado = muestrear_funcion("x", -1, 1, 5)
+
+        self.assertEqual(resultado["x"], [-1.0, -0.5, 0.0, 0.5, 1.0])
+        self.assertEqual(resultado["y"], [-1.0, -0.5, 0.0, 0.5, 1.0])
+        self.assertNotIn("intervalos", resultado)
+
+    def test_muestreo_marca_como_hueco_los_puntos_no_definidos(self):
+        resultado = muestrear_funcion("1/x", -1, 1, 5)
+
+        self.assertTrue(np.isnan(resultado["y"][2]))
+
+    def test_analizar_intervalos_valida_rango_muestras_y_funcion(self):
+        casos = [
+            ("x", 1, 1, 20, "x_min < x_max"),
+            ("x", -1e308, 1e308, 20, "ancho del rango"),
+            ("x", -1, 1, 2, "entre 3 y 5000"),
+            ("__import__('os')", -1, 1, 20, "permitida"),
+            ("sin", -1, 1, 20, "no permitidas"),
+        ]
+        for funcion, minimo, maximo, muestras, mensaje in casos:
+            with self.subTest(funcion=funcion, minimo=minimo, maximo=maximo):
+                with self.assertRaisesRegex(ValueError, mensaje):
+                    analizar_intervalos(funcion, minimo, maximo, muestras)
 
 
 class OperacionesErroresTests(unittest.TestCase):

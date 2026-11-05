@@ -25,6 +25,7 @@ class VistaMetodosNumericos(ctk.CTkToplevel):
         self.minsize(820, 620)
         self.protocol("WM_DELETE_WINDOW", self.al_cerrar)
         self._paneles = {}
+        self._operacion_activa = self.OPERACIONES[0]
         self._crear_interfaz()
 
     def _crear_interfaz(self):
@@ -65,6 +66,7 @@ class VistaMetodosNumericos(ctk.CTkToplevel):
 
                 panel = VistaErrores(self.contenedor)
             self._paneles[operacion] = panel
+        self._operacion_activa = operacion
         self._paneles[operacion].pack(fill="both", expand=True)
 
     def al_cerrar(self):

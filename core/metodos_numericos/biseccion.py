@@ -41,7 +41,60 @@ def _crear_funcion(funcion):
         nodos = list(ast.walk(arbol))
         if len(nodos) > 100:
             raise ValueError("La función es demasiado compleja.")
+        nombres_permitidos = {
+            "x", "pi", "e", "sin", "sen", "cos", "tan", "tg",
+            "sqrt", "raiz", "exp", "log", "ln", "abs",
+        }
+        nombres_funcion = {
+            id(nodo.func)
+            for nodo in nodos
+            if isinstance(nodo, ast.Call) and isinstance(nodo.func, ast.Name)
+        }
+        operaciones_binarias = (ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow)
+        tipos_permitidos = (
+            ast.Expression,
+            ast.Constant,
+            ast.Name,
+            ast.Load,
+            ast.UnaryOp,
+            ast.UAdd,
+            ast.USub,
+            ast.BinOp,
+            *operaciones_binarias,
+            ast.Call,
+        )
         for nodo in nodos:
+            if not isinstance(nodo, tipos_permitidos):
+                raise ValueError("La función contiene una construcción no permitida.")
+            if isinstance(nodo, ast.Constant) and (
+                not isinstance(nodo.value, (int, float))
+                or isinstance(nodo.value, bool)
+            ):
+                raise ValueError("La función solo admite constantes numéricas.")
+            if isinstance(nodo, ast.Name) and (
+                nodo.id not in nombres_permitidos
+                or (
+                    nodo.id not in {"x", "pi", "e"}
+                    and id(nodo) not in nombres_funcion
+                )
+            ):
+                raise ValueError(f"Nombre no permitido en la función: {nodo.id}.")
+            if isinstance(nodo, ast.Call) and (
+                not isinstance(nodo.func, ast.Name)
+                or nodo.func.id not in nombres_permitidos
+                or nodo.func.id in {"x", "pi", "e"}
+                or len(nodo.args) != 1
+                or nodo.keywords
+            ):
+                raise ValueError("La función contiene una llamada no permitida.")
+            if isinstance(nodo, ast.BinOp) and not isinstance(
+                nodo.op, operaciones_binarias
+            ):
+                raise ValueError("La función contiene un operador no permitido.")
+            if isinstance(nodo, ast.UnaryOp) and not isinstance(
+                nodo.op, (ast.UAdd, ast.USub)
+            ):
+                raise ValueError("La función contiene un operador no permitido.")
             if isinstance(nodo, ast.BinOp) and isinstance(nodo.op, ast.Pow) and not (
                 isinstance(nodo.right, ast.Constant)
                 and isinstance(nodo.right.value, (int, float))
@@ -72,6 +125,94 @@ def _crear_funcion(funcion):
     return evaluar
 
 
+def muestrear_funcion(funcion, x_min, x_max, muestras=400):
+    """Devuelve coordenadas para graficar la función en un rango finito."""
+    minimo = _convertir_finito(x_min, "El límite inferior")
+    maximo = _convertir_finito(x_max, "El límite superior")
+    if minimo >= maximo:
+        raise ValueError("El rango de la gráfica debe cumplir x_min < x_max.")
+    if not np.isfinite(maximo - minimo):
+        raise ValueError("El ancho del rango de la gráfica debe ser finito.")
+    if isinstance(muestras, bool) or not isinstance(muestras, int):
+        raise ValueError("La cantidad de muestras debe ser un entero.")
+    if not 3 <= muestras <= 5000:
+        raise ValueError("La cantidad de muestras debe estar entre 3 y 5000.")
+
+    evaluar = _crear_funcion(funcion)
+    puntos = np.linspace(minimo, maximo, muestras)
+    valores = []
+    for punto in puntos:
+        try:
+            valores.append(evaluar(float(punto)))
+        except (ValueError, ArithmeticError, OverflowError):
+            valores.append(None)
+
+    return {
+        "x": puntos.tolist(),
+        "y": [np.nan if valor is None else valor for valor in valores],
+        "muestras": muestras,
+        "rango": (minimo, maximo),
+    }
+
+
+def analizar_intervalos(funcion, x_min, x_max, muestras=400):
+    """Muestrea f(x) y devuelve tramos candidatos con cambio de signo."""
+    datos = muestrear_funcion(funcion, x_min, x_max, muestras)
+    puntos = datos["x"]
+    valores = [None if np.isnan(valor) else valor for valor in datos["y"]]
+    minimo, maximo = datos["rango"]
+    muestras = datos["muestras"]
+
+    candidatos = []
+    raices_muestreadas = {
+        indice for indice, valor in enumerate(valores)
+        if valor == 0
+    }
+
+    for indice in sorted(raices_muestreadas):
+        vecino = indice - 1
+        if vecino < 0 or valores[vecino] is None or valores[vecino] == 0:
+            vecino = indice + 1
+        if vecino >= muestras or valores[vecino] is None or valores[vecino] == 0:
+            continue
+        primero, segundo = sorted((indice, vecino))
+        candidatos.append({
+            "a": float(puntos[primero]),
+            "b": float(puntos[segundo]),
+            "fa": valores[primero],
+            "fb": valores[segundo],
+            "raiz_muestreada": float(puntos[indice]),
+        })
+
+    for indice in range(muestras - 1):
+        valor_izquierdo = valores[indice]
+        valor_derecho = valores[indice + 1]
+        if (
+            valor_izquierdo is None
+            or valor_derecho is None
+            or valor_izquierdo == 0
+            or valor_derecho == 0
+        ):
+            continue
+        if np.signbit(valor_izquierdo) != np.signbit(valor_derecho):
+            candidatos.append({
+                "a": float(puntos[indice]),
+                "b": float(puntos[indice + 1]),
+                "fa": valor_izquierdo,
+                "fb": valor_derecho,
+                "raiz_muestreada": None,
+            })
+
+    candidatos.sort(key=lambda intervalo: intervalo["a"])
+    valores_finitos = [valor for valor in valores if valor is not None]
+    if valores_finitos and all(valor == 0 for valor in valores_finitos):
+        raise ValueError(
+            "La función es cero en todo el rango muestreado; no se detecta una raíz aislada."
+        )
+
+    return {**datos, "intervalos": candidatos}
+
+
 def _iteraciones_teoricas(xl, xu, tolerancia):
     ancho = xu - xl
     if ancho <= tolerancia:
@@ -94,6 +235,8 @@ def resolver_biseccion(funcion, a, b, tolerancia):
         raise ValueError("La tolerancia debe ser mayor que cero.")
     if xl >= xu:
         raise ValueError("El intervalo debe cumplir a < b.")
+    if not np.isfinite(xu - xl):
+        raise ValueError("El ancho del intervalo debe ser finito.")
 
     evaluar = _crear_funcion(funcion)
     f_xl = evaluar(xl)
@@ -141,9 +284,6 @@ def resolver_biseccion(funcion, a, b, tolerancia):
 
         if xu - xl < tol:
             criterio = "ancho del intervalo"
-            break
-        if ea is not None and ea < tol:
-            criterio = "error aproximado porcentual"
             break
         xr_anterior = xr
     else:
