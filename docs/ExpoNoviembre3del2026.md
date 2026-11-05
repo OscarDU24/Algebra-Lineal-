@@ -26,8 +26,8 @@ de cada cálculo se mantienen en módulos específicos.
 ### Idea matemática
 
 El método busca una raíz de \(f(x)=0\) en un intervalo \([a,b]\). Para poder
-comenzar, la función debe estar definida en ambos extremos y tener signos
-opuestos:
+comenzar, la función debe estar definida en un intervalo y presentar valores
+con signos opuestos en sus extremos:
 
 \[
 f(a)f(b)<0.
@@ -69,6 +69,25 @@ exponentes y delega al evaluador la lista de operaciones y funciones
 permitidas. El resultado de cada evaluación debe ser real y finito; si no,
 genera un error explícito.
 
+#### `muestrear_funcion(funcion, x_min, x_max, muestras=400)`
+
+Evalúa la función en puntos equidistantes del rango de exploración y devuelve
+las coordenadas para dibujarla. Los puntos donde la función no está definida se
+representan como huecos para evitar conectar regiones a través de una
+discontinuidad. Esta operación solo prepara datos gráficos: no propone ni
+selecciona extremos para el método.
+
+#### `analizar_intervalos(funcion, x_min, x_max, muestras=400)`
+
+Además de los datos de muestreo, detecta tramos consecutivos con cambio de
+signo y devuelve sus extremos como candidatos para análisis programático. Una
+muestra que coincide exactamente con una raíz también se toma en cuenta. Esta
+función se conserva para el análisis numérico, pero la interfaz actual no
+transfiere sus candidatos a los campos `a` y `b`.
+
+El muestreo **no** demuestra continuidad ni garantiza detectar raíces fuera
+del rango o raíces que toquen el eje sin cambiar de signo.
+
 #### `_iteraciones_teoricas(xl, xu, tolerancia)`
 
 Calcula el número de iteraciones que teóricamente se necesitan para reducir el
@@ -109,9 +128,9 @@ Es la función coordinadora del algoritmo:
    el producto.
 5. Calcula la estimación teórica y ejecuta las iteraciones. En cada paso guarda
    los extremos, el punto medio, sus evaluaciones y el error aproximado.
-6. Detiene el cálculo si encuentra una raíz exacta, si el ancho del intervalo
-   queda por debajo de la tolerancia o si el error porcentual queda por debajo
-   del valor de tolerancia.
+6. Detiene el cálculo si encuentra una raíz exacta o si el ancho del intervalo
+   queda por debajo de la tolerancia. El error porcentual aproximado se reporta
+   en la tabla como información adicional.
 7. Calcula también una raíz con `scipy.optimize.bisect` y devuelve la
    diferencia absoluta entre ambos resultados.
 
@@ -119,13 +138,11 @@ El resultado es un diccionario que incluye la raíz, \(f(x_r)\), el número
 efectivo y teórico de iteraciones, el criterio de paro, la comparación con
 SciPy y las filas de la tabla.
 
-**Nota sobre el criterio porcentual:** en la implementación se compara el
-valor numérico de `Ea (%)` directamente con la tolerancia ingresada, aunque
-`Ea` está expresado en porcentaje y la tolerancia también participa en el
-criterio de ancho del intervalo. Son magnitudes con unidades e
-interpretaciones distintas. Para explicar el resultado con rigor, conviene
-indicar qué criterio detuvo esa ejecución; la estimación teórica está asociada
-al criterio de ancho del intervalo.
+La tolerancia se aplica al ancho del intervalo, una magnitud expresada en las
+mismas unidades que \(x\). `Ea (%)` se conserva en la tabla como indicador de
+la variación relativa entre aproximaciones consecutivas, pero no se compara
+directamente con esa tolerancia porque sus unidades e interpretaciones son
+distintas.
 
 #### `_resultado_extremo(...)`
 
@@ -322,10 +339,16 @@ presenta un `CTkComboBox` con las dos áreas del módulo. Al cambiar la opción,
 se conservan una vez creados, por lo que cambiar de menú no obliga a reconstruir
 las entradas ni descarta los valores.
 
-[`core/ui/vista_biseccion.py`](../core/ui/vista_biseccion.py) recoge la
-función, los extremos y la tolerancia. Su callback `calcular` invoca
-`resolver_biseccion`, muestra los errores de validación y presenta la tabla y
-la comparación con SciPy. `borrar` limpia los campos.
+[`core/ui/vista_biseccion.py`](../core/ui/vista_biseccion.py) solicita la
+función, los extremos manuales `a` y `b`, y la tolerancia. El botón
+**Explorar gráfica** abre
+[`core/ui/vista_grafica_biseccion.py`](../core/ui/vista_grafica_biseccion.py),
+donde se ajusta por separado el rango mínimo y máximo de visualización. Ambas
+ventanas comparten la función, pero el rango de la gráfica no determina ni
+rellena los extremos del cálculo. El usuario inspecciona la curva y escribe
+`a` y `b` explícitamente antes de pulsar **Biseccionar**. La salida presenta la
+raíz, el residuo, la tabla de iteraciones y el contraste con SciPy. El botón
+**Borrar** limpia las entradas.
 
 [`core/ui/vista_errores.py`](../core/ui/vista_errores.py) organiza las
 herramientas en cinco pestañas:
@@ -352,8 +375,11 @@ restaura el Dashboard.
 
 1. **Presentar la organización:** una tarjeta y una ventana para las
    herramientas de métodos numéricos, con un selector para cambiar de área.
-2. **Explicar bisección:** cambio de signo, punto medio, reducción del
-   intervalo, tolerancia, tabla de iteraciones y contraste con SciPy.
+2. **Explicar bisección:** ingresar una función, abrir el explorador gráfico y
+   ajustar su rango visual. A partir de la curva, elegir y escribir
+   manualmente `a` y `b`; después observar el punto medio, la reducción del
+   intervalo, la tabla y el contraste con SciPy. La gráfica orienta, pero no
+   decide los extremos ni garantiza continuidad.
 3. **Distinguir los errores:** absoluto mide diferencia en las unidades
    originales; relativo y porcentual comparan la diferencia con el valor de
    referencia.
