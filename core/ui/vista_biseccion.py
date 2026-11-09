@@ -13,6 +13,8 @@ from core.ui.tema import (
     estilo_consola_resultado,
     estilo_panel_contenedor,
 )
+from core.ui.teclado_matematico import abrir_teclado_matematico
+from core.ui.teclado_matematico import cerrar_teclado_matematico
 
 
 class VistaBiseccion(ctk.CTkFrame):
@@ -36,8 +38,9 @@ class VistaBiseccion(ctk.CTkFrame):
         ctk.CTkLabel(
             encabezado,
             text=(
-                "Explore f(x) en una gráfica independiente y escriba "
-                "manualmente el intervalo [a, b] para resolver."
+                "Use notación algebraica (por ejemplo, 2x o x^2), explore "
+                "f(x) en la gráfica independiente y escriba manualmente "
+                "el intervalo [a, b]."
             ),
             text_color=TEXTO_CLARO,
             wraplength=950,
@@ -51,9 +54,9 @@ class VistaBiseccion(ctk.CTkFrame):
         entradas.grid_columnconfigure(3, weight=1)
 
         campos = (
-            ("Función f(x)", "funcion", "x**3 - x - 2", 300),
-            ("Valor de a", "a", "", 130),
-            ("Valor de b", "b", "", 130),
+            ("Función f(x)", "funcion", "x² - x - 1", 300),
+            ("Valor de a", "a", "1", 130),
+            ("Valor de b", "b", "2", 130),
             ("Tolerancia en x", "tolerancia", "1e-6", 140),
         )
         self.entradas = {}
@@ -77,6 +80,14 @@ class VistaBiseccion(ctk.CTkFrame):
 
         acciones = ctk.CTkFrame(self, fg_color="transparent")
         acciones.pack(fill="x", padx=15, pady=4)
+        ctk.CTkButton(
+            acciones,
+            text="Teclado matemático",
+            command=lambda: abrir_teclado_matematico(
+                self, self.entradas["funcion"]
+            ),
+            **estilo_boton_secundario(),
+        ).pack(side="left", padx=(0, 8))
         ctk.CTkButton(
             acciones,
             text="Explorar gráfica",
@@ -160,11 +171,18 @@ class VistaBiseccion(ctk.CTkFrame):
             f"Criterio de paro: {resultado['criterio_paro']}",
             "",
             biseccion.formatear_tabla(resultado),
-            "",
-            f"Raíz con scipy.optimize.bisect: {resultado['raiz_scipy']:.12g}",
-            f"Diferencia absoluta: {resultado['diferencia_absoluta']:.6g}",
         ]
         self._mostrar("\n".join(salida))
+
+    def al_ocultar(self):
+        cerrar_teclado_matematico(self)
+        if self._ventana_grafica is not None:
+            try:
+                if self._ventana_grafica.winfo_exists():
+                    self._ventana_grafica.al_cerrar()
+            except TclError:
+                pass
+            self._ventana_grafica = None
 
     def borrar(self):
         self.funcion_var.set("")

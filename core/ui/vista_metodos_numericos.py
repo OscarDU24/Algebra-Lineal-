@@ -10,9 +10,13 @@ from core.ui.tema import (
 
 
 class VistaMetodosNumericos(ctk.CTkToplevel):
-    """Agrupa bisección y análisis de errores bajo un selector de operación."""
+    """Agrupa los métodos numéricos disponibles bajo un selector."""
 
-    OPERACIONES = ("Método de Bisección", "Análisis de Errores")
+    OPERACIONES = (
+        "Método de Bisección",
+        "Método Regula Falsi",
+        "Análisis de Errores",
+    )
 
     def __init__(self, master):
         super().__init__(master)
@@ -54,6 +58,11 @@ class VistaMetodosNumericos(ctk.CTkToplevel):
         if operacion not in self.OPERACIONES:
             raise ValueError(f"Operación de métodos numéricos no reconocida: {operacion}")
 
+        if operacion != self._operacion_activa:
+            panel_activo = self._paneles.get(self._operacion_activa)
+            cerrar_auxiliares = getattr(panel_activo, "al_ocultar", None)
+            if cerrar_auxiliares is not None:
+                cerrar_auxiliares()
         for panel in self._paneles.values():
             panel.pack_forget()
         if operacion not in self._paneles:
@@ -61,6 +70,10 @@ class VistaMetodosNumericos(ctk.CTkToplevel):
                 from core.ui.vista_biseccion import VistaBiseccion
 
                 panel = VistaBiseccion(self.contenedor)
+            elif operacion == self.OPERACIONES[1]:
+                from core.ui.vista_regla_falsa import VistaReglaFalsa
+
+                panel = VistaReglaFalsa(self.contenedor)
             else:
                 from core.ui.vista_errores import VistaErrores
 
@@ -70,5 +83,9 @@ class VistaMetodosNumericos(ctk.CTkToplevel):
         self._paneles[operacion].pack(fill="both", expand=True)
 
     def al_cerrar(self):
+        for panel in self._paneles.values():
+            cerrar_auxiliares = getattr(panel, "al_ocultar", None)
+            if cerrar_auxiliares is not None:
+                cerrar_auxiliares()
         self.master_dashboard.deiconify()
         self.destroy()
