@@ -12,6 +12,7 @@ from core.ui.tema import (
     estilo_consola_resultado,
     estilo_panel_contenedor,
 )
+from core.ui.teclado_matematico import abrir_teclado_matematico
 
 
 class VistaErrores(ctk.CTkFrame):
@@ -80,13 +81,24 @@ class VistaErrores(ctk.CTkFrame):
         panel.pack(fill="x", padx=6, pady=6)
         ctk.CTkLabel(
             panel,
-            text="Función f(x)",
+            text="Función f(x) · acepta 2x y x^2",
             text_color=TEXTO_CLARO,
         ).grid(row=0, column=0, padx=8, pady=(8, 2), sticky="w")
         self.campo_funcion = ctk.CTkEntry(panel, width=300)
-        self.campo_funcion.insert(0, "x**2")
+        self.campo_funcion.insert(0, "x^2")
         self.campo_funcion.grid(
-            row=1, column=0, columnspan=2, padx=8, pady=(0, 8), sticky="ew"
+            row=1, column=0, columnspan=4, padx=8, pady=(0, 4), sticky="ew"
+        )
+        self.boton_teclado_funcion = ctk.CTkButton(
+            panel,
+            text="Teclado matemático",
+            command=lambda: abrir_teclado_matematico(
+                self, self.campo_funcion
+            ),
+            **estilo_boton_secundario(),
+        )
+        self.boton_teclado_funcion.grid(
+            row=2, column=0, padx=8, pady=(0, 8), sticky="w"
         )
         self.campo_x = self._crear_campo(panel, "x", "x", "2", 1, 0)
         self.campo_delta_x = self._crear_campo(

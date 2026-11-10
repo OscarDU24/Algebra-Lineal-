@@ -1,14 +1,14 @@
 import unittest
 
-import numpy as np
-
 from core.metodos_numericos.biseccion import (
     COLUMNAS_TABLA,
+    _crear_funcion,
     analizar_intervalos,
     formatear_tabla,
     muestrear_funcion,
     resolver_biseccion,
 )
+from core.metodos_numericos import regla_falsa
 from core.metodos_numericos.operaciones_errores import (
     calcular_errores,
     demostrar_punto_flotante,
@@ -23,14 +23,45 @@ from core.metodos_numericos.verificacion_matriz import (
 
 
 class BiseccionTests(unittest.TestCase):
-    def test_biseccion_retorna_tabla_con_columnas_requeridas_y_contraste_scipy(self):
+    def test_biseccion_admite_potencias_y_multiplicacion_implicita(self):
+        resultado = resolver_biseccion("x^2 - 4", 1, 3, 1e-8)
+
+        self.assertAlmostEqual(resultado["raiz"], 2)
+
+    def test_evaluador_admite_productos_entre_parentesis_y_simbolos_visuales(self):
+        evaluar = _crear_funcion("(x + 1)(x - 1) + 2×x − π")
+
+        self.assertAlmostEqual(evaluar(2), 7 - 3.141592653589793)
+
+    def test_evaluador_admite_raiz_escrita_con_simbolo(self):
+        evaluar = _crear_funcion("√(x^2)")
+
+        self.assertAlmostEqual(evaluar(-3), 3)
+
+    def test_evaluador_admite_exponentes_unicode_visuales(self):
+        evaluar = _crear_funcion("x² + x⁽³⁺¹⁾")
+
+        self.assertAlmostEqual(evaluar(2), 20)
+
+    def test_evaluador_admite_exponente_negativo_unicode(self):
+        evaluar = _crear_funcion("e⁻ᵡ")
+
+        self.assertAlmostEqual(evaluar(1), 0.36787944117144233, places=6)
+
+    def test_evaluador_admite_exponencial_e_elevado_a_x(self):
+        evaluar = _crear_funcion("1/(e^x) - x")
+
+        self.assertAlmostEqual(evaluar(0), 1)
+        self.assertAlmostEqual(evaluar(1), (1 / 2.718281828459045) - 1)
+
+    def test_biseccion_retorna_raiz_y_tabla_con_columnas_requeridas(self):
         resultado = resolver_biseccion("x**3 - x - 2", 1, 2, 1e-8)
 
         self.assertEqual(resultado["columnas"], COLUMNAS_TABLA)
         self.assertGreater(len(resultado["tabla"]), 0)
         self.assertTrue(all(len(fila) == 8 for fila in resultado["tabla"]))
         self.assertAlmostEqual(resultado["raiz"], 1.5213797, places=6)
-        self.assertLess(resultado["diferencia_absoluta"], 1e-7)
+        self.assertLess(abs(resultado["f_raiz"]), 1e-7)
         self.assertIn("Iteración", formatear_tabla(resultado))
         self.assertIn("Ea (%)", formatear_tabla(resultado))
 
@@ -107,7 +138,7 @@ class BiseccionTests(unittest.TestCase):
     def test_muestreo_marca_como_hueco_los_puntos_no_definidos(self):
         resultado = muestrear_funcion("1/x", -1, 1, 5)
 
-        self.assertTrue(np.isnan(resultado["y"][2]))
+        self.assertIsNone(resultado["y"][2])
 
     def test_analizar_intervalos_valida_rango_muestras_y_funcion(self):
         casos = [
@@ -121,6 +152,92 @@ class BiseccionTests(unittest.TestCase):
             with self.subTest(funcion=funcion, minimo=minimo, maximo=maximo):
                 with self.assertRaisesRegex(ValueError, mensaje):
                     analizar_intervalos(funcion, minimo, maximo, muestras)
+
+
+class ReglaFalsaTests(unittest.TestCase):
+    def test_interpolacion_no_desborda_con_valores_de_funcion_grandes(self):
+        punto = regla_falsa.calcular_punto_c(-1, 1, 1e308, -1e308)
+
+        self.assertEqual(punto, 0)
+
+    def test_resuelve_ejemplo_de_elevado_a_menos_x(self):
+        resultado = regla_falsa.resolver_regla_falsa(
+            "1/(e^x) - x",
+            0,
+            1,
+            0.00001,
+            100,
+        )
+
+        self.assertTrue(resultado["convergio"])
+        self.assertAlmostEqual(resultado["raiz"], 0.56714329, places=7)
+        self.assertEqual(
+            resultado["criterio_paro"],
+            "error relativo aproximado porcentual",
+        )
+        self.assertTrue(
+            all(len(fila) == len(regla_falsa.COLUMNAS_TABLA) for fila in resultado["tabla"])
+        )
+        self.assertIn("Ea (%)", regla_falsa.formatear_tabla(resultado))
+
+    def test_retorna_raiz_exacta_si_esta_en_un_extremo(self):
+        resultado = regla_falsa.resolver_regla_falsa("x - 2", 2, 4, 1e-5, 50)
+
+        self.assertTrue(resultado["convergio"])
+        self.assertEqual(resultado["raiz"], 2)
+        self.assertEqual(resultado["iteraciones"], 0)
+        self.assertEqual(resultado["estado"], "Raíz exacta en a")
+
+    def test_rechaza_intervalo_sin_cambio_de_signo(self):
+        with self.assertRaisesRegex(ValueError, "cambio de signo"):
+            regla_falsa.resolver_regla_falsa("x^2 + 1", -1, 1, 1e-5, 50)
+
+    def test_no_presenta_ultima_aproximacion_como_raiz_si_no_converge(self):
+        resultado = regla_falsa.resolver_regla_falsa(
+            "x^10 - 1",
+            0,
+            2,
+            0.00001,
+            100,
+        )
+
+        self.assertFalse(resultado["convergio"])
+        self.assertIsNone(resultado["raiz"])
+        self.assertIsNotNone(resultado["aproximacion"])
+        self.assertEqual(resultado["estado"], "Máximo de iteraciones alcanzado")
+
+    def test_valida_extremos_tolerancia_maximo_y_funcion(self):
+        casos = [
+            ("x", 2, 1, 1e-5, 10, "a < b"),
+            ("x", 1, 2, 0, 10, "mayor que cero"),
+            ("x", float("inf"), 2, 1e-5, 10, "finito"),
+            ("x", 1, 2, 1e-5, 0, "entre 1 y 100000"),
+            ("x", 1, 2, 1e-5, 2.5, "número entero"),
+            ("__import__('os')", 1, 2, 1e-5, 10, "permitidas"),
+        ]
+        for funcion, a, b, tol, max_iteraciones, mensaje in casos:
+            with self.subTest(funcion=funcion, max_iteraciones=max_iteraciones):
+                with self.assertRaisesRegex(ValueError, mensaje):
+                    regla_falsa.resolver_regla_falsa(
+                        funcion, a, b, tol, max_iteraciones
+                    )
+
+    def test_maximo_de_iteraciones_vacio_tiene_mensaje_claro(self):
+        with self.assertRaisesRegex(ValueError, "Ingrese el máximo de iteraciones"):
+            regla_falsa.resolver_regla_falsa("x", -1, 1, 1e-5, "")
+
+    def test_maximo_de_iteraciones_no_entero_tiene_mensaje_claro(self):
+        with self.assertRaisesRegex(ValueError, "debe ser un número entero"):
+            regla_falsa.resolver_regla_falsa("x", -1, 1, 1e-5, "muchas")
+
+    def test_tolerancia_vacia_tiene_mensaje_claro(self):
+        with self.assertRaisesRegex(ValueError, "tolerancia porcentual"):
+            regla_falsa.resolver_regla_falsa("x", -1, 1, "", 100)
+
+    def test_maximo_de_iteraciones_acepta_cadena_entera(self):
+        resultado = regla_falsa.resolver_regla_falsa("x", -1, 1, 1e-5, "20")
+
+        self.assertEqual(resultado["estado"], "Raíz exacta encontrada")
 
 
 class OperacionesErroresTests(unittest.TestCase):

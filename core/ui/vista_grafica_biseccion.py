@@ -9,7 +9,12 @@ from core.ui.tema import (
     FONDO_CALCULADORA,
     TEXTO_CLARO,
     estilo_boton_principal,
+    estilo_boton_secundario,
     estilo_panel_contenedor,
+)
+from core.ui.teclado_matematico import (
+    abrir_teclado_matematico,
+    cerrar_teclado_matematico,
 )
 
 
@@ -19,11 +24,11 @@ class VistaGraficaBiseccion(ctk.CTkToplevel):
     def __init__(self, master, funcion_var):
         super().__init__(master)
         self.configure(fg_color=FONDO_CALCULADORA)
-        self.title("Explorador gráfico · Bisección")
+        self.title("Explorador gráfico · Métodos Numéricos")
         self.geometry("900x650")
         self.minsize(700, 500)
         self.funcion_var = funcion_var
-        self.protocol("WM_DELETE_WINDOW", self.destroy)
+        self.protocol("WM_DELETE_WINDOW", self.al_cerrar)
         self._crear_interfaz()
         self.graficar()
 
@@ -33,7 +38,7 @@ class VistaGraficaBiseccion(ctk.CTkToplevel):
 
         ctk.CTkLabel(
             controles,
-            text="Función f(x)",
+            text="Función f(x) · acepta 2x y x^2",
             text_color=TEXTO_CLARO,
         ).grid(row=0, column=0, padx=8, pady=(8, 2), sticky="w")
         self.entrada_funcion = ctk.CTkEntry(
@@ -43,6 +48,17 @@ class VistaGraficaBiseccion(ctk.CTkToplevel):
         )
         self.entrada_funcion.grid(
             row=1, column=0, padx=8, pady=(0, 8), sticky="ew"
+        )
+        self.boton_teclado = ctk.CTkButton(
+            controles,
+            text="Teclado matemático",
+            command=lambda: abrir_teclado_matematico(
+                self, self.entrada_funcion
+            ),
+            **estilo_boton_secundario(),
+        )
+        self.boton_teclado.grid(
+            row=2, column=0, padx=8, pady=(0, 8), sticky="w"
         )
 
         for columna, etiqueta, valor, clave in (
@@ -72,7 +88,7 @@ class VistaGraficaBiseccion(ctk.CTkToplevel):
             **estilo_boton_principal(),
         )
         self.boton_graficar.grid(
-            row=1, column=3, padx=8, pady=(0, 8), sticky="ew"
+            row=2, column=3, padx=8, pady=(0, 8), sticky="ew"
         )
 
         panel_grafica = ctk.CTkFrame(self, **estilo_panel_contenedor())
@@ -93,7 +109,7 @@ class VistaGraficaBiseccion(ctk.CTkToplevel):
             self,
             text=(
                 "Use la gráfica para orientarse; escriba manualmente los "
-                "extremos a y b en la ventana de Bisección."
+                "extremos a y b en el método numérico activo."
             ),
             text_color=TEXTO_CLARO,
             wraplength=850,
@@ -140,10 +156,14 @@ class VistaGraficaBiseccion(ctk.CTkToplevel):
             text=(
                 f"Gráfica actualizada con {datos['muestras']} muestras en "
                 f"[{datos['rango'][0]:g}, {datos['rango'][1]:g}]. "
-                "Introduzca manualmente a y b en Bisección; la gráfica no "
+                "Introduzca manualmente a y b en el método activo; la gráfica no "
                 "los selecciona automáticamente."
             )
         )
+
+    def al_cerrar(self):
+        cerrar_teclado_matematico(self)
+        self.destroy()
 
     def _estilizar_ejes(self):
         self.ejes.set_facecolor("#111111")
