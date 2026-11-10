@@ -1,11 +1,9 @@
-"""Método de bisección con evaluación AST segura y contraste SciPy."""
+"""Método de bisección con evaluación AST segura."""
 
 import ast
 
-import numpy as np
-from scipy.optimize import bisect as scipy_bisect
-
 from core.limites.operaciones_limites import _crear_evaluador
+from core.metodos_numericos.expresiones import normalizar_expresion
 
 COLUMNAS_TABLA = (
     "Iteración",
@@ -19,6 +17,10 @@ COLUMNAS_TABLA = (
 )
 
 
+def _es_finito(valor):
+    return valor == valor and valor not in (float("inf"), float("-inf"))
+
+
 def _convertir_finito(valor, nombre):
     if isinstance(valor, bool):
         raise ValueError(f"{nombre} debe ser un número real finito.")
@@ -26,7 +28,7 @@ def _convertir_finito(valor, nombre):
         resultado = float(valor)
     except (TypeError, ValueError, OverflowError) as error:
         raise ValueError(f"{nombre} debe ser un número real finito.") from error
-    if not np.isfinite(resultado):
+    if not _es_finito(resultado):
         raise ValueError(f"{nombre} debe ser un número real finito.")
     return resultado
 
@@ -37,7 +39,8 @@ def _crear_funcion(funcion):
     if len(funcion) > 300:
         raise ValueError("La función excede el límite de 300 caracteres.")
     try:
-        arbol = ast.parse(funcion.replace("^", "**"), mode="eval")
+        expresion = normalizar_expresion(funcion)
+        arbol = ast.parse(expresion, mode="eval")
         nodos = list(ast.walk(arbol))
         if len(nodos) > 100:
             raise ValueError("La función es demasiado compleja.")
@@ -96,15 +99,18 @@ def _crear_funcion(funcion):
             ):
                 raise ValueError("La función contiene un operador no permitido.")
             if isinstance(nodo, ast.BinOp) and isinstance(nodo.op, ast.Pow) and not (
-                isinstance(nodo.right, ast.Constant)
-                and isinstance(nodo.right.value, (int, float))
-                and not isinstance(nodo.right.value, bool)
-                and abs(nodo.right.value) <= 1000
+                (
+                    isinstance(nodo.right, ast.Constant)
+                    and isinstance(nodo.right.value, (int, float))
+                    and not isinstance(nodo.right.value, bool)
+                    and abs(nodo.right.value) <= 1000
+                )
+                or _exponente_variable_permitido(nodo.right)
             ):
                 raise ValueError(
                     "Los exponentes deben ser constantes con valor absoluto ≤ 1000."
                 )
-        evaluador = _crear_evaluador(funcion)
+        evaluador = _crear_evaluador(expresion)
     except (SyntaxError, TypeError, ValueError, ZeroDivisionError) as error:
         raise ValueError(
             "La función contiene sintaxis u operaciones no permitidas."
@@ -118,11 +124,32 @@ def _crear_funcion(funcion):
             resultado = float(resultado)
         except (ArithmeticError, TypeError, ValueError, OverflowError) as error:
             raise ValueError(f"No se pudo evaluar f({x:g}): {error}") from error
-        if not np.isfinite(resultado):
+        if not _es_finito(resultado):
             raise ValueError(f"f({x:g}) produjo un resultado no finito.")
         return resultado
 
     return evaluar
+
+
+def _exponente_variable_permitido(nodo):
+    if isinstance(nodo, ast.Constant):
+        return (
+            isinstance(nodo.value, (int, float))
+            and not isinstance(nodo.value, bool)
+            and abs(nodo.value) <= 1000
+        )
+    if isinstance(nodo, ast.Name):
+        return nodo.id in {"x", "e", "pi"}
+    if isinstance(nodo, ast.UnaryOp):
+        return isinstance(nodo.op, (ast.UAdd, ast.USub)) and (
+            _exponente_variable_permitido(nodo.operand)
+        )
+    if isinstance(nodo, ast.BinOp):
+        return isinstance(nodo.op, (ast.Add, ast.Sub, ast.Mult, ast.Div)) and (
+            _exponente_variable_permitido(nodo.left)
+            and _exponente_variable_permitido(nodo.right)
+        )
+    return False
 
 
 def muestrear_funcion(funcion, x_min, x_max, muestras=400):
@@ -131,7 +158,7 @@ def muestrear_funcion(funcion, x_min, x_max, muestras=400):
     maximo = _convertir_finito(x_max, "El límite superior")
     if minimo >= maximo:
         raise ValueError("El rango de la gráfica debe cumplir x_min < x_max.")
-    if not np.isfinite(maximo - minimo):
+    if not _es_finito(maximo - minimo):
         raise ValueError("El ancho del rango de la gráfica debe ser finito.")
     if isinstance(muestras, bool) or not isinstance(muestras, int):
         raise ValueError("La cantidad de muestras debe ser un entero.")
@@ -139,7 +166,9 @@ def muestrear_funcion(funcion, x_min, x_max, muestras=400):
         raise ValueError("La cantidad de muestras debe estar entre 3 y 5000.")
 
     evaluar = _crear_funcion(funcion)
-    puntos = np.linspace(minimo, maximo, muestras)
+    paso = (maximo - minimo) / (muestras - 1)
+    puntos = [minimo + paso * indice for indice in range(muestras - 1)]
+    puntos.append(maximo)
     valores = []
     for punto in puntos:
         try:
@@ -148,8 +177,8 @@ def muestrear_funcion(funcion, x_min, x_max, muestras=400):
             valores.append(None)
 
     return {
-        "x": puntos.tolist(),
-        "y": [np.nan if valor is None else valor for valor in valores],
+        "x": puntos,
+        "y": valores,
         "muestras": muestras,
         "rango": (minimo, maximo),
     }
@@ -159,8 +188,7 @@ def analizar_intervalos(funcion, x_min, x_max, muestras=400):
     """Muestrea f(x) y devuelve tramos candidatos con cambio de signo."""
     datos = muestrear_funcion(funcion, x_min, x_max, muestras)
     puntos = datos["x"]
-    valores = [None if np.isnan(valor) else valor for valor in datos["y"]]
-    minimo, maximo = datos["rango"]
+    valores = datos["y"]
     muestras = datos["muestras"]
 
     candidatos = []
@@ -194,7 +222,7 @@ def analizar_intervalos(funcion, x_min, x_max, muestras=400):
             or valor_derecho == 0
         ):
             continue
-        if np.signbit(valor_izquierdo) != np.signbit(valor_derecho):
+        if (valor_izquierdo < 0) != (valor_derecho < 0):
             candidatos.append({
                 "a": float(puntos[indice]),
                 "b": float(puntos[indice + 1]),
@@ -215,9 +243,11 @@ def analizar_intervalos(funcion, x_min, x_max, muestras=400):
 
 def _iteraciones_teoricas(xl, xu, tolerancia):
     ancho = xu - xl
-    if ancho <= tolerancia:
-        return 0
-    return max(0, int(np.ceil(np.log2(ancho) - np.log2(tolerancia))))
+    iteraciones = 0
+    while ancho > tolerancia:
+        ancho /= 2
+        iteraciones += 1
+    return iteraciones
 
 
 def _error_aproximado_porcentual(actual, anterior):
@@ -227,7 +257,7 @@ def _error_aproximado_porcentual(actual, anterior):
 
 
 def resolver_biseccion(funcion, a, b, tolerancia):
-    """Calcula una raíz y retorna tabla estructurada y contraste con SciPy."""
+    """Calcula una raíz y retorna el resultado y la tabla de iteraciones."""
     xl = _convertir_finito(a, "El extremo a")
     xu = _convertir_finito(b, "El extremo b")
     tol = _convertir_finito(tolerancia, "La tolerancia")
@@ -235,17 +265,17 @@ def resolver_biseccion(funcion, a, b, tolerancia):
         raise ValueError("La tolerancia debe ser mayor que cero.")
     if xl >= xu:
         raise ValueError("El intervalo debe cumplir a < b.")
-    if not np.isfinite(xu - xl):
+    if not _es_finito(xu - xl):
         raise ValueError("El ancho del intervalo debe ser finito.")
 
     evaluar = _crear_funcion(funcion)
     f_xl = evaluar(xl)
     f_xu = evaluar(xu)
     if f_xl == 0:
-        return _resultado_extremo(xl, f_xl, funcion, xl, xu, tol)
+        return _resultado_extremo(xl, f_xl, xl, xu, tol)
     if f_xu == 0:
-        return _resultado_extremo(xu, f_xu, funcion, xl, xu, tol)
-    if np.signbit(f_xl) == np.signbit(f_xu):
+        return _resultado_extremo(xu, f_xu, xl, xu, tol)
+    if (f_xl < 0) == (f_xu < 0):
         raise ValueError(
             "El intervalo no presenta cambio de signo: f(a) y f(b) "
             "deben tener signos opuestos."
@@ -277,7 +307,7 @@ def resolver_biseccion(funcion, a, b, tolerancia):
         if f_xr == 0:
             criterio = "raíz exacta"
             break
-        if np.signbit(f_xl) != np.signbit(f_xr):
+        if (f_xl < 0) != (f_xr < 0):
             xu, f_xu = xr, f_xr
         else:
             xl, f_xl = xr, f_xr
@@ -291,26 +321,9 @@ def resolver_biseccion(funcion, a, b, tolerancia):
             f"No se alcanzó la tolerancia tras {max_iteraciones} iteraciones."
         )
 
-    try:
-        raiz_scipy = float(
-            scipy_bisect(
-                evaluar,
-                _convertir_finito(a, "El extremo a"),
-                _convertir_finito(b, "El extremo b"),
-                xtol=tol,
-                maxiter=max(100, max_iteraciones + 5),
-            )
-        )
-    except (RuntimeError, ValueError, ArithmeticError) as error:
-        raise ArithmeticError(
-            f"Bisección propia convergió, pero SciPy no pudo completar el contraste: {error}"
-        ) from error
-
     return {
         "raiz": xr,
         "f_raiz": f_xr,
-        "raiz_scipy": raiz_scipy,
-        "diferencia_absoluta": abs(xr - raiz_scipy),
         "iteraciones": len(tabla),
         "iteraciones_teoricas": teoricas,
         "criterio_paro": criterio,
@@ -319,27 +332,10 @@ def resolver_biseccion(funcion, a, b, tolerancia):
     }
 
 
-def _resultado_extremo(raiz, valor_funcion, funcion, xl, xu, tolerancia):
-    evaluar = _crear_funcion(funcion)
-    try:
-        raiz_scipy = float(
-            scipy_bisect(
-                evaluar,
-                xl,
-                xu,
-                xtol=tolerancia,
-                maxiter=100,
-            )
-        )
-    except (RuntimeError, ValueError, ArithmeticError) as error:
-        raise ArithmeticError(
-            f"No se pudo contrastar con SciPy la raíz del extremo: {error}"
-        ) from error
+def _resultado_extremo(raiz, valor_funcion, xl, xu, tolerancia):
     return {
         "raiz": raiz,
         "f_raiz": valor_funcion,
-        "raiz_scipy": raiz_scipy,
-        "diferencia_absoluta": abs(raiz - raiz_scipy),
         "iteraciones": 0,
         "iteraciones_teoricas": _iteraciones_teoricas(xl, xu, tolerancia),
         "criterio_paro": "raíz en un extremo",
@@ -376,7 +372,7 @@ def formatear_tabla(resultado):
 def _formatear_celda(valor):
     if valor is None:
         return "—"
-    if isinstance(valor, float) and not np.isfinite(valor):
+    if isinstance(valor, float) and not _es_finito(valor):
         return "∞"
     if isinstance(valor, int):
         return str(valor)

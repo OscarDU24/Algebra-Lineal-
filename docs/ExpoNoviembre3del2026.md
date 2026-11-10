@@ -15,9 +15,10 @@ El módulo está separado en tres partes:
 
 La ventana unificada está en
 [`core/ui/vista_metodos_numericos.py`](../core/ui/vista_metodos_numericos.py).
-Su menú desplegable permite alternar entre **Método de Bisección** y
-**Análisis de Errores**, sin abrir ventanas separadas. Los paneles y la lógica
-de cada cálculo se mantienen en módulos específicos.
+Su menú desplegable permite alternar entre **Método de Bisección**,
+**Método Regula Falsi** y **Análisis de Errores**, sin abrir ventanas
+separadas. Los paneles y la lógica de cada cálculo se mantienen en módulos
+específicos.
 
 ---
 
@@ -66,8 +67,10 @@ Prepara la expresión ingresada por el usuario como una función evaluable de
 
 El proceso limita la longitud y complejidad de la expresión, comprueba los
 exponentes y delega al evaluador la lista de operaciones y funciones
-permitidas. El resultado de cada evaluación debe ser real y finito; si no,
-genera un error explícito.
+permitidas. Antes de validar el AST, `normalizar_expresion` convierte
+notaciones como `2x`, `3(x+1)`, `(x+1)(x-1)`, `x^2`, `×`, `÷` y `π` a una
+expresión equivalente con operadores explícitos. El resultado de cada
+evaluación debe ser real y finito; si no, genera un error explícito.
 
 #### `muestrear_funcion(funcion, x_min, x_max, muestras=400)`
 
@@ -123,20 +126,18 @@ Es la función coordinadora del algoritmo:
    sea positiva y que \(a<b\).
 2. Construye el evaluador seguro y calcula \(f(a)\) y \(f(b)\).
 3. Si uno de los extremos ya es una raíz, retorna ese resultado sin iterar.
-4. Comprueba el cambio de signo comparando los bits de signo de NumPy, en vez
-   de multiplicar \(f(a)f(b)\). Esto evita un posible desbordamiento al formar
-   el producto.
+4. Comprueba el cambio de signo comparando si cada evaluación es negativa, en
+   vez de multiplicar \(f(a)f(b)\). Esto evita un posible desbordamiento al
+   formar el producto.
 5. Calcula la estimación teórica y ejecuta las iteraciones. En cada paso guarda
    los extremos, el punto medio, sus evaluaciones y el error aproximado.
 6. Detiene el cálculo si encuentra una raíz exacta o si el ancho del intervalo
    queda por debajo de la tolerancia. El error porcentual aproximado se reporta
    en la tabla como información adicional.
-7. Calcula también una raíz con `scipy.optimize.bisect` y devuelve la
-   diferencia absoluta entre ambos resultados.
+7. Devuelve la raíz, el residuo, las iteraciones y el criterio de paro.
 
 El resultado es un diccionario que incluye la raíz, \(f(x_r)\), el número
-efectivo y teórico de iteraciones, el criterio de paro, la comparación con
-SciPy y las filas de la tabla.
+efectivo y teórico de iteraciones, el criterio de paro y las filas de la tabla.
 
 La tolerancia se aplica al ancho del intervalo, una magnitud expresada en las
 mismas unidades que \(x\). `Ea (%)` se conserva en la tabla como indicador de
@@ -147,9 +148,7 @@ distintas.
 #### `_resultado_extremo(...)`
 
 Forma el resultado especial cuando `a` o `b` ya satisface \(f(x)=0\). Registra
-cero iteraciones, conserva la estimación teórica y también solicita el
-contraste de SciPy. Si SciPy no puede realizar esa comparación, informa el
-fallo en lugar de devolver una comparación ficticia.
+cero iteraciones y conserva la estimación teórica.
 
 #### `formatear_tabla(resultado)` y `_formatear_celda(valor)`
 
@@ -159,20 +158,73 @@ monoespaciados. La tabla conserva estas columnas:
 `Iteración | xl | xu | xr | f(xl) | f(xu) | f(xr) | Ea (%)`
 
 `_formatear_celda` se ocupa de mostrar valores ausentes y no finitos de forma
-legible.
+legible. La gráfica entrega `None` para los puntos donde la función no se
+pudo evaluar, de modo que se representen como huecos sin depender de un
+marcador numérico especial.
 
 ### Ejemplo para la exposición
 
 Para \(f(x)=x^3-x-2\), intervalo \([1,2]\) y tolerancia \(10^{-6}\), el
 resultado observado fue aproximadamente \(1.5213804245\). En ese ejemplo se
-realizaron 20 iteraciones, igual que la estimación teórica, y la raíz de SciPy
-coincidió a la precisión mostrada. La coincidencia sirve como contraste de
-implementaciones, no como demostración de que cualquier cálculo esté libre de
-error.
+realizaron 20 iteraciones, igual que la estimación teórica.
 
 ---
 
-## 2. Cálculo y propagación de errores
+## 2. Método Regula Falsi
+
+Regula Falsi (falsa posición) conserva un intervalo cuyos extremos tienen
+signos opuestos, pero estima la siguiente aproximación con la intersección de
+la secante entre \((a,f(a))\) y \((b,f(b))\):
+
+\[
+c=a+(b-a)\frac{|f(a)|}{|f(a)|+|f(b)|}.
+\]
+
+La expresión equivalente se calcula con pesos normalizados para evitar
+desbordamientos al sumar valores de función grandes. Después, se conserva el
+subintervalo con cambio de signo. A diferencia de la bisección, la nueva
+aproximación no tiene por qué ser el punto medio y un extremo puede permanecer
+fijo durante varias iteraciones.
+
+La implementación está en
+[`core/metodos_numericos/regla_falsa.py`](../core/metodos_numericos/regla_falsa.py)
+y reutiliza el evaluador algebraico seguro del módulo de Bisección. Requiere
+un intervalo ordenado con extremos finitos, una tolerancia porcentual positiva
+y un máximo entero de iteraciones entre 1 y 100000. Si un extremo es una raíz,
+el resultado se informa sin iterar; si no hay cambio de signo, la función
+rechaza el intervalo.
+
+La tolerancia está definida como el **error relativo aproximado porcentual**
+entre dos valores consecutivos:
+
+\[
+E_a=\left|\frac{c_i-c_{i-1}}{c_i}\right|100.
+\]
+
+No se compara la tolerancia con \(|f(c)|\), porque este residuo tiene unidades
+de función y no representa el mismo criterio. La primera iteración no tiene
+un error aproximado previo. Si el cálculo alcanza la tolerancia, encuentra
+una raíz exacta o deja de avanzar por precisión, cada estado queda indicado.
+Al agotarse las iteraciones, se conserva la última aproximación como dato
+diagnóstico, pero `raiz` permanece vacío y `convergio` es falso: no se presenta
+como solución convergida.
+
+`resolver_regla_falsa` devuelve los estados, el criterio, la aproximación y
+una tabla estructurada con `Iteración`, `a`, `b`, `f(a)`, `f(b)`, `c`, `f(c)`,
+`Reemplazo` y `Ea (%)`. La vista
+[`core/ui/vista_regla_falsa.py`](../core/ui/vista_regla_falsa.py) presenta
+estos resultados en una consola monoespaciada, permite ingresar los extremos
+manualmente y utiliza el teclado matemático compartido.
+
+**Ejemplo:** para \(f(x)=e^{-x}-x\), intervalo \([0,1]\) y tolerancia
+\(0.00001\%\), la implementación alcanza aproximadamente
+\(0.5671432915\) en 9 iteraciones. Con \(f(x)=x^{10}-1\), intervalo \([0,2]\)
+y 100 iteraciones, Regula Falsi no alcanza esa tolerancia; el sistema informa
+la no convergencia en vez de etiquetar la última aproximación como raíz.
+
+---
+
+## 3. Cálculo y propagación de errores
 
 Las operaciones de esta sección viven en
 [`core/metodos_numericos/operaciones_errores.py`](../core/metodos_numericos/operaciones_errores.py).
@@ -260,7 +312,7 @@ representan mediante aproximaciones binarias finitas.
 
 ---
 
-## 3. Comparación exacta y de punto flotante con matrices
+## 4. Comparación exacta y de punto flotante con matrices
 
 El complemento está en
 [`core/metodos_numericos/verificacion_matriz.py`](../core/metodos_numericos/verificacion_matriz.py).
@@ -329,12 +381,12 @@ la presentación, no vuelve a calcular la inversa.
 
 ---
 
-## 4. Cómo se conecta con la interfaz
+## 5. Cómo se conecta con la interfaz
 
 La vista principal es
 [`core/ui/vista_metodos_numericos.py`](../core/ui/vista_metodos_numericos.py).
 `VistaMetodosNumericos` crea una ventana secundaria, oculta el Dashboard y
-presenta un `CTkComboBox` con las dos áreas del módulo. Al cambiar la opción,
+presenta un `CTkComboBox` con las áreas del módulo. Al cambiar la opción,
 `cambiar_operacion` oculta el panel anterior y muestra el elegido. Los paneles
 se conservan una vez creados, por lo que cambiar de menú no obliga a reconstruir
 las entradas ni descarta los valores.
@@ -347,8 +399,43 @@ donde se ajusta por separado el rango mínimo y máximo de visualización. Ambas
 ventanas comparten la función, pero el rango de la gráfica no determina ni
 rellena los extremos del cálculo. El usuario inspecciona la curva y escribe
 `a` y `b` explícitamente antes de pulsar **Biseccionar**. La salida presenta la
-raíz, el residuo, la tabla de iteraciones y el contraste con SciPy. El botón
-**Borrar** limpia las entradas.
+raíz, el residuo y la tabla de iteraciones. El botón **Borrar** limpia las
+entradas.
+
+La demostración inicial usa \(x^2-x-1=0\), `a = 1`, `b = 2` y tolerancia
+`10^-6`. Son valores de ejemplo; los extremos siguen siendo editables y la
+gráfica no los cambia.
+
+[`core/ui/vista_regla_falsa.py`](../core/ui/vista_regla_falsa.py) recoge la
+función, los extremos manuales, la tolerancia de `Ea (%)` y el máximo de
+iteraciones. El botón **Resolver** llama a `resolver_regla_falsa`; la salida
+distingue una raíz convergida de una última aproximación no convergida.
+También usa la entrada algebraica y el teclado matemático compartido. El
+ejemplo inicial es \(e^{-x}-x=0\), con `a = 0` y `b = 1`.
+
+El explorador gráfico se comparte entre Bisección y Regula Falsi: cada panel
+abre la misma ventana con su función enlazada. Al cambiar de método, se cierra
+el teclado y el explorador auxiliares del panel anterior; los datos ingresados
+en los paneles se conservan.
+
+Los campos de función de Bisección, Regula Falsi, del explorador gráfico y de
+Propagación incluyen un **teclado matemático**. También admiten escritura
+directa en notación algebraica: por ejemplo, `2x`, `x^2`, `(x+1)(x-1)` y
+`sin(x)`.
+La tecla `xʸ` o el carácter `^` activa el modo exponente: las cifras aparecen
+como superíndices visuales (por ejemplo, `x²`) y se convierten internamente a
+una potencia antes de evaluarse. `Finalizar exp.` regresa al modo normal; al
+escribir `+` o `-` después de un exponente simple, el modo también termina para
+que el operador quede fuera de la potencia. Use paréntesis para expresiones
+como `x^(2+1)`. El teclado inserta los operadores y funciones en el campo
+activo; no incorpora SymPy ni ejecuta el texto ingresado. La normalización
+mantiene la evaluación restringida al AST y a las funciones permitidas por el
+backend.
+
+En Regula Falsi, el máximo de iteraciones se valida como un entero. Si el campo
+está vacío, la interfaz informa que debe ingresarse ese valor; no expone el
+mensaje interno de conversión de Python. La tolerancia también tiene una
+validación explícita de número finito positivo.
 
 [`core/ui/vista_errores.py`](../core/ui/vista_errores.py) organiza las
 herramientas en cinco pestañas:
@@ -371,33 +458,38 @@ restaura el Dashboard.
 
 ---
 
-## 5. Guion breve sugerido
+## 6. Guion breve sugerido
 
 1. **Presentar la organización:** una tarjeta y una ventana para las
    herramientas de métodos numéricos, con un selector para cambiar de área.
 2. **Explicar bisección:** ingresar una función, abrir el explorador gráfico y
    ajustar su rango visual. A partir de la curva, elegir y escribir
    manualmente `a` y `b`; después observar el punto medio, la reducción del
-   intervalo, la tabla y el contraste con SciPy. La gráfica orienta, pero no
-   decide los extremos ni garantiza continuidad.
-3. **Distinguir los errores:** absoluto mide diferencia en las unidades
+   intervalo y la tabla. La gráfica orienta, pero no decide los extremos ni
+   garantiza continuidad.
+3. **Comparar con Regula Falsi:** usar un intervalo con cambio de signo y
+   observar cómo la secante estima `c`. Distinguir la convergencia real de la
+   detención por máximo de iteraciones o por pérdida de precisión.
+4. **Distinguir los errores:** absoluto mide diferencia en las unidades
    originales; relativo y porcentual comparan la diferencia con el valor de
    referencia.
-4. **Demostrar propagación:** comparar \(f'(x)\Delta x\) con el cambio finito
+5. **Demostrar propagación:** comparar \(f'(x)\Delta x\) con el cambio finito
    calculado para \(f(x+\Delta x)-f(x)\).
-5. **Mostrar representación finita:** `0.1 + 0.2`, épsilon, overflow y
+6. **Mostrar representación finita:** `0.1 + 0.2`, épsilon, overflow y
    underflow explican por qué la computadora no representa todos los reales
    exactamente.
-6. **Relacionar con álgebra lineal:** comparar la inversa exacta y la
+7. **Relacionar con álgebra lineal:** comparar la inversa exacta y la
    aproximada, observar el residuo y el número de condición de Hilbert.
-7. **Cerrar con la idea central:** un resultado numérico se entiende mejor
+8. **Cerrar con la idea central:** un resultado numérico se entiende mejor
    junto con sus criterios de paro, precisión, errores y estabilidad.
 
 ## Archivos de referencia
 
 - [`core/metodos_numericos/biseccion.py`](../core/metodos_numericos/biseccion.py)
+- [`core/metodos_numericos/regla_falsa.py`](../core/metodos_numericos/regla_falsa.py)
 - [`core/metodos_numericos/operaciones_errores.py`](../core/metodos_numericos/operaciones_errores.py)
 - [`core/metodos_numericos/verificacion_matriz.py`](../core/metodos_numericos/verificacion_matriz.py)
 - [`core/ui/vista_metodos_numericos.py`](../core/ui/vista_metodos_numericos.py)
 - [`core/ui/vista_biseccion.py`](../core/ui/vista_biseccion.py)
+- [`core/ui/vista_regla_falsa.py`](../core/ui/vista_regla_falsa.py)
 - [`core/ui/vista_errores.py`](../core/ui/vista_errores.py)
