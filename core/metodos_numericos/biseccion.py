@@ -46,6 +46,8 @@ def _crear_funcion(funcion):
             raise ValueError("La función es demasiado compleja.")
         nombres_permitidos = {
             "x", "pi", "e", "sin", "sen", "cos", "tan", "tg",
+            "csc", "cosec", "cosecante", "sec", "secante",
+            "cot", "cotg", "cotan", "cotangente",
             "sqrt", "raiz", "exp", "log", "ln", "abs",
         }
         nombres_funcion = {
@@ -122,8 +124,14 @@ def _crear_funcion(funcion):
             if isinstance(resultado, complex):
                 raise ValueError("La función produjo un resultado complejo.")
             resultado = float(resultado)
-        except (ArithmeticError, TypeError, ValueError, OverflowError) as error:
-            raise ValueError(f"No se pudo evaluar f({x:g}): {error}") from error
+        except (ArithmeticError) as error:
+            raise ValueError(f"No se pudo evaluar f({x:g}): Error aritmético") from error
+        except (TypeError) as error:
+            raise ValueError(f"No se pudo evaluar f({x:g}): Error de tipo de datos") from error
+        except (ValueError) as error:
+            raise ValueError(f"No se pudo evaluar f({x:g}): Error de valor numérico") from error
+        except (OverflowError) as error:
+            raise ValueError(f"No se pudo evaluar f({x:g}): Error de desbordamiento") from error
         if not _es_finito(resultado):
             raise ValueError(f"f({x:g}) produjo un resultado no finito.")
         return resultado
