@@ -466,6 +466,15 @@ abre la misma ventana con su función enlazada. Al cambiar de método, se cierra
 el teclado y el explorador auxiliares del panel anterior; los datos ingresados
 en los paneles se conservan.
 
+Newton-Raphson también abre el explorador con su función actual. La ventana
+marca los intervalos donde el muestreo observa un cambio de signo o un cero
+muestreado e informa cuántas raíces candidatas encontró. En esta vista se puede
+hacer clic en un punto de la curva para usar su coordenada `x` como nuevo `x0`.
+La cantidad es una estimación: el muestreo puede omitir raíces tangenciales o
+muy cercanas; un cambio de signo garantiza una raíz solo cuando la función es
+continua en el intervalo. El punto elegido orienta el método, pero no garantiza
+que Newton-Raphson converja.
+
 Los campos de función de Bisección, Regula Falsi, del explorador gráfico y de
 Propagación incluyen un **teclado matemático**. También admiten escritura
 directa en notación algebraica: por ejemplo, `2x`, `x^2`, `(x+1)(x-1)` y

@@ -1,5 +1,7 @@
 """Interfaz para aplicar el método de Newton-Raphson."""
 
+from tkinter import TclError
+
 from core.metodos_numericos import newton_raphson
 from core.ui.audio_manager import reproducir_sonido_error
 from core.ui.ctk_compat import ctk
@@ -20,6 +22,8 @@ class VistaNewtonRaphson(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
         self.configure(fg_color=FONDO_CALCULADORA)
+        self.funcion_var = ctk.StringVar(value="x³ - x - 2")
+        self._ventana_grafica = None
         self._crear_interfaz()
 
     def _crear_interfaz(self):
@@ -47,7 +51,7 @@ class VistaNewtonRaphson(ctk.CTkFrame):
             entradas.grid_columnconfigure(columna, weight=peso)
 
         campos = (
-            ("Función f(x)", "funcion", 300, "x³ - x - 2"),
+            ("Función f(x)", "funcion", 300, None),
             ("x0", "x0", 120, "1.5"),
             ("Tolerancia", "tolerancia", 140, "1e-8"),
             ("Máx. iteraciones", "max_iteraciones", 130, "50"),
@@ -59,9 +63,13 @@ class VistaNewtonRaphson(ctk.CTkFrame):
                 text=etiqueta,
                 text_color=TEXTO_CLARO,
             ).grid(row=0, column=columna, padx=7, pady=(8, 3), sticky="w")
-            campo = ctk.CTkEntry(entradas, width=ancho, font=("Consolas", 12))
+            opciones = {"width": ancho, "font": ("Consolas", 12)}
+            if clave == "funcion":
+                opciones["textvariable"] = self.funcion_var
+            campo = ctk.CTkEntry(entradas, **opciones)
             campo.grid(row=1, column=columna, padx=7, pady=(0, 9), sticky="ew")
-            campo.insert(0, valor_inicial)
+            if clave != "funcion":
+                campo.insert(0, valor_inicial)
             self.entradas[clave] = campo
 
         acciones = ctk.CTkFrame(self, fg_color="transparent")
@@ -70,6 +78,12 @@ class VistaNewtonRaphson(ctk.CTkFrame):
             acciones,
             text="Teclado f(x)",
             command=lambda: abrir_teclado_matematico(self, self.entradas["funcion"]),
+            **estilo_boton_secundario(),
+        ).pack(side="left", padx=(0, 8))
+        ctk.CTkButton(
+            acciones,
+            text="Explorar gráfica",
+            command=self.abrir_grafica,
             **estilo_boton_secundario(),
         ).pack(side="left", padx=(0, 8))
         ctk.CTkButton(
@@ -105,10 +119,33 @@ class VistaNewtonRaphson(ctk.CTkFrame):
             "La derivada se calcula automáticamente."
         )
 
+    def abrir_grafica(self):
+        if self._ventana_grafica is not None:
+            try:
+                if self._ventana_grafica.winfo_exists():
+                    self._ventana_grafica.lift()
+                    self._ventana_grafica.focus_force()
+                    return
+            except TclError:
+                self._ventana_grafica = None
+
+        from core.ui.vista_grafica_biseccion import VistaGraficaBiseccion
+
+        self._ventana_grafica = VistaGraficaBiseccion(
+            self.winfo_toplevel(),
+            self.funcion_var,
+            on_x_selected=self._actualizar_x0_desde_grafica,
+        )
+
+    def _actualizar_x0_desde_grafica(self, valor):
+        entrada_x0 = self.entradas["x0"]
+        entrada_x0.delete(0, "end")
+        entrada_x0.insert(0, f"{valor:.12g}")
+
     def resolver(self):
         try:
             resultado = newton_raphson.resolver_newton_raphson(
-                self.entradas["funcion"].get(),
+                self.funcion_var.get(),
                 self.entradas["x0"].get(),
                 self.entradas["tolerancia"].get(),
                 self.entradas["max_iteraciones"].get(),
@@ -195,7 +232,7 @@ class VistaNewtonRaphson(ctk.CTkFrame):
     def borrar(self):
         for clave in ("funcion", "x0", "tolerancia", "max_iteraciones"):
             self.entradas[clave].delete(0, "end")
-        self.entradas["funcion"].insert(0, "x³ - x - 2")
+        self.funcion_var.set("x³ - x - 2")
         self.entradas["x0"].insert(0, "1.5")
         self.entradas["tolerancia"].insert(0, "1e-8")
         self.entradas["max_iteraciones"].insert(0, "50")
@@ -203,6 +240,20 @@ class VistaNewtonRaphson(ctk.CTkFrame):
 
     def al_ocultar(self):
         cerrar_teclado_matematico(self)
+        if self._ventana_grafica is not None:
+            try:
+                if self._ventana_grafica.winfo_exists():
+                    self._ventana_grafica.al_cerrar()
+            except TclError:
+                pass
+            self._ventana_grafica = None
+        if self._ventana_grafica is not None:
+            try:
+                if self._ventana_grafica.winfo_exists():
+                    self._ventana_grafica.al_cerrar()
+            except TclError:
+                pass
+            self._ventana_grafica = None
 
     def _mostrar(self, texto):
         if texto.startswith("ERROR:"):

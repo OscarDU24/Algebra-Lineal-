@@ -3,7 +3,7 @@
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
-from core.metodos_numericos.biseccion import muestrear_funcion
+from core.metodos_numericos.biseccion import analizar_intervalos, muestrear_funcion
 from core.ui.ctk_compat import ctk
 from core.ui.tema import (
     FONDO_CALCULADORA,
@@ -21,15 +21,18 @@ from core.ui.teclado_matematico import (
 class VistaGraficaBiseccion(ctk.CTkToplevel):
     """Grafica una función en un rango ajustable sin elegir a ni b."""
 
-    def __init__(self, master, funcion_var):
+    def __init__(self, master, funcion_var, on_x_selected=None):
         super().__init__(master)
         self.configure(fg_color=FONDO_CALCULADORA)
         self.title("Explorador gráfico · Métodos Numéricos")
         self.geometry("900x650")
         self.minsize(700, 500)
         self.funcion_var = funcion_var
+        self.on_x_selected = on_x_selected
+        self._x_seleccionado = None
         self.protocol("WM_DELETE_WINDOW", self.al_cerrar)
         self._crear_interfaz()
+        self.canvas.mpl_connect("button_press_event", self._seleccionar_x)
         self.graficar()
 
     def _crear_interfaz(self):
@@ -108,8 +111,8 @@ class VistaGraficaBiseccion(ctk.CTkToplevel):
         self.estado = ctk.CTkLabel(
             self,
             text=(
-                "Use la gráfica para orientarse; escriba manualmente los "
-                "extremos a y b en el método numérico activo."
+                "Use la gráfica para explorar f(x), sus raíces candidatas y "
+                "seleccionar valores cuando el método lo permita."
             ),
             text_color=TEXTO_CLARO,
             wraplength=850,
@@ -119,6 +122,11 @@ class VistaGraficaBiseccion(ctk.CTkToplevel):
     def graficar(self):
         try:
             datos = muestrear_funcion(
+                self.funcion_var.get(),
+                self.entrada_x_min.get(),
+                self.entrada_x_max.get(),
+            )
+            analisis = analizar_intervalos(
                 self.funcion_var.get(),
                 self.entrada_x_min.get(),
                 self.entrada_x_max.get(),
@@ -144,6 +152,33 @@ class VistaGraficaBiseccion(ctk.CTkToplevel):
             label="f(x)",
         )
         self.ejes.axhline(0, color="#eeeeee", linewidth=1, linestyle="--")
+        raices_candidatas = analisis["intervalos"]
+        if raices_candidatas:
+            puntos_raiz = [
+                (
+                    intervalo["raiz_muestreada"]
+                    if intervalo["raiz_muestreada"] is not None
+                    else (intervalo["a"] + intervalo["b"]) / 2
+                )
+                for intervalo in raices_candidatas
+            ]
+            self.ejes.scatter(
+                puntos_raiz,
+                [0] * len(puntos_raiz),
+                color="#ff6b6b",
+                marker="x",
+                s=60,
+                label="Raíz candidata",
+                zorder=4,
+            )
+        if self._x_seleccionado is not None:
+            self.ejes.axvline(
+                self._x_seleccionado,
+                color="#ffd166",
+                linewidth=1.2,
+                linestyle=":",
+                label=f"x0 = {self._x_seleccionado:.6g}",
+            )
         self.ejes.set_xlim(*datos["rango"])
         self.ejes.set_xlabel("x", color=TEXTO_CLARO)
         self.ejes.set_ylabel("f(x)", color=TEXTO_CLARO)
@@ -152,14 +187,45 @@ class VistaGraficaBiseccion(ctk.CTkToplevel):
         self.ejes.legend(facecolor="#202020", labelcolor=TEXTO_CLARO)
         self.figura.tight_layout()
         self.canvas.draw_idle()
+        if self.on_x_selected is None:
+            detalle_seleccion = (
+                "Haga clic sobre la gráfica para consultar el valor de x."
+            )
+        else:
+            detalle_seleccion = (
+                "Haga clic sobre la gráfica para usar ese x como punto inicial "
+                "x0 en Newton-Raphson."
+            )
         self.estado.configure(
             text=(
                 f"Gráfica actualizada con {datos['muestras']} muestras en "
                 f"[{datos['rango'][0]:g}, {datos['rango'][1]:g}]. "
-                "Introduzca manualmente a y b en el método activo; la gráfica no "
-                "los selecciona automáticamente."
-            )
+                f"Raíces candidatas (cambios de signo o ceros muestreados): "
+                f"{len(raices_candidatas)}. "
+                f"{detalle_seleccion} La cantidad es una estimación por muestreo; "
+                "puede omitir raíces tangenciales o muy cercanas. Un cambio de signo "
+                "indica una raíz si la función es continua en ese intervalo."
+                )
         )
+        self._texto_estado_grafica = self.estado.cget("text")
+
+    def _seleccionar_x(self, evento):
+        if evento.inaxes is not self.ejes or evento.xdata is None:
+            return
+        self._x_seleccionado = float(evento.xdata)
+        if self.on_x_selected is not None:
+            self.on_x_selected(self._x_seleccionado)
+        self.graficar()
+        if self.on_x_selected is None:
+            self.estado.configure(
+                text=f"Coordenada seleccionada: x = {self._x_seleccionado:.12g}. "
+                + self._texto_estado_grafica
+            )
+        else:
+            self.estado.configure(
+                text=f"x0 actualizado a {self._x_seleccionado:.12g}. "
+                + self._texto_estado_grafica
+            )
 
     def al_cerrar(self):
         cerrar_teclado_matematico(self)
