@@ -89,12 +89,39 @@ def _tangente(valor):
     return _seno(valor) / coseno
 
 
+def _reciproca_trigonometrica(nombre, denominador):
+    if _valor_absoluto(denominador) < TOLERANCIA:
+        raise ValueError(f"{nombre} no esta definida en este punto.")
+    return 1 / denominador
+
+
+def _cosecante(valor):
+    return _reciproca_trigonometrica("La cosecante", _seno(valor))
+
+
+def _secante(valor):
+    return _reciproca_trigonometrica("La secante", _coseno(valor))
+
+
+def _cotangente(valor):
+    return _reciproca_trigonometrica("La cotangente", _seno(valor)) * _coseno(valor)
+
+
 FUNCIONES = {
     "sin": _seno,
     "sen": _seno,
     "cos": _coseno,
     "tan": _tangente,
     "tg": _tangente,
+    "csc": _cosecante,
+    "cosec": _cosecante,
+    "cosecante": _cosecante,
+    "sec": _secante,
+    "secante": _secante,
+    "cot": _cotangente,
+    "cotg": _cotangente,
+    "cotan": _cotangente,
+    "cotangente": _cotangente,
     "sqrt": _raiz_cuadrada,
     "raiz": _raiz_cuadrada,
     "exp": _exponencial,
