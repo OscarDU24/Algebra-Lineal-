@@ -1,7 +1,5 @@
 """Interfaz para aplicar el método de Newton-Raphson."""
 
-from tkinter import TclError
-
 from core.metodos_numericos import newton_raphson
 from core.ui.audio_manager import reproducir_sonido_error
 from core.ui.ctk_compat import ctk
@@ -17,7 +15,7 @@ from core.ui.tema import (
 
 
 class VistaNewtonRaphson(ctk.CTkFrame):
-    """Calcula una raíz con la aproximación inicial y la derivada."""
+    """Calcula una raíz a partir de una función y un valor inicial."""
 
     def __init__(self, master):
         super().__init__(master)
@@ -36,9 +34,8 @@ class VistaNewtonRaphson(ctk.CTkFrame):
         ctk.CTkLabel(
             encabezado,
             text=(
-                "Escriba la función f(x), opcionalmente su derivada f'(x), "
-                "el valor inicial x0 y la tolerancia. Si no escribe la derivada, "
-                "se apoya en una diferencia finita central segura."
+                "Escriba la función f(x), el valor inicial x0 y la tolerancia. "
+                "La derivada se aproxima automáticamente con diferencia finita central."
             ),
             text_color=TEXTO_CLARO,
             wraplength=950,
@@ -46,12 +43,11 @@ class VistaNewtonRaphson(ctk.CTkFrame):
 
         entradas = ctk.CTkFrame(self, **estilo_panel_contenedor())
         entradas.pack(fill="x", padx=15, pady=5)
-        for columna, peso in enumerate((3, 3, 1, 1, 1)):
+        for columna, peso in enumerate((3, 1, 1, 1)):
             entradas.grid_columnconfigure(columna, weight=peso)
 
         campos = (
-            ("Función f(x)", "funcion", 300, "x^3 - x - 2"),
-            ("Derivada f'(x)", "derivada", 300, "3*x^2 - 1"),
+            ("Función f(x)", "funcion", 300, "x³ - x - 2"),
             ("x0", "x0", 120, "1.5"),
             ("Tolerancia", "tolerancia", 140, "1e-8"),
             ("Máx. iteraciones", "max_iteraciones", 130, "50"),
@@ -74,12 +70,6 @@ class VistaNewtonRaphson(ctk.CTkFrame):
             acciones,
             text="Teclado f(x)",
             command=lambda: abrir_teclado_matematico(self, self.entradas["funcion"]),
-            **estilo_boton_secundario(),
-        ).pack(side="left", padx=(0, 8))
-        ctk.CTkButton(
-            acciones,
-            text="Teclado f'(x)",
-            command=lambda: abrir_teclado_matematico(self, self.entradas["derivada"]),
             **estilo_boton_secundario(),
         ).pack(side="left", padx=(0, 8))
         ctk.CTkButton(
@@ -112,7 +102,7 @@ class VistaNewtonRaphson(ctk.CTkFrame):
         self.texto_salida.pack(fill="both", expand=True, padx=8, pady=(0, 7))
         self._mostrar(
             "Ingrese la función, el valor inicial x0 y la tolerancia. "
-            "La derivada puede quedar vacía para calcularla numéricamente."
+            "La derivada se calcula automáticamente."
         )
 
     def resolver(self):
@@ -122,13 +112,33 @@ class VistaNewtonRaphson(ctk.CTkFrame):
                 self.entradas["x0"].get(),
                 self.entradas["tolerancia"].get(),
                 self.entradas["max_iteraciones"].get(),
-                self.entradas["derivada"].get(),
             )
         except (ValueError, ArithmeticError, OverflowError) as error:
             self._mostrar(f"ERROR: {error}")
             return
 
+        if resultado["procedimiento_derivada"]:
+            derivada_info = [
+                f"Derivada calculada: {resultado['metodo_derivada']}",
+                resultado["formula_derivada"],
+                (
+                    "h = "
+                    f"{resultado['paso_relativo_derivada']:.0e} · "
+                    "max(1, |x_n|)"
+                ),
+                "",
+                "Procedimiento de derivación en cada iteración:",
+                self._formatear_procedimiento_derivada(
+                    resultado["procedimiento_derivada"]
+                ),
+            ]
+        else:
+            derivada_info = [
+                "Derivada calculada: no requerida; x0 ya satisface la tolerancia."
+            ]
         salida = [
+            *derivada_info,
+            "",
             f"Estado: {resultado['estado']}",
             f"Convergió: {'Sí' if resultado['convergio'] else 'No'}",
             f"Iteraciones realizadas: {resultado['iteraciones']}",
@@ -144,11 +154,48 @@ class VistaNewtonRaphson(ctk.CTkFrame):
         )
         self._mostrar("\n".join(salida))
 
+    @staticmethod
+    def _formatear_procedimiento_derivada(procedimientos):
+        lineas = []
+        for indice, detalle in enumerate(procedimientos, start=1):
+            lineas.extend(
+                [
+                    (
+                        f"Iteración {indice}: x_n = "
+                        f"{detalle['x']:.12g}"
+                    ),
+                    (
+                        f"  h = {newton_raphson.PASO_RELATIVO_DERIVADA:.0e} "
+                        f"· max(1, |{detalle['x']:.12g}|) = "
+                        f"{detalle['h']:.12g}"
+                    ),
+                    (
+                        f"  x_n + h = {detalle['x_mas_h']:.12g}; "
+                        f"f(x_n + h) = {detalle['f_mas_h']:.12g}"
+                    ),
+                    (
+                        f"  x_n - h = {detalle['x_menos_h']:.12g}; "
+                        f"f(x_n - h) = {detalle['f_menos_h']:.12g}"
+                    ),
+                    (
+                        "  f'(x_n) ≈ "
+                        f"({detalle['f_mas_h']:.12g} - "
+                        f"({detalle['f_menos_h']:.12g})) / "
+                        f"(2 · {detalle['h']:.12g})"
+                    ),
+                    (
+                        f"  f'(x_n) ≈ {detalle['diferencia_funcion']:.12g} / "
+                        f"{detalle['divisor']:.12g} = "
+                        f"{detalle['derivada']:.12g}"
+                    ),
+                ]
+            )
+        return "\n".join(lineas)
+
     def borrar(self):
-        for clave in ("funcion", "derivada", "x0", "tolerancia", "max_iteraciones"):
+        for clave in ("funcion", "x0", "tolerancia", "max_iteraciones"):
             self.entradas[clave].delete(0, "end")
-        self.entradas["funcion"].insert(0, "x^3 - x - 2")
-        self.entradas["derivada"].insert(0, "3*x^2 - 1")
+        self.entradas["funcion"].insert(0, "x³ - x - 2")
         self.entradas["x0"].insert(0, "1.5")
         self.entradas["tolerancia"].insert(0, "1e-8")
         self.entradas["max_iteraciones"].insert(0, "50")

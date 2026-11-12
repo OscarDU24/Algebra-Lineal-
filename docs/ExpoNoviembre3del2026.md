@@ -236,24 +236,34 @@ aproximación es
 
 La implementación en
 [`core/metodos_numericos/newton_raphson.py`](../core/metodos_numericos/newton_raphson.py)
-acepta una función \(f(x)\), una derivada opcional \(f'(x)\) y un valor inicial
-\(x_0\). Si la derivada no se escribe, se estima con diferencia central:
+acepta una función \(f(x)\) y un valor inicial \(x_0\). La interfaz no solicita
+la derivada: el método la aproxima automáticamente con diferencia central:
 
 \[
- f'(x)\approx\frac{f(x+h)-f(x-h)}{2h},\qquad h=10^{-8}\max(1,|x|).
+ f'(x)\approx\frac{f(x+h)-f(x-h)}{2h},\qquad h=10^{-5}\max(1,|x|).
 \]
 
 La lógica sigue criterios explícitos de parada: si el residuo \(|f(x_n)|\) cae
-por debajo de la tolerancia o el cambio entre aproximaciones 
+por debajo de la tolerancia o el cambio entre aproximaciones
 \(|x_{n+1}-x_n|\) es menor que la tolerancia, se detiene el proceso. Si la
 pendiente se hace cero o infinita, la función informa el problema y no intenta
 continuar con una iteración inválida.
 
 La interfaz en
 [`core/ui/vista_newton_raphson.py`](../core/ui/vista_newton_raphson.py)
-presenta la ecuación, la derivada opcional, `x0`, la tolerancia y el máximo de
-iteraciones. La salida incluye la raíz aproximada, el criterio de paro y la
-tabla de iteraciones.
+presenta la función, `x0`, la tolerancia y el máximo de iteraciones. La salida
+incluye la raíz aproximada, el criterio de paro y la tabla de iteraciones.
+Además, en cada iteración expone el cálculo de la diferencia central: el paso
+`h`, los puntos `x_n+h` y `x_n-h`, las evaluaciones de la función en ambos
+puntos, la resta del numerador, el divisor `2h` y el valor resultante de
+`f'(x_n)`. Así se puede seguir el origen de cada pendiente usada en la fórmula
+de Newton, no solo consultar el valor final.
+
+El evaluador admite `sin`/`sen`, `cos`, `tan`/`tg`, y también las funciones
+recíprocas `csc`/`cosec`/`cosecante`, `sec`/`secante` y
+`cot`/`cotg`/`cotan`/`cotangente`. Estas últimas se definen como
+\(1/\sin(x)\), \(1/\cos(x)\) y \(\cos(x)/\sin(x)\), respectivamente; si el
+denominador está próximo a cero, se informa que la función no está definida.
 
 **Caso guía:** para \(f(x)=x^3-x-2\), derivada \(f'(x)=3x^2-1\), valor inicial
 \(x_0=1.5\) y tolerancia \(10^{-8}\), el algoritmo reproduce la progresión

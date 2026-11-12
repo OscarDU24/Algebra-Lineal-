@@ -46,6 +46,8 @@ def _crear_funcion(funcion):
             raise ValueError("La función es demasiado compleja.")
         nombres_permitidos = {
             "x", "pi", "e", "sin", "sen", "cos", "tan", "tg",
+            "csc", "cosec", "cosecante", "sec", "secante",
+            "cot", "cotg", "cotan", "cotangente",
             "sqrt", "raiz", "exp", "log", "ln", "abs",
         }
         nombres_funcion = {

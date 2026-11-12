@@ -1,4 +1,4 @@
-"""Método de Newton-Raphson con derivada evaluada mediante AST seguro."""
+"""Método de Newton-Raphson con derivación numérica central."""
 
 from core.metodos_numericos.biseccion import _convertir_finito, _crear_funcion, _es_finito
 
@@ -11,21 +11,30 @@ COLUMNAS_TABLA = (
     "|Δx|",
     "|f(x_{n+1})|",
 )
+PASO_RELATIVO_DERIVADA = 1e-5
+FORMULA_DERIVADA = "f'(x) ≈ [f(x+h) - f(x-h)] / (2h)"
 
 
-def _derivada_numerica(funcion, x):
-    evaluar = _crear_funcion(funcion)
-    h = 1e-8 * max(1.0, abs(float(x)))
-    if h == 0:
-        h = 1e-8
-    return (evaluar(x + h) - evaluar(x - h)) / (2 * h)
-
-
-def _derivada_evaluada(funcion, derivada, x):
-    if derivada is None or not str(derivada).strip():
-        return _derivada_numerica(funcion, x)
-    evaluar_derivada = _crear_funcion(derivada)
-    return evaluar_derivada(x)
+def _derivada_numerica(evaluar, x):
+    h = PASO_RELATIVO_DERIVADA * max(1.0, abs(float(x)))
+    x_mas_h = x + h
+    x_menos_h = x - h
+    f_mas_h = evaluar(x_mas_h)
+    f_menos_h = evaluar(x_menos_h)
+    diferencia_funcion = f_mas_h - f_menos_h
+    divisor = 2 * h
+    derivada = diferencia_funcion / divisor
+    return derivada, {
+        "x": x,
+        "h": h,
+        "x_mas_h": x_mas_h,
+        "f_mas_h": f_mas_h,
+        "x_menos_h": x_menos_h,
+        "f_menos_h": f_menos_h,
+        "diferencia_funcion": diferencia_funcion,
+        "divisor": divisor,
+        "derivada": derivada,
+    }
 
 
 def _convertir_max_iteraciones(valor):
@@ -46,7 +55,16 @@ def _convertir_max_iteraciones(valor):
     return valor
 
 
-def _resultado(*, raiz, convergio, estado, iteraciones, tolerancia, tabla):
+def _resultado(
+    *,
+    raiz,
+    convergio,
+    estado,
+    iteraciones,
+    tolerancia,
+    tabla,
+    procedimiento_derivada,
+):
     return {
         "raiz": raiz,
         "convergio": convergio,
@@ -54,12 +72,16 @@ def _resultado(*, raiz, convergio, estado, iteraciones, tolerancia, tabla):
         "iteraciones": iteraciones,
         "tolerancia": tolerancia,
         "criterio_paro": estado,
+        "metodo_derivada": "Diferencia finita central",
+        "formula_derivada": FORMULA_DERIVADA,
+        "paso_relativo_derivada": PASO_RELATIVO_DERIVADA,
         "columnas": COLUMNAS_TABLA,
         "tabla": tabla,
+        "procedimiento_derivada": procedimiento_derivada,
     }
 
 
-def resolver_newton_raphson(funcion, x_inicial, tolerancia, max_iteraciones, derivada=None):
+def resolver_newton_raphson(funcion, x_inicial, tolerancia, max_iteraciones):
     """Resuelve f(x)=0 con el método de Newton-Raphson."""
     evaluar = _crear_funcion(funcion)
     x_actual = _convertir_finito(x_inicial, "El valor inicial x0")
@@ -77,21 +99,23 @@ def resolver_newton_raphson(funcion, x_inicial, tolerancia, max_iteraciones, der
             iteraciones=0,
             tolerancia=tol,
             tabla=[],
+            procedimiento_derivada=[],
         )
 
     tabla = []
+    procedimiento_derivada = []
     convergio = False
     estado = "Máximo de iteraciones alcanzado"
-    x_anterior = x_actual
 
     for iteracion in range(1, max_iteraciones + 1):
         f_x = evaluar(x_actual)
-        derivada_val = _derivada_evaluada(funcion, derivada, x_actual)
+        derivada_val, detalle_derivada = _derivada_numerica(evaluar, x_actual)
         if not _es_finito(derivada_val) or derivada_val == 0:
             raise ValueError(
                 "La derivada es cero o no finita en x = "
-                f"{x_actual:g}. Cambie el punto inicial o proporcione f'(x)."
+                f"{x_actual:g}. Cambie el valor inicial x0."
             )
+        procedimiento_derivada.append(detalle_derivada)
 
         x_siguiente = x_actual - (f_x / derivada_val)
         if not _es_finito(x_siguiente):
@@ -121,7 +145,6 @@ def resolver_newton_raphson(funcion, x_inicial, tolerancia, max_iteraciones, der
             x_actual = x_siguiente
             break
 
-        x_anterior = x_actual
         x_actual = x_siguiente
 
     return _resultado(
@@ -131,6 +154,7 @@ def resolver_newton_raphson(funcion, x_inicial, tolerancia, max_iteraciones, der
         iteraciones=len(tabla),
         tolerancia=tol,
         tabla=tabla,
+        procedimiento_derivada=procedimiento_derivada,
     )
 
 

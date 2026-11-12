@@ -49,6 +49,23 @@ class BiseccionTests(unittest.TestCase):
 
         self.assertAlmostEqual(evaluar(1), 0.36787944117144233, places=6)
 
+    def test_evaluador_admite_cosecante_secante_y_cotangente(self):
+        evaluar_csc = _crear_funcion("csc(pi/2)")
+        evaluar_sec = _crear_funcion("sec(0)")
+        evaluar_cot = _crear_funcion("cot(pi/4)")
+        evaluar_alias = _crear_funcion("cosecante(pi/2) + secante(0) + cotangente(pi/4)")
+
+        self.assertAlmostEqual(evaluar_csc(0), 1)
+        self.assertAlmostEqual(evaluar_sec(0), 1)
+        self.assertAlmostEqual(evaluar_cot(0), 1)
+        self.assertAlmostEqual(evaluar_alias(0), 3)
+
+    def test_evaluador_rechaza_reciprocas_trigonometricas_no_definidas(self):
+        for funcion in ("csc(0)", "sec(pi/2)", "cot(0)"):
+            with self.subTest(funcion=funcion):
+                with self.assertRaises(ValueError):
+                    _crear_funcion(funcion)(0)
+
     def test_evaluador_admite_exponencial_e_elevado_a_x(self):
         evaluar = _crear_funcion("1/(e^x) - x")
 
@@ -242,13 +259,12 @@ class ReglaFalsaTests(unittest.TestCase):
 
 
 class NewtonRaphsonTests(unittest.TestCase):
-    def test_resuelve_caso_guia_con_derivada_explicita(self):
+    def test_resuelve_caso_guia_con_derivada_numerica(self):
         resultado = resolver_newton_raphson(
             "x^3 - x - 2",
             1.5,
             1e-8,
             50,
-            "3*x^2 - 1",
         )
 
         self.assertTrue(resultado["convergio"])
@@ -256,21 +272,27 @@ class NewtonRaphsonTests(unittest.TestCase):
         self.assertEqual(resultado["estado"], "Tolerancia por residuo alcanzada")
         self.assertGreater(len(resultado["tabla"]), 0)
         self.assertTrue(all(len(fila) == len(resultado["columnas"]) for fila in resultado["tabla"]))
-
-    def test_resuelve_sin_derivada_explicitamente_con_diferencia_finita(self):
-        resultado = resolver_newton_raphson(
-            "x^3 - x - 2",
-            1.5,
-            1e-8,
-            50,
+        self.assertAlmostEqual(resultado["tabla"][0][3], 5.75, places=6)
+        self.assertEqual(resultado["metodo_derivada"], "Diferencia finita central")
+        detalle = resultado["procedimiento_derivada"][0]
+        self.assertAlmostEqual(detalle["h"], 1.5e-5)
+        self.assertAlmostEqual(detalle["x_mas_h"], 1.5 + detalle["h"])
+        self.assertAlmostEqual(detalle["x_menos_h"], 1.5 - detalle["h"])
+        self.assertAlmostEqual(
+            detalle["derivada"],
+            detalle["diferencia_funcion"] / detalle["divisor"],
         )
-
-        self.assertTrue(resultado["convergio"])
-        self.assertAlmostEqual(resultado["raiz"], 1.521379707, places=7)
+        self.assertEqual(len(resultado["procedimiento_derivada"]), resultado["iteraciones"])
 
     def test_rechaza_derivada_cero(self):
         with self.assertRaisesRegex(ValueError, "derivada es cero"):
-            resolver_newton_raphson("x^2 + 1", 0, 1e-8, 20, "2*x")
+            resolver_newton_raphson("x^2 + 1", 0, 1e-8, 20)
+
+    def test_deriva_funcion_con_secante_numerica(self):
+        resultado = resolver_newton_raphson("sec(x) - 2", 1, 1e-8, 50)
+
+        self.assertTrue(resultado["convergio"])
+        self.assertAlmostEqual(resultado["raiz"], 1.04719755, places=6)
 
 
 class OperacionesErroresTests(unittest.TestCase):
