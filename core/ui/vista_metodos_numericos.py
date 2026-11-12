@@ -15,6 +15,7 @@ class VistaMetodosNumericos(ctk.CTkToplevel):
     OPERACIONES = (
         "Método de Bisección",
         "Método Regula Falsi",
+        "Método de Newton-Raphson",
         "Análisis de Errores",
     )
 
@@ -74,6 +75,10 @@ class VistaMetodosNumericos(ctk.CTkToplevel):
                 from core.ui.vista_regla_falsa import VistaReglaFalsa
 
                 panel = VistaReglaFalsa(self.contenedor)
+            elif operacion == self.OPERACIONES[2]:
+                from core.ui.vista_newton_raphson import VistaNewtonRaphson
+
+                panel = VistaNewtonRaphson(self.contenedor)
             else:
                 from core.ui.vista_errores import VistaErrores
 

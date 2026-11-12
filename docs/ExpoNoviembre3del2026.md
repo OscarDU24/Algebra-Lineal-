@@ -224,7 +224,45 @@ la no convergencia en vez de etiquetar la última aproximación como raíz.
 
 ---
 
-## 3. Cálculo y propagación de errores
+## 3. Método de Newton-Raphson
+
+El método de Newton-Raphson aproxima la raíz de una ecuación no lineal
+mediante una recta tangente. Si \(x_n\) es la aproximación actual, la siguiente
+aproximación es
+
+\[
+ x_{n+1}=x_n-\frac{f(x_n)}{f'(x_n)}.
+\]
+
+La implementación en
+[`core/metodos_numericos/newton_raphson.py`](../core/metodos_numericos/newton_raphson.py)
+acepta una función \(f(x)\), una derivada opcional \(f'(x)\) y un valor inicial
+\(x_0\). Si la derivada no se escribe, se estima con diferencia central:
+
+\[
+ f'(x)\approx\frac{f(x+h)-f(x-h)}{2h},\qquad h=10^{-8}\max(1,|x|).
+\]
+
+La lógica sigue criterios explícitos de parada: si el residuo \(|f(x_n)|\) cae
+por debajo de la tolerancia o el cambio entre aproximaciones 
+\(|x_{n+1}-x_n|\) es menor que la tolerancia, se detiene el proceso. Si la
+pendiente se hace cero o infinita, la función informa el problema y no intenta
+continuar con una iteración inválida.
+
+La interfaz en
+[`core/ui/vista_newton_raphson.py`](../core/ui/vista_newton_raphson.py)
+presenta la ecuación, la derivada opcional, `x0`, la tolerancia y el máximo de
+iteraciones. La salida incluye la raíz aproximada, el criterio de paro y la
+tabla de iteraciones.
+
+**Caso guía:** para \(f(x)=x^3-x-2\), derivada \(f'(x)=3x^2-1\), valor inicial
+\(x_0=1.5\) y tolerancia \(10^{-8}\), el algoritmo reproduce la progresión
+analítica esperada: la raíz aproximada se estabiliza en torno a
+\(1.521379707\), con convergencia rápida y sin indeterminaciones.
+
+---
+
+## 4. Cálculo y propagación de errores
 
 Las operaciones de esta sección viven en
 [`core/metodos_numericos/operaciones_errores.py`](../core/metodos_numericos/operaciones_errores.py).
@@ -312,7 +350,7 @@ representan mediante aproximaciones binarias finitas.
 
 ---
 
-## 4. Comparación exacta y de punto flotante con matrices
+## 5. Comparación exacta y de punto flotante con matrices
 
 El complemento está en
 [`core/metodos_numericos/verificacion_matriz.py`](../core/metodos_numericos/verificacion_matriz.py).
@@ -381,7 +419,7 @@ la presentación, no vuelve a calcular la inversa.
 
 ---
 
-## 5. Cómo se conecta con la interfaz
+## 6. Cómo se conecta con la interfaz
 
 La vista principal es
 [`core/ui/vista_metodos_numericos.py`](../core/ui/vista_metodos_numericos.py).
@@ -458,7 +496,7 @@ restaura el Dashboard.
 
 ---
 
-## 6. Guion breve sugerido
+## 7. Guion breve sugerido
 
 1. **Presentar la organización:** una tarjeta y una ventana para las
    herramientas de métodos numéricos, con un selector para cambiar de área.

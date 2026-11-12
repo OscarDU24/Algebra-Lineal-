@@ -9,6 +9,7 @@ from core.metodos_numericos.biseccion import (
     resolver_biseccion,
 )
 from core.metodos_numericos import regla_falsa
+from core.metodos_numericos.newton_raphson import resolver_newton_raphson
 from core.metodos_numericos.operaciones_errores import (
     calcular_errores,
     demostrar_punto_flotante,
@@ -238,6 +239,38 @@ class ReglaFalsaTests(unittest.TestCase):
         resultado = regla_falsa.resolver_regla_falsa("x", -1, 1, 1e-5, "20")
 
         self.assertEqual(resultado["estado"], "Raíz exacta encontrada")
+
+
+class NewtonRaphsonTests(unittest.TestCase):
+    def test_resuelve_caso_guia_con_derivada_explicita(self):
+        resultado = resolver_newton_raphson(
+            "x^3 - x - 2",
+            1.5,
+            1e-8,
+            50,
+            "3*x^2 - 1",
+        )
+
+        self.assertTrue(resultado["convergio"])
+        self.assertAlmostEqual(resultado["raiz"], 1.521379707, places=7)
+        self.assertEqual(resultado["estado"], "Tolerancia por residuo alcanzada")
+        self.assertGreater(len(resultado["tabla"]), 0)
+        self.assertTrue(all(len(fila) == len(resultado["columnas"]) for fila in resultado["tabla"]))
+
+    def test_resuelve_sin_derivada_explicitamente_con_diferencia_finita(self):
+        resultado = resolver_newton_raphson(
+            "x^3 - x - 2",
+            1.5,
+            1e-8,
+            50,
+        )
+
+        self.assertTrue(resultado["convergio"])
+        self.assertAlmostEqual(resultado["raiz"], 1.521379707, places=7)
+
+    def test_rechaza_derivada_cero(self):
+        with self.assertRaisesRegex(ValueError, "derivada es cero"):
+            resolver_newton_raphson("x^2 + 1", 0, 1e-8, 20, "2*x")
 
 
 class OperacionesErroresTests(unittest.TestCase):
