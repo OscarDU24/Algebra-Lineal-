@@ -1,6 +1,11 @@
 """Método de Newton-Raphson con derivación numérica central."""
 
-from core.metodos_numericos.biseccion import _convertir_finito, _crear_funcion, _es_finito
+from core.metodos_numericos.biseccion import (
+    _convertir_finito,
+    _crear_funcion,
+    _es_finito,
+    analizar_intervalos,
+)
 
 COLUMNAS_TABLA = (
     "Iteración",
@@ -64,6 +69,10 @@ def _resultado(
     tolerancia,
     tabla,
     procedimiento_derivada,
+    detencion_preventiva=False,
+    rango_analizado=None,
+    raices_candidatas=(),
+    forzado=False,
 ):
     return {
         "raiz": raiz,
@@ -78,11 +87,24 @@ def _resultado(
         "columnas": COLUMNAS_TABLA,
         "tabla": tabla,
         "procedimiento_derivada": procedimiento_derivada,
+        "detencion_preventiva": detencion_preventiva,
+        "rango_analizado": rango_analizado,
+        "raices_candidatas": tuple(raices_candidatas),
+        "forzado": forzado,
     }
 
 
-def resolver_newton_raphson(funcion, x_inicial, tolerancia, max_iteraciones):
+def resolver_newton_raphson(
+    funcion,
+    x_inicial,
+    tolerancia,
+    max_iteraciones,
+    rango_analizado=(-10, 10),
+    forzar=False,
+):
     """Resuelve f(x)=0 con el método de Newton-Raphson."""
+    if not isinstance(forzar, bool):
+        raise ValueError("La opción para forzar el cálculo debe ser booleana.")
     evaluar = _crear_funcion(funcion)
     x_actual = _convertir_finito(x_inicial, "El valor inicial x0")
     tol = _convertir_finito(tolerancia, "La tolerancia")
@@ -100,6 +122,31 @@ def resolver_newton_raphson(funcion, x_inicial, tolerancia, max_iteraciones):
             tolerancia=tol,
             tabla=[],
             procedimiento_derivada=[],
+        )
+
+    try:
+        x_minimo = _convertir_finito(rango_analizado[0], "El límite inferior visual")
+        x_maximo = _convertir_finito(rango_analizado[1], "El límite superior visual")
+    except (IndexError, TypeError) as error:
+        raise ValueError(
+            "El rango de preanálisis debe contener dos límites numéricos."
+        ) from error
+    analisis = analizar_intervalos(funcion, x_minimo, x_maximo)
+    raices_candidatas = analisis["intervalos"]
+    if not raices_candidatas and not forzar:
+        return _resultado(
+            raiz=None,
+            convergio=False,
+            estado=(
+                "Detención preventiva: no se detectaron cruces ni ceros "
+                "muestreados en el intervalo visualizado"
+            ),
+            iteraciones=0,
+            tolerancia=tol,
+            tabla=[],
+            procedimiento_derivada=[],
+            detencion_preventiva=True,
+            rango_analizado=(x_minimo, x_maximo),
         )
 
     tabla = []
@@ -155,6 +202,9 @@ def resolver_newton_raphson(funcion, x_inicial, tolerancia, max_iteraciones):
         tolerancia=tol,
         tabla=tabla,
         procedimiento_derivada=procedimiento_derivada,
+        rango_analizado=(x_minimo, x_maximo),
+        raices_candidatas=raices_candidatas,
+        forzado=forzar and not raices_candidatas,
     )
 
 

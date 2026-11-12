@@ -9,6 +9,10 @@ from core.metodos_numericos.biseccion import (
     resolver_biseccion,
 )
 from core.metodos_numericos import regla_falsa
+from core.metodos_numericos.metodo_secante import (
+    COLUMNAS_TABLA as COLUMNAS_SECANTE,
+    resolver_secante,
+)
 from core.metodos_numericos.newton_raphson import resolver_newton_raphson
 from core.metodos_numericos.operaciones_errores import (
     calcular_errores,
@@ -282,17 +286,121 @@ class NewtonRaphsonTests(unittest.TestCase):
             detalle["derivada"],
             detalle["diferencia_funcion"] / detalle["divisor"],
         )
-        self.assertEqual(len(resultado["procedimiento_derivada"]), resultado["iteraciones"])
+        self.assertEqual(
+            len(resultado["procedimiento_derivada"]),
+            resultado["iteraciones"],
+        )
+
+    def test_detiene_preventivamente_si_no_hay_raices_candidatas_en_el_rango(self):
+        resultado = resolver_newton_raphson(
+            "x^2 + 4",
+            1,
+            1e-8,
+            50,
+            rango_analizado=(-10, 10),
+        )
+
+        self.assertTrue(resultado["detencion_preventiva"])
+        self.assertFalse(resultado["convergio"])
+        self.assertEqual(resultado["iteraciones"], 0)
+        self.assertIsNone(resultado["raiz"])
+        self.assertEqual(resultado["tabla"], [])
+        self.assertEqual(resultado["rango_analizado"], (-10, 10))
+
+    def test_permite_forzar_si_la_raiz_esta_fuera_del_rango_analizado(self):
+        resultado = resolver_newton_raphson(
+            "x - 500",
+            1,
+            1e-8,
+            10,
+            rango_analizado=(-10, 10),
+            forzar=True,
+        )
+
+        self.assertFalse(resultado["detencion_preventiva"])
+        self.assertTrue(resultado["forzado"])
+        self.assertTrue(resultado["convergio"])
+        self.assertAlmostEqual(resultado["raiz"], 500)
+
+    def test_no_detiene_si_el_muestreo_detecta_un_cambio_de_signo(self):
+        resultado = resolver_newton_raphson(
+            "x - 2",
+            1,
+            1e-8,
+            10,
+            rango_analizado=(-10, 10),
+        )
+
+        self.assertFalse(resultado["detencion_preventiva"])
+        self.assertFalse(resultado["forzado"])
+        self.assertTrue(resultado["convergio"])
+        self.assertGreaterEqual(len(resultado["raices_candidatas"]), 1)
 
     def test_rechaza_derivada_cero(self):
         with self.assertRaisesRegex(ValueError, "derivada es cero"):
-            resolver_newton_raphson("x^2 + 1", 0, 1e-8, 20)
+            resolver_newton_raphson("x^2 + 1", 0, 1e-8, 20, forzar=True)
 
     def test_deriva_funcion_con_secante_numerica(self):
         resultado = resolver_newton_raphson("sec(x) - 2", 1, 1e-8, 50)
 
         self.assertTrue(resultado["convergio"])
         self.assertAlmostEqual(resultado["raiz"], 1.04719755, places=6)
+
+
+class SecanteTests(unittest.TestCase):
+    def test_resuelve_caso_guia_y_registra_iteraciones(self):
+        resultado = resolver_secante(
+            "x^3 - x - 2",
+            1,
+            2,
+            1e-8,
+            50,
+        )
+
+        self.assertTrue(resultado["convergio"])
+        self.assertAlmostEqual(resultado["raiz"], 1.5213797, places=7)
+        self.assertEqual(resultado["estado"], "Tolerancia por residuo alcanzada")
+        self.assertGreater(len(resultado["tabla"]), 0)
+        self.assertTrue(
+            all(
+                len(fila) == len(resultado["columnas"])
+                for fila in resultado["tabla"]
+            )
+        )
+        self.assertEqual(
+            len(resultado["procedimiento_secante"]),
+            resultado["iteraciones"],
+        )
+        self.assertIn("x_{n+1}", COLUMNAS_SECANTE)
+
+    def test_reconoce_raiz_en_cualquiera_de_los_puntos_iniciales(self):
+        en_x0 = resolver_secante("x - 1", 1, 2, 1e-8, 20)
+        en_x1 = resolver_secante("x - 2", 1, 2, 1e-8, 20)
+
+        self.assertTrue(en_x0["convergio"])
+        self.assertEqual(en_x0["iteraciones"], 0)
+        self.assertEqual(en_x0["estado"], "Raíz aproximada en x0")
+        self.assertTrue(en_x1["convergio"])
+        self.assertEqual(en_x1["iteraciones"], 0)
+        self.assertEqual(en_x1["estado"], "Raíz aproximada en x1")
+
+    def test_rechaza_denominador_cero_y_entradas_invalidas(self):
+        with self.assertRaisesRegex(ValueError, "denominador"):
+            resolver_secante("x^2 + 1", -1, 1, 1e-8, 20)
+        with self.assertRaisesRegex(ValueError, "mayor que cero"):
+            resolver_secante("x", -1, 1, 0, 20)
+        with self.assertRaisesRegex(ValueError, "número entero"):
+            resolver_secante("x", -1, 1, 1e-8, "")
+        with self.assertRaisesRegex(ValueError, "entre 1 y 100000"):
+            resolver_secante("x", -1, 1, 1e-8, 0)
+
+    def test_informa_no_convergencia_al_agotar_iteraciones(self):
+        resultado = resolver_secante("x^3 - x - 2", 1, 2, 1e-20, 1)
+
+        self.assertFalse(resultado["convergio"])
+        self.assertEqual(resultado["iteraciones"], 1)
+        self.assertEqual(resultado["estado"], "Máximo de iteraciones alcanzado")
+        self.assertIsNotNone(resultado["raiz"])
 
 
 class OperacionesErroresTests(unittest.TestCase):

@@ -224,7 +224,14 @@ la no convergencia en vez de etiquetar la última aproximación como raíz.
 
 ---
 
-## 3. Método de Newton-Raphson
+## 3. Métodos Abiertos: Newton-Raphson y Secante
+
+El menú principal **Métodos Abiertos** presenta ambos algoritmos dentro del
+mismo panel y permite alternar entre ellos con botones de opción. La función,
+la tolerancia y el máximo de iteraciones son comunes; Newton usa un valor
+inicial `x0`, mientras Secante solicita dos (`x0`, `x1`).
+
+### Newton-Raphson
 
 El método de Newton-Raphson aproxima la raíz de una ecuación no lineal
 mediante una recta tangente. Si \(x_n\) es la aproximación actual, la siguiente
@@ -249,10 +256,8 @@ por debajo de la tolerancia o el cambio entre aproximaciones
 pendiente se hace cero o infinita, la función informa el problema y no intenta
 continuar con una iteración inválida.
 
-La interfaz en
-[`core/ui/vista_newton_raphson.py`](../core/ui/vista_newton_raphson.py)
-presenta la función, `x0`, la tolerancia y el máximo de iteraciones. La salida
-incluye la raíz aproximada, el criterio de paro y la tabla de iteraciones.
+La salida de Newton incluye la raíz aproximada, el criterio de paro y la tabla
+de iteraciones.
 Además, en cada iteración expone el cálculo de la diferencia central: el paso
 `h`, los puntos `x_n+h` y `x_n-h`, las evaluaciones de la función en ambos
 puntos, la resta del numerador, el divisor `2h` y el valor resultante de
@@ -269,6 +274,28 @@ denominador está próximo a cero, se informa que la función no está definida.
 \(x_0=1.5\) y tolerancia \(10^{-8}\), el algoritmo reproduce la progresión
 analítica esperada: la raíz aproximada se estabiliza en torno a
 \(1.521379707\), con convergencia rápida y sin indeterminaciones.
+
+### Método de la Secante
+
+La secante aproxima la pendiente mediante dos puntos consecutivos de la
+función, sin calcular una derivada. Su iteración es
+
+\[
+x_{n+1}=x_n-\frac{f(x_n)(x_n-x_{n-1})}
+{f(x_n)-f(x_{n-1})}.
+\]
+
+El backend está en
+[`core/metodos_numericos/metodo_secante.py`](../core/metodos_numericos/metodo_secante.py).
+Valida ambos puntos iniciales, la tolerancia y el máximo de iteraciones;
+reporta un error si el denominador se anula o no es finito. En cada paso guarda
+las dos aproximaciones, sus valores de función, la nueva aproximación, el
+cambio absoluto y el residuo. La interfaz presenta además el desarrollo de la
+fórmula y una tabla de iteraciones. La Secante no requiere cambio de signo, y
+puede divergir o estancarse según los valores iniciales.
+
+**Caso de prueba:** para \(f(x)=x^3-x-2\), con `x0 = 1`, `x1 = 2` y tolerancia
+\(10^{-8}\), converge en 6 iteraciones a aproximadamente `1.52137970798`.
 
 ---
 
@@ -466,14 +493,25 @@ abre la misma ventana con su función enlazada. Al cambiar de método, se cierra
 el teclado y el explorador auxiliares del panel anterior; los datos ingresados
 en los paneles se conservan.
 
-Newton-Raphson también abre el explorador con su función actual. La ventana
+El panel **Métodos Abiertos** también abre el explorador con su función actual.
+En Newton-Raphson, la ventana
 marca los intervalos donde el muestreo observa un cambio de signo o un cero
 muestreado e informa cuántas raíces candidatas encontró. En esta vista se puede
 hacer clic en un punto de la curva para usar su coordenada `x` como nuevo `x0`.
-La cantidad es una estimación: el muestreo puede omitir raíces tangenciales o
-muy cercanas; un cambio de signo garantiza una raíz solo cuando la función es
+La gráfica de Métodos Abiertos no muestra marcadores de raíces ni un mensaje
+de estado debajo de la gráfica. La cantidad de raíces candidatas sigue siendo
+una estimación interna: el muestreo puede omitir raíces tangenciales o muy
+cercanas; un cambio de signo garantiza una raíz solo cuando la función es
 continua en el intervalo. El punto elegido orienta el método, pero no garantiza
 que Newton-Raphson converja.
+
+Antes de iterar, Newton-Raphson analiza el rango visualizado más recientemente
+(inicialmente `[-10, 10]`). Si no encuentra cambios de signo ni ceros
+muestreados, detiene el método con cero iteraciones y muestra una advertencia.
+Esto solo indica que no detectó candidatas en ese rango: no demuestra que la
+función carezca de raíces reales fuera de él ni descarta raíces que el muestreo
+no haya detectado. Se puede ampliar el rango desde la gráfica o pulsar
+**Forzar cálculo** para intentar Newton con el `x0` elegido.
 
 Los campos de función de Bisección, Regula Falsi, del explorador gráfico y de
 Propagación incluyen un **teclado matemático**. También admiten escritura
