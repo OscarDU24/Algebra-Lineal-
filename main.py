@@ -4,7 +4,9 @@ import sys
 import tkinter as tk
 from PIL import Image, ImageTk
 
+from core.ui import preferencias
 from core.ui.audio_manager import AudioManager
+from core.ui.bienvenida import mostrar_bienvenida_si_corresponde
 from core.ui.dashboard import Dashboard
 from core.ui.vista_inicio import VistaInicio
 
@@ -48,13 +50,20 @@ def main():
         except (OSError, tk.TclError) as error:
             print(f"No se pudo cargar el icono de Windows: {error}")
 
+    # Las preferencias viven en la carpeta de configuración del usuario; si el
+    # archivo falta o está dañado se usan los valores predeterminados.
+    preferencias_usuario = preferencias.cargar()
     audio = AudioManager()
+    audio.musica_habilitada = preferencias_usuario["musica_habilitada"]
+    audio.establecer_efectos_habilitados(preferencias_usuario["efectos_habilitados"])
     root.audio_manager = audio
     audio.instalar_sonidos_interfaz(root)
     dashboard = {"vista": None}
 
     def iniciar_dashboard():
         dashboard["vista"] = Dashboard(root, audio)
+        # La guía se programa después de la transición de portada.
+        mostrar_bienvenida_si_corresponde(root)
 
     def cerrar_aplicacion():
         audio.cerrar()

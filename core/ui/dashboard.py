@@ -4,6 +4,8 @@ import ctypes
 from pathlib import Path
 from PIL import Image, ImageTk
 
+from core.ui import preferencias
+
 class Dashboard:
     def __init__(self, root, audio_manager=None):
         self.root = root
@@ -83,6 +85,11 @@ class Dashboard:
             activebackground="#8f0000",
             activeforeground="#ffffff"
         )
+        self.menu_ayuda.add_command(label="Guía de bienvenida", command=self.abrir_guia)
+        self.menu_ayuda.add_command(
+            label="Cómo usar HeyAlgb y atajos de teclado", command=self.abrir_ayuda_general
+        )
+        self.menu_ayuda.add_separator()
         self.menu_ayuda.add_command(label="Acerca de", command=self.mostrar_acerca_de)
         self.menu_bar.add_cascade(label="Ayuda", menu=self.menu_ayuda)
         
@@ -144,21 +151,43 @@ class Dashboard:
             master=self.root,
             value=self.audio_manager.musica_habilitada if self.audio_manager else False
         )
-        self.control_musica = tk.Checkbutton(
-            self.contenido,
-            text="Música de fondo",
-            variable=self.var_musica,
-            command=self._alternar_musica,
+        self.var_efectos = tk.BooleanVar(
+            master=self.root,
+            value=getattr(self.audio_manager, "efectos_habilitados", True)
+            if self.audio_manager else False
+        )
+        # Ambos controles se guardan en las preferencias del usuario y muestran
+        # un borde al recibir el foco con Tab.
+        self.panel_audio = tk.Frame(self.contenido, bg="#ffffff")
+        estilo_casilla = dict(
             bg="#ffffff",
             fg="#111111",
             activebackground="#ffffff",
             selectcolor="#ffffff",
             font=(self.fuente_menu, 10),
             bd=0,
-            highlightthickness=0,
+            highlightthickness=1,
+            highlightbackground="#ffffff",
+            highlightcolor="#fe0000",
         )
+        self.control_musica = tk.Checkbutton(
+            self.panel_audio,
+            text="Música de fondo",
+            variable=self.var_musica,
+            command=self._alternar_musica,
+            **estilo_casilla,
+        )
+        self.control_musica.pack(side="left", padx=(0, 8))
+        self.control_efectos = tk.Checkbutton(
+            self.panel_audio,
+            text="Efectos de sonido",
+            variable=self.var_efectos,
+            command=self._alternar_efectos,
+            **estilo_casilla,
+        )
+        self.control_efectos.pack(side="left")
         self.musica_item = self.contenido.create_window(
-            0, 0, window=self.control_musica, anchor="ne"
+            0, 0, window=self.panel_audio, anchor="ne"
         )
         self.contenido.bind("<Configure>", self._programar_reorganizacion)
         self._reorganizar_elementos(980, 780)
@@ -222,10 +251,16 @@ class Dashboard:
             activebackground="#ffffff",
             activeforeground="#fe0000",
             bd=0,
-            highlightthickness=0,
+            # Borde rojo visible cuando la tarjeta recibe el foco con Tab.
+            highlightthickness=2,
+            highlightbackground="#ffffff",
+            highlightcolor="#fe0000",
+            takefocus=1,
             cursor="hand2",
             command=lambda: self._activar_modulo(comando)
         )
+        boton_icono.bind("<Return>", lambda _e: self._activar_modulo(comando))
+        boton_icono.bind("<KP_Enter>", lambda _e: self._activar_modulo(comando))
         if self.audio_manager is not None:
             self.audio_manager.registrar_control_sonido(boton_icono, "interfaces")
         boton_icono.pack(expand=True, fill="both")
@@ -256,6 +291,8 @@ class Dashboard:
         for widget in (card_frame, preview_frame, lbl_nombre):
             widget.bind("<Enter>", seleccionar, add="+")
             widget.bind("<Leave>", deseleccionar, add="+")
+        boton_icono.bind("<FocusIn>", seleccionar, add="+")
+        boton_icono.bind("<FocusOut>", deseleccionar, add="+")
 
         lbl_nombre.bind("<Button-1>", activar)
         self.tarjetas.append({
@@ -274,6 +311,22 @@ class Dashboard:
     def _alternar_musica(self):
         if self.audio_manager is not None:
             self.audio_manager.establecer_musica_habilitada(self.var_musica.get())
+        preferencias.guardar(musica_habilitada=bool(self.var_musica.get()))
+
+    def _alternar_efectos(self):
+        if self.audio_manager is not None:
+            self.audio_manager.establecer_efectos_habilitados(self.var_efectos.get())
+        preferencias.guardar(efectos_habilitados=bool(self.var_efectos.get()))
+
+    def abrir_guia(self):
+        from core.ui.bienvenida import abrir_bienvenida
+
+        abrir_bienvenida(self.root)
+
+    def abrir_ayuda_general(self):
+        from core.ui.ayuda import mostrar_ayuda
+
+        mostrar_ayuda(self.root, "general")
 
     def _programar_reorganizacion(self, event):
         if self._resize_job is not None:

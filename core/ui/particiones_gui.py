@@ -10,6 +10,13 @@ from core.matriciales import particiones_logica as logica
 from core.matriciales import visualizacionMatriciales as vis
 from core.ui.audio_manager import reproducir_sonido_error
 from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
+from core.ui.navegacion import (
+    confirmar_reemplazo,
+    escribir_campo,
+    instalar_navegacion,
+    marcar_error_campo,
+    rellenar,
+)
 from core.ui.ctk_compat import ctk
 from core.ui.tema import (
     FONDO_CALCULADORA,
@@ -44,6 +51,9 @@ class VistaParticiones(ctk.CTkToplevel):
         self.entradas = {"A": [], "B": []}
         self.crear_interfaz()
         self.generar_datos()
+        instalar_navegacion(
+            self, "particiones", texto_volver="← Volver a Ecuaciones matriciales"
+        )
         self.grab_set()
 
     def al_cerrar(self):

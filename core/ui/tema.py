@@ -9,6 +9,10 @@ FONDO_TERMINO_INDEPENDIENTE = "#060606"
 TEXTO_CLARO = "#ffffff"
 TEXTO_OSCURO = "#000000"
 ACENTO = "#fe0000"
+# Estados de los campos: el foco usa el acento; el error, un ámbar distinto del
+# foco y siempre acompañado de un mensaje con «⚠» (no se depende solo del color).
+COLOR_FOCO = ACENTO
+COLOR_ADVERTENCIA = "#ffcc00"
 
 def estilo_menu_desplegable():
     """Devuelve el estilo común de los menús desplegables de las calculadoras."""

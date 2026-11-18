@@ -148,11 +148,80 @@ def escribir_consola(textbox, texto):
     textbox.configure(state="disabled")
 
 
-def crear_consola_resultados(master, tamano=12, wrap="none", height=None, titulo=None):
+def copiar_consola(textbox):
+    """Copia todo el contenido de la consola al portapapeles.
+
+    Devuelve True si había texto. No modifica la consola ni recalcula nada.
+    No se separa «resultado» de «procedimiento»: el texto de cada herramienta
+    no tiene una marca fiable para hacerlo sin cortes frágiles.
+    """
+    texto = textbox.get("1.0", "end-1c")
+    if not texto.strip():
+        return False
+    textbox.clipboard_clear()
+    textbox.clipboard_append(texto)
+    return True
+
+
+def _crear_acciones(barra, textbox, limpiable):
+    """Botones «Copiar resultados» y «Limpiar resultados» con aviso breve."""
+    estilo = dict(estilo_boton_secundario(), height=24, font=("Arial", 12, "bold"))
+    aviso = ctk.CTkLabel(barra, text="", text_color=TEXTO_CLARO, font=("Segoe UI", 12))
+    estado = {"trabajo": None}
+
+    def avisar(mensaje):
+        aviso.configure(text=mensaje)
+        if estado["trabajo"] is not None:
+            aviso.after_cancel(estado["trabajo"])
+        estado["trabajo"] = aviso.after(1800, limpiar_aviso)
+
+    def limpiar_aviso():
+        estado["trabajo"] = None
+        aviso.configure(text="")
+
+    def cancelar_aviso(_evento=None):
+        if estado["trabajo"] is not None:
+            try:
+                aviso.after_cancel(estado["trabajo"])
+            except Exception:
+                pass
+            estado["trabajo"] = None
+
+    aviso.bind("<Destroy>", cancelar_aviso, add="+")
+
+    def copiar():
+        avisar("✓ Copiado" if copiar_consola(textbox) else "Nada que copiar")
+
+    boton_copiar = ctk.CTkButton(
+        barra, text="Copiar resultados", width=130, command=copiar, **estilo
+    )
+    boton_copiar.pack(side="left", padx=(0, 4))
+    boton_limpiar = None
+    if limpiable:
+        def limpiar():
+            escribir_consola(textbox, "")
+            avisar("Resultados limpiados")
+
+        boton_limpiar = ctk.CTkButton(
+            barra, text="Limpiar resultados", width=130, command=limpiar, **estilo
+        )
+        boton_limpiar.pack(side="left", padx=(0, 4))
+    aviso.pack(side="left", padx=6)
+    barra.boton_copiar = boton_copiar
+    barra.boton_limpiar_resultados = boton_limpiar
+    barra.aviso = aviso
+    barra.copiar = copiar
+    return barra
+
+
+def crear_consola_resultados(
+    master, tamano=12, wrap="none", height=None, titulo=None, limpiable=True
+):
     """Crea una consola monoespaciada de solo lectura con controles de zoom.
 
-    Devuelve ``(contenedor, textbox, zoom)``. El contenedor es el widget que
-    la vista debe ubicar con ``pack`` o ``grid``.
+    Sobre la consola se muestran «Copiar resultados», «Limpiar resultados»
+    (si ``limpiable``) y el zoom. Devuelve ``(contenedor, textbox, zoom)``.
+    El contenedor es el widget que la vista debe ubicar con ``pack`` o ``grid``.
     """
     contenedor = ctk.CTkFrame(master, fg_color="transparent")
     barra = ctk.CTkFrame(contenedor, fg_color="transparent")
@@ -173,6 +242,8 @@ def crear_consola_resultados(master, tamano=12, wrap="none", height=None, titulo
     textbox.configure(state="disabled")
     zoom = ZoomConsola(textbox, tamano)
 
+    _crear_acciones(barra, textbox, limpiable)
+    contenedor.barra = barra
     controles = crear_controles_zoom(barra, zoom)
     controles.pack(side="right")
     return contenedor, textbox, zoom
@@ -182,6 +253,11 @@ def crear_controles_zoom(master, zoom):
     """Botones discretos «−», porcentaje (restablece) y «+»."""
     marco = ctk.CTkFrame(master, fg_color="transparent")
     estilo = dict(estilo_boton_secundario(), height=24, font=("Arial", 12, "bold"))
+    # La etiqueta deja claro que el porcentaje es el zoom y que al pulsarlo
+    # se restablece (distinto de «Limpiar resultados»).
+    ctk.CTkLabel(
+        marco, text="Zoom (clic en % = 100 %):", text_color=TEXTO_CLARO, font=("Segoe UI", 12)
+    ).pack(side="left", padx=(0, 4))
     boton_menos = ctk.CTkButton(marco, text="−", width=28, command=zoom.disminuir, **estilo)
     boton_nivel = ctk.CTkButton(marco, text="100 %", width=62, command=zoom.restablecer, **estilo)
     boton_mas = ctk.CTkButton(marco, text="+", width=28, command=zoom.aumentar, **estilo)

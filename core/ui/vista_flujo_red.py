@@ -1,6 +1,13 @@
 from core.ui.ctk_compat import ctk
 from core.ui.audio_manager import reproducir_sonido_error
 from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
+from core.ui.navegacion import (
+    confirmar_reemplazo,
+    escribir_campo,
+    instalar_navegacion,
+    marcar_error_campo,
+    rellenar,
+)
 from core.matriciales import visualizacionMatriciales as vis
 from core.vectores import conversionesVectores as conv
 from core.vectores import flujo_red
@@ -30,6 +37,9 @@ class VistaFlujoRed(ctk.CTkToplevel):
         self.crear_controles()
         self.crear_area_datos()
         self.generar_datos()
+        instalar_navegacion(
+            self, "flujo_red", texto_volver="← Volver a Ecuaciones matriciales"
+        )
 
     def al_cerrar(self):
         self.master_matricial.deiconify()

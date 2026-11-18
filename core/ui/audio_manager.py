@@ -30,6 +30,7 @@ class AudioManager:
             Path(__file__).resolve().parents[1] / "assets" / "SoundEffects"
         )
         self.musica_habilitada = True
+        self.efectos_habilitados = True
         self.en_lobby = False
         self.disponible = False
         self._pygame = None
@@ -100,9 +101,13 @@ class AudioManager:
         self.establecer_musica_habilitada(not self.musica_habilitada)
         return self.musica_habilitada
 
+    def establecer_efectos_habilitados(self, habilitados):
+        """Activa o silencia los efectos de sonido (cursor, clic, cálculo, error...)."""
+        self.efectos_habilitados = bool(habilitados)
+
     def reproducir_efecto(self, nombre):
         """Reproduce un efecto con un filtro anti-spam para el sonido del cursor."""
-        if not self.disponible:
+        if not self.disponible or not getattr(self, "efectos_habilitados", True):
             return
         sonido = self._efectos.get(nombre)
         if sonido is None:

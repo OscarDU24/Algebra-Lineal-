@@ -1,6 +1,9 @@
 """Ventana unificada para las herramientas de métodos numéricos."""
 
+from tkinter import messagebox
+
 from core.ui.ctk_compat import ctk
+from core.ui.navegacion import confirmar_reemplazo, instalar_navegacion
 from core.ui.tema import (
     FONDO_CALCULADORA,
     TEXTO_CLARO,
@@ -32,6 +35,43 @@ class VistaMetodosNumericos(ctk.CTkToplevel):
         self._paneles = {}
         self._operacion_activa = self.OPERACIONES[0]
         self._crear_interfaz()
+        # La ayuda corresponde al panel visible en cada momento.
+        instalar_navegacion(
+            self,
+            lambda: self.CLAVES_AYUDA[self._operacion_activa],
+            al_cargar_ejemplo=self.cargar_ejemplo,
+        )
+
+    CLAVES_AYUDA = {
+        "Método de Bisección": "biseccion",
+        "Método Regula Falsi": "regla_falsa",
+        "Métodos Abiertos": "abiertos",
+        "Análisis de Errores": "errores",
+    }
+
+    def cargar_ejemplo(self):
+        """Carga el ejemplo del panel visible sin ejecutar el método."""
+        panel = self._paneles.get(self._operacion_activa)
+        cargar = getattr(panel, "cargar_ejemplo", None)
+        if cargar is not None:
+            return cargar()
+        if self._operacion_activa == "Métodos Abiertos":
+            # El panel ya restablece su caso guía con «Borrar»; se reutiliza
+            # sin modificar ese módulo, pidiendo confirmación si hay otros datos.
+            claves = ("x0", "x1", "tolerancia", "max_iteraciones")
+            actuales = [panel.funcion_var.get()] + [panel.entradas[c].get() for c in claves]
+            ejemplo = ["x³ - x - 2", "1.5", "2", "1e-8", "50"]
+            if not confirmar_reemplazo(self, actuales, ejemplo):
+                return False
+            panel.borrar()
+            return True
+        messagebox.showinfo(
+            "Cargar ejemplo",
+            "Análisis de Errores tiene ejemplos en cada pestaña; en «Gauss-Jordan» "
+            "use «Cargar Hilbert 5×5».",
+            parent=self,
+        )
+        return False
 
     def _crear_interfaz(self):
         selector = ctk.CTkFrame(self, **estilo_panel_contenedor())

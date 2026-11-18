@@ -6,6 +6,7 @@ from core.metodos_numericos import metodo_secante
 from core.metodos_numericos import newton_raphson
 from core.ui.audio_manager import reproducir_sonido_error
 from core.ui.ctk_compat import ctk
+from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
 from core.ui.teclado_matematico import abrir_teclado_matematico, cerrar_teclado_matematico
 from core.ui.tema import (
     FONDO_CALCULADORA,
@@ -160,13 +161,10 @@ class VistaMetodosAbiertos(ctk.CTkFrame):
             text_color=TEXTO_CLARO,
             font=("Segoe UI", 14, "bold"),
         ).pack(anchor="w", padx=10, pady=(6, 2))
-        self.texto_salida = ctk.CTkTextbox(
-            salida,
-            font=("Consolas", 11),
-            wrap="none",
-            **estilo_consola_resultado(),
+        contenedor_salida, self.texto_salida, self.zoom_salida = (
+            crear_consola_resultados(salida, tamano=11)
         )
-        self.texto_salida.pack(fill="both", expand=True, padx=8, pady=(0, 7))
+        contenedor_salida.pack(fill="both", expand=True, padx=8, pady=(0, 7))
         self._mostrar(
             "Newton-Raphson utiliza x0 y calcula la derivada numéricamente "
             "mediante diferencia finita central."
@@ -213,6 +211,9 @@ class VistaMetodosAbiertos(ctk.CTkFrame):
             self.etiquetas_entrada["x1"].grid_remove()
             self.entradas["x1"].grid_remove()
             self.selector_destino_grafica.pack_forget()
+            # Newton solo usa x0: un clic en la gráfica no debe escribir en el
+            # campo x1, que está oculto.
+            self.destino_grafica_var.set("x0")
             self.boton_forzar.pack_forget()
         self._mostrar(
             "Secante utiliza dos aproximaciones iniciales x0 y x1."
@@ -435,5 +436,4 @@ class VistaMetodosAbiertos(ctk.CTkFrame):
     def _mostrar(self, texto):
         if texto.startswith("ERROR:"):
             reproducir_sonido_error(self, texto)
-        self.texto_salida.delete("1.0", "end")
-        self.texto_salida.insert("1.0", texto)
+        escribir_consola(self.texto_salida, texto)

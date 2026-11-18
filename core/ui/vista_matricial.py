@@ -7,6 +7,13 @@ import logging
 from core.ui.ctk_compat import ctk
 from core.ui.audio_manager import reproducir_sonido_error
 from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
+from core.ui.navegacion import (
+    confirmar_reemplazo,
+    escribir_campo,
+    instalar_navegacion,
+    marcar_error_campo,
+    rellenar,
+)
 
 from core.matriciales import conversionesMatriciales as conv
 from core.matriciales import operacionesMatriciales as op
@@ -72,6 +79,7 @@ class VistaMatricial(ctk.CTkToplevel):
         self.crear_frame_superior()
         self.crear_frame_central()
         self.crear_frame_inferior()
+        instalar_navegacion(self, "matricial")
 
     def al_cerrar(self):
         if self.master_dashboard is not None:
@@ -154,7 +162,7 @@ class VistaMatricial(ctk.CTkToplevel):
 
         self.boton_limpiar = ctk.CTkButton(
             self.frame_botones_generacion,
-            text="Limpiar",
+            text="Limpiar todo",
             **estilo_boton_secundario(),
             command=self.limpiar
         )

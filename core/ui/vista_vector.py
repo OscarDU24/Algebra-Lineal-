@@ -6,6 +6,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")
 from core.ui.ctk_compat import ctk
 from core.ui.audio_manager import reproducir_sonido_error
 from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
+from core.ui.navegacion import (
+    confirmar_reemplazo,
+    escribir_campo,
+    instalar_navegacion,
+    marcar_error_campo,
+    rellenar,
+)
 from core.vectores import conversionesVectores as conv
 from core.vectores import eliminacionVectores as ev
 from core.ui.tema import (
@@ -43,6 +50,7 @@ class VistaVector(ctk.CTkToplevel):
         self.crear_frame_inferior()
 
         self.cambiar_operacion()
+        instalar_navegacion(self, "vector")
 
     def al_cerrar(self):
         self.master_dashboard.deiconify()
@@ -115,7 +123,7 @@ class VistaVector(ctk.CTkToplevel):
 
         self.btn_limpiar = ctk.CTkButton(
             self.frame_sup,
-            text="Limpiar Valores",
+            text="Limpiar entradas",
             **estilo_boton_secundario(),
             command=self.limpiar_entradas
         )
