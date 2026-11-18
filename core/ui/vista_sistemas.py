@@ -4,6 +4,7 @@
 
 from core.ui.ctk_compat import ctk
 from core.ui.audio_manager import reproducir_sonido_error
+from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
 # Importamos la lógica pura (ajusta la ruta si es necesario)
 from core.sistemas import operaciones_sistemas as op_sis
 from core.ui.tema import (
@@ -264,8 +265,10 @@ class VistaSistemas(ctk.CTkToplevel):
         boton_limpiar = ctk.CTkButton(botones_frame, text="Limpiar Resultados", **estilo_boton_secundario(), command=lambda: self.mostrar_resultado(""))
         boton_limpiar.grid(row=0, column=1, padx=10)
 
-        self.texto_resultado = ctk.CTkTextbox(self.frame_inferior, height=200, font=("Consolas", 14), **estilo_consola_resultado())
-        self.texto_resultado.pack(fill="both", padx=10, pady=10)
+        contenedor_resultado, self.texto_resultado, self.zoom_resultado = (
+            crear_consola_resultados(self.frame_inferior, tamano=14, height=200)
+        )
+        contenedor_resultado.pack(fill="both", padx=10, pady=10)
 
     # ========================================================
     # EJECUCIÓN LÓGICA
@@ -316,8 +319,7 @@ class VistaSistemas(ctk.CTkToplevel):
 
     def mostrar_resultado(self, texto):
         reproducir_sonido_error(self, texto)
-        self.texto_resultado.delete("1.0", "end")
-        self.texto_resultado.insert("1.0", texto)
+        escribir_consola(self.texto_resultado, texto)
 
 # ============================================================
 # PRUEBA INDEPENDIENTE

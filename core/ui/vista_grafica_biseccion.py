@@ -253,7 +253,7 @@ class VistaGraficaBiseccion(ctk.CTkToplevel):
         else:
             detalle_seleccion = (
                 "Haga clic sobre la gráfica para usar ese x como punto inicial "
-                "x0 en Newton-Raphson."
+                "en el método actual."
             )
         detalle_raices = ""
         if self.marcar_raices_reales:

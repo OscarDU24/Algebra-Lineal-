@@ -26,6 +26,7 @@ class VistaMetodosAbiertos(ctk.CTkFrame):
         self._rango_grafica = (-10.0, 10.0)
         self.funcion_var = ctk.StringVar(value="x³ - x - 2")
         self.metodo_var = ctk.StringVar(value="newton")
+        self.destino_grafica_var = ctk.StringVar(value="x0")
         self._ventana_grafica = None
         self._crear_interfaz()
 
@@ -117,6 +118,22 @@ class VistaMetodosAbiertos(ctk.CTkFrame):
             command=self.abrir_grafica,
             **estilo_boton_secundario(),
         ).pack(side="left", padx=(0, 8))
+        self.selector_destino_grafica = ctk.CTkFrame(
+            acciones,
+            fg_color="transparent",
+        )
+        ctk.CTkLabel(
+            self.selector_destino_grafica,
+            text="Usar el punto en:",
+            text_color=TEXTO_CLARO,
+        ).pack(side="left", padx=(0, 4))
+        for clave in ("x0", "x1"):
+            ctk.CTkRadioButton(
+                self.selector_destino_grafica,
+                text=clave,
+                variable=self.destino_grafica_var,
+                value=clave,
+            ).pack(side="left", padx=4)
         ctk.CTkButton(
             acciones,
             text="Resolver",
@@ -171,16 +188,17 @@ class VistaMetodosAbiertos(ctk.CTkFrame):
         self._ventana_grafica = VistaGraficaBiseccion(
             self.winfo_toplevel(),
             self.funcion_var,
-            on_x_selected=self._actualizar_x0_desde_grafica,
+            on_x_selected=self._actualizar_x_desde_grafica,
             on_range_updated=self._actualizar_rango_grafica,
-            mostrar_marcas_raices=False,
+            mostrar_marcas_raices=True,
             mostrar_estado_actualizacion=False,
         )
 
-    def _actualizar_x0_desde_grafica(self, valor):
-        entrada_x0 = self.entradas["x0"]
-        entrada_x0.delete(0, "end")
-        entrada_x0.insert(0, f"{valor:.12g}")
+    def _actualizar_x_desde_grafica(self, valor):
+        destino = self.destino_grafica_var.get()
+        entrada = self.entradas[destino]
+        entrada.delete(0, "end")
+        entrada.insert(0, f"{valor:.12g}")
 
     def _actualizar_rango_grafica(self, rango):
         self._rango_grafica = rango
@@ -190,9 +208,11 @@ class VistaMetodosAbiertos(ctk.CTkFrame):
         if es_secante:
             self.etiquetas_entrada["x1"].grid()
             self.entradas["x1"].grid()
+            self.selector_destino_grafica.pack(side="left", padx=(0, 8))
         else:
             self.etiquetas_entrada["x1"].grid_remove()
             self.entradas["x1"].grid_remove()
+            self.selector_destino_grafica.pack_forget()
             self.boton_forzar.pack_forget()
         self._mostrar(
             "Secante utiliza dos aproximaciones iniciales x0 y x1."

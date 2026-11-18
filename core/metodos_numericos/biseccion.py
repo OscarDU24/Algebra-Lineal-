@@ -83,15 +83,25 @@ def _crear_funcion(funcion):
                     and id(nodo) not in nombres_funcion
                 )
             ):
-                raise ValueError(f"Nombre no permitido en la función: {nodo.id}.")
+                if nodo.id in nombres_permitidos:
+                    raise ValueError(
+                        f"«{nodo.id}» es una función: escríbala con paréntesis, "
+                        f"por ejemplo {nodo.id}(x)."
+                    )
+                raise ValueError(
+                    f"El nombre «{nodo.id}» no está permitido; use x, pi o e."
+                )
             if isinstance(nodo, ast.Call) and (
                 not isinstance(nodo.func, ast.Name)
                 or nodo.func.id not in nombres_permitidos
                 or nodo.func.id in {"x", "pi", "e"}
-                or len(nodo.args) != 1
-                or nodo.keywords
             ):
                 raise ValueError("La función contiene una llamada no permitida.")
+            if isinstance(nodo, ast.Call) and (len(nodo.args) != 1 or nodo.keywords):
+                raise ValueError(
+                    f"La función {nodo.func.id} admite exactamente un argumento, "
+                    f"por ejemplo {nodo.func.id}(x)."
+                )
             if isinstance(nodo, ast.BinOp) and not isinstance(
                 nodo.op, operaciones_binarias
             ):
@@ -110,10 +120,19 @@ def _crear_funcion(funcion):
                 or _exponente_variable_permitido(nodo.right)
             ):
                 raise ValueError(
-                    "Los exponentes deben ser constantes con valor absoluto ≤ 1000."
+                    "Los exponentes deben ser números con valor absoluto ≤ 1000 "
+                    "o expresiones con x, e y pi (por ejemplo 2^x)."
                 )
         evaluador = _crear_evaluador(expresion)
-    except (SyntaxError, TypeError, ValueError, ZeroDivisionError) as error:
+    except SyntaxError as error:
+        raise ValueError(
+            "La función tiene un error de sintaxis: revise paréntesis, "
+            "operadores y que no falten factores."
+        ) from error
+    except ValueError:
+        # Los mensajes de validación ya son específicos para el estudiante.
+        raise
+    except (TypeError, ZeroDivisionError) as error:
         raise ValueError(
             "La función contiene sintaxis u operaciones no permitidas."
         ) from error
@@ -124,14 +143,22 @@ def _crear_funcion(funcion):
             if isinstance(resultado, complex):
                 raise ValueError("La función produjo un resultado complejo.")
             resultado = float(resultado)
-        except (ArithmeticError) as error:
-            raise ValueError(f"No se pudo evaluar f({x:g}): Error aritmético") from error
-        except (TypeError) as error:
-            raise ValueError(f"No se pudo evaluar f({x:g}): Error de tipo de datos") from error
-        except (ValueError) as error:
-            raise ValueError(f"No se pudo evaluar f({x:g}): Error de valor numérico") from error
-        except (OverflowError) as error:
-            raise ValueError(f"No se pudo evaluar f({x:g}): Error de desbordamiento") from error
+        except ZeroDivisionError as error:
+            raise ValueError(
+                f"No se pudo evaluar f({x:g}): división entre cero."
+            ) from error
+        except OverflowError as error:
+            raise ValueError(
+                f"No se pudo evaluar f({x:g}): el resultado es demasiado grande."
+            ) from error
+        except ArithmeticError as error:
+            raise ValueError(f"No se pudo evaluar f({x:g}): error aritmético.") from error
+        except TypeError as error:
+            raise ValueError(f"No se pudo evaluar f({x:g}): error de tipo de datos.") from error
+        except ValueError as error:
+            # Conserva el motivo del dominio: raíz de un negativo, logaritmo de
+            # un no positivo, tangente indefinida o resultado complejo.
+            raise ValueError(f"No se pudo evaluar f({x:g}): {error}") from error
         if not _es_finito(resultado):
             raise ValueError(f"f({x:g}) produjo un resultado no finito.")
         return resultado

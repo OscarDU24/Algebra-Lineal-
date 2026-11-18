@@ -10,14 +10,16 @@ El módulo está separado en tres partes:
 - **Lógica numérica:** valida las entradas, calcula y construye los datos de
   salida.
 - **Bibliotecas numéricas:** NumPy aporta operaciones de punto flotante y
-  medidas de condicionamiento; SciPy ofrece una implementación independiente
-  de la bisección para contrastar resultados.
+  medidas de condicionamiento en Análisis de Errores. SciPy figura en
+  `requirements.txt`, pero el código actual no lo importa (revisión del
+  18-11-2026). Las funciones elementales (`sin`, `cos`, `sqrt`, `exp`, `log`)
+  se calculan con el módulo estándar `math`.
 
 La ventana unificada está en
 [`core/ui/vista_metodos_numericos.py`](../core/ui/vista_metodos_numericos.py).
 Su menú desplegable permite alternar entre **Método de Bisección**,
-**Método Regula Falsi** y **Análisis de Errores**, sin abrir ventanas
-separadas. Los paneles y la lógica de cada cálculo se mantienen en módulos
+**Método Regula Falsi**, **Métodos Abiertos** y **Análisis de Errores**, sin
+abrir ventanas separadas. Los paneles y la lógica de cada cálculo se mantienen en módulos
 específicos.
 
 ---
@@ -71,6 +73,11 @@ permitidas. Antes de validar el AST, `normalizar_expresion` convierte
 notaciones como `2x`, `3(x+1)`, `(x+1)(x-1)`, `x^2`, `×`, `÷` y `π` a una
 expresión equivalente con operadores explícitos. El resultado de cada
 evaluación debe ser real y finito; si no, genera un error explícito.
+
+Los mensajes indican la causa concreta. Por ejemplo, «`sin` es una función:
+escríbala con paréntesis», «El nombre `y` no está permitido» o «No se pudo
+evaluar f(-1): La raíz cuadrada requiere un valor no negativo». El mismo
+evaluador valida las expresiones de la calculadora de Límites.
 
 #### `muestrear_funcion(funcion, x_min, x_max, muestras=400)`
 
@@ -255,6 +262,15 @@ por debajo de la tolerancia o el cambio entre aproximaciones
 \(|x_{n+1}-x_n|\) es menor que la tolerancia, se detiene el proceso. Si la
 pendiente se hace cero o infinita, la función informa el problema y no intenta
 continuar con una iteración inválida.
+
+Un residuo pequeño no basta para afirmar que hay una raíz. Por ejemplo, \(e^x\)
+vale \(5.6\times10^{-9}\) en \(x=-19\) y no tiene raíces. Por eso, cuando el paro
+es por residuo, Newton y Secante comprueban además que \(f\) cambie de signo (o se
+anule) en \([x-h,\,x+h]\) o en \([x-10h,\,x+10h]\), con \(h\) igual al último paso.
+Si no hay cambio de signo, el resultado se informa como **no convergido**, con la
+advertencia de una posible raíz múltiple o de una función que solo se acerca a 0.
+Cuando \(x_0\) ya cumple la tolerancia, el estado es «Tolerancia por residuo
+alcanzada en x0»; «Raíz exacta en x0» se reserva para \(f(x_0)=0\).
 
 La salida de Newton incluye la raíz aproximada, el criterio de paro y la tabla
 de iteraciones.

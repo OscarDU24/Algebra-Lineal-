@@ -1,7 +1,12 @@
-# Calculadora de Álgebra Lineal
+# HeyAlgb · Calculadora de Álgebra Lineal
 
 Aplicación de escritorio educativa para practicar operaciones con matrices, vectores,
-sistemas de ecuaciones, límites y sistemas numéricos.
+sistemas de ecuaciones, determinantes, límites, sistemas numéricos y métodos numéricos.
+Cada herramienta muestra el procedimiento paso a paso, además del resultado.
+
+> **Antes de distribuir la aplicación** (ejecutable, ZIP o portafolio), revisa
+> [docs/RECURSOS_Y_LICENCIAS.md](docs/RECURSOS_Y_LICENCIAS.md). Según sus metadatos,
+> el audio y dos fuentes incluidas no pueden redistribuirse.
 
 ## Estudio de UI/UX
 
@@ -63,10 +68,55 @@ Los modulos disponibles son:
 
 - Matrices individuales.
 - Operaciones vectoriales.
-- Ecuaciones matriciales.
+- Ecuaciones matriciales (incluye Tabla de Intercambio, Flujo de Red y Matrices
+  Particionadas).
 - Ecuaciones lineales e independencia lineal.
 - Calculo de limites.
 - Sistemas numericos.
+- Determinantes y factorización LU.
+- Métodos numéricos: Bisección, Regula Falsi, Métodos Abiertos (Newton-Raphson y
+  Secante) y Análisis de Errores. Se describen en
+  [docs/ExpoNoviembre3del2026.md](docs/ExpoNoviembre3del2026.md).
+
+### Resultados exactos y aproximaciones
+
+- **Matrices individuales, Sistemas y Determinantes** trabajan con
+  `fractions.Fraction`. Valores como `1/3` o `0.1` se calculan de forma exacta, y un
+  pivote se considera nulo solo si vale exactamente 0. El formato «Fracciones» muestra
+  el valor exacto; el formato «Decimales» muestra hasta 6 decimales y usa notación
+  científica antes que mostrar `0` para un valor que no es cero.
+- Las herramientas que reciben datos en punto flotante (Flujo de Red, Leontief y
+  algunas operaciones vectoriales) usan una tolerancia de `1e-9` y sus resultados
+  son aproximados.
+- **Límites** es una estimación numérica: evalúa f(x) en 12 puntos por lado cada vez
+  más cercanos y muestra la tabla. Informa si la función tiende a un valor, si diverge
+  a ±∞, si los límites laterales son distintos o si no se pudo determinar. No es una
+  demostración simbólica.
+- **Newton-Raphson y Secante** solo declaran convergencia por residuo cuando además
+  verifican un cambio de signo cerca de la aproximación. Así, `exp(x)` no se reporta
+  como si tuviera una raíz.
+- **Sistemas numéricos** lee los números con `int` o `Decimal`, de modo que los enteros
+  grandes, de hasta 300 dígitos, se convierten sin error.
+- El evaluador de expresiones (`2x`, `x^2`, `sin(x)`, `sqrt(x)`, etc.) analiza el texto
+  con `ast` y solo admite números, `x`, `pi`, `e`, las operaciones básicas y una lista
+  cerrada de funciones. Nunca usa `eval` ni `exec`.
+
+### Consolas de resultados y zoom
+
+Los procedimientos y resultados aparecen en consolas monoespaciadas de solo lectura
+(se puede seleccionar y copiar con Ctrl+C). Cada consola tiene su propio zoom, de 50 %
+a 200 % en pasos de 10:
+
+| Acción | Control |
+|---|---|
+| Aumentar | Ctrl + rueda hacia arriba, Ctrl + `+`, Ctrl + `+` del teclado numérico o botón `+` |
+| Disminuir | Ctrl + rueda hacia abajo, Ctrl + `-`, Ctrl + `-` del teclado numérico o botón `−` |
+| Restablecer a 100 % | Ctrl + `0` o clic en el porcentaje |
+
+El zoom solo afecta a esa consola: no cambia las entradas ni otras ventanas, y no vuelve
+a calcular. Se conserva mientras la ventana está abierta (también al cambiar de panel en
+Métodos Numéricos) y vuelve a 100 % al cerrarla. Por ahora, la consola de Métodos
+Abiertos no tiene zoom.
 
 Las calculadoras se abren desde el Dashboard en ventanas secundarias. Mientras el
 usuario captura datos, las vistas de matrices, vectores, ecuaciones matriciales y
@@ -195,7 +245,9 @@ Sin activar el entorno virtual:
 
 El flujo de transicion es el siguiente:
 
-1. `main.py` crea la ventana raiz de Tkinter y construye el `Dashboard`.
+1. `main.py` crea la ventana raiz de Tkinter y muestra la pantalla de inicio
+   (`vista_inicio.py`). Al elegir «INICIAR» (clic, tecla 1 o Enter), una transición roja y blanca da paso al
+   `Dashboard`.
 2. El Dashboard muestra una tarjeta para cada calculadora disponible.
 3. Al seleccionar una tarjeta, el Dashboard actualiza la barra de estado y se oculta
   temporalmente mediante `withdraw()`.
@@ -221,14 +273,18 @@ una segunda ventana principal.
 main.py                 Punto de entrada de la aplicacion
 requirements.txt        Dependencias y versiones fijadas
 core/
-  ui/                   Dashboard y ventanas de cada calculadora
+  ui/                   Inicio, Dashboard, ventanas de cada calculadora, tema y audio
   vectores/             Operaciones, conversiones y validaciones vectoriales
-  lineal/               Eliminacion y resolucion de sistemas lineales
+  lineal/               Eliminacion y resolucion de sistemas lineales (exacta con Fraction)
   matriciales/          Operaciones con matrices y ecuaciones matriciales
-  limites/              Operaciones relacionadas con limites
-  sistemas/             Operaciones con sistemas
+  limites/              Estimacion numerica de limites y evaluador seguro de expresiones
+  sistemas/             Gauss-Jordan, Cramer, LU e independencia lineal
   sistemas_numericos/   Conversiones y operaciones entre bases numericas
-  assets/               Fondos e imagenes de la interfaz
+  determinantes/        Determinantes y factorizacion LU
+  metodos_numericos/    Biseccion, Regula Falsi, Newton-Raphson, Secante y errores
+  assets/               Fondos, iconos, fuentes y audio (ver docs/RECURSOS_Y_LICENCIAS.md)
+tests/                  Pruebas automatizadas (unittest)
+docs/                   Estudios de UI/UX, guias de exposicion y documentacion de modulos
 ```
 
 La interfaz se mantiene separada de la logica matematica. Por ejemplo, `vista_vector.py`
@@ -246,6 +302,16 @@ Vistas principales dentro de `core/ui/`:
 - `vista_sistemas.py`: sistemas `Ax = b` e independencia lineal.
 - `vista_limites.py`: evaluación de límites y continuidad.
 - `vista_numerica.py`: conversión entre bases numéricas y procedimiento detallado.
+- `vista_determinantes.py`: determinantes (Sarrus, cofactores, LU) y evaluación previa
+  de eficiencia.
+- `vista_metodos_numericos.py`: contenedor de Bisección (`vista_biseccion.py`), Regula
+  Falsi (`vista_regla_falsa.py`), Métodos Abiertos (`vista_metodos_abiertos.py`) y
+  Análisis de Errores (`vista_errores.py`), con el explorador gráfico
+  `vista_grafica_biseccion.py` y el teclado matemático `teclado_matematico.py`.
+- `vista_inicio.py`: pantalla de inicio, créditos y ayuda.
+- `tema.py`: colores y estilos compartidos; `zoom_resultados.py`: consolas de
+  resultados con zoom; `audio_manager.py`: música y efectos (si `pygame` o el
+  dispositivo de audio fallan, la aplicación sigue en silencio).
 
 ## Características de las operaciones vectoriales
 
@@ -272,29 +338,44 @@ Despues ejecuta `main.py`.
 
 Las versiones utilizadas estan fijadas en `requirements.txt` para que todos los colaboradores instalen el mismo conjunto de paquetes.
 
-Dependencias principales:
+Dependencias y uso real en el código:
 
-- `customtkinter`: controles visuales de las calculadoras.
-- `Pillow`: carga y visualizacion de recursos graficos.
-- `prettytable`: presentacion tabular de algunos resultados.
+| Paquete | Se usa en |
+|---|---|
+| `customtkinter` | Controles visuales de las calculadoras |
+| `Pillow` | Fondos, iconos e imágenes del inicio y del Dashboard |
+| `prettytable` | Tablas de Matrices individuales (`vista_matriz.py`) |
+| `pygame` | Música y efectos de sonido (`audio_manager.py`) |
+| `numpy` | Análisis de Errores: épsilon, overflow/underflow, número de condición e inversa de referencia (`operaciones_errores.py`, `verificacion_matriz.py`) |
+| `matplotlib` | Explorador gráfico de Métodos Numéricos (`vista_grafica_biseccion.py`) |
+| `scipy` | Figura en `requirements.txt`, pero **hoy no se importa en ningún módulo** |
 
-La lógica matemática del proyecto utiliza principalmente listas, ciclos, condicionales,
-`ast`, `fractions.Fraction` y funciones propias de Python estándar. No se utilizan
-NumPy, SciPy ni SymPy. Las dependencias externas se reservan para la interfaz, los
-recursos gráficos y la presentación tabular.
+La lógica de álgebra lineal, límites y sistemas numéricos usa Python estándar: listas,
+`ast`, `fractions.Fraction`, `decimal.Decimal` y `math`. No se usa SymPy. NumPy se
+limita a la sección de Análisis de Errores, donde sirve para contrastar el punto
+flotante con el cálculo exacto.
 
 ## Verificación rápida
 
-Para comprobar que el código compila después de realizar cambios, ejecuta desde
-PowerShell:
+Ejecuta la suite de pruebas desde la raíz del proyecto:
 
 ```powershell
-.\.venv\Scripts\python.exe -m py_compile main.py core\ui\dashboard.py core\ui\vista_matriz.py core\ui\vista_vector.py core\ui\vista_matricial.py core\ui\vista_sistemas.py core\ui\vista_limites.py core\ui\vista_numerica.py
+.\.venv\Scripts\python.exe -m unittest discover -s tests
 ```
 
-La aplicación no incluye todavía una suite automatizada de pruebas. Las comprobaciones
-de la interfaz se realizan instanciando las vistas y verificando sus controles y
-previsualizaciones con el entorno virtual del proyecto.
+Las pruebas cubren determinantes, sistemas, particiones, la exactitud de `core/lineal`,
+límites, sistemas numéricos, el evaluador de expresiones, los métodos numéricos y el
+zoom de las consolas. Algunas pruebas crean ventanas de Tk fuera de la pantalla y
+requieren un escritorio de Windows activo; sin pantalla se omiten.
+
+Para comprobar solamente que todo el código compila:
+
+```powershell
+.\.venv\Scripts\python.exe -m compileall -q main.py core
+```
+
+Los mensajes técnicos de errores inesperados se envían al módulo `logging` (registros
+`heyalgb.*`), no a la ventana. El estudiante ve un mensaje claro.
 
 ## Recursos incluidos
 
@@ -302,7 +383,17 @@ previsualizaciones con el entorno virtual del proyecto.
 - `core/assets/*ICON.png` y `*CON.png`: iconos de las calculadoras del Dashboard.
 - `core/assets/fonts/`: fuentes utilizadas por la interfaz.
 
-Las fuentes deben conservarse junto con el proyecto. Antes de redistribuir la aplicacion, verifica que sus licencias permitan incluirlas.
+- `core/assets/SoundEffects/`: música y efectos de sonido.
+
+Las fuentes deben conservarse junto con el proyecto. El inventario completo, con la
+licencia o el origen que declara cada archivo, está en
+[docs/RECURSOS_Y_LICENCIAS.md](docs/RECURSOS_Y_LICENCIAS.md). Hallazgos principales:
+
+- El audio está etiquetado como parte de la banda sonora y los sonidos de sistema de
+  Persona 5.
+- `HelveticaNowDisplay-Bold.ttf` (Monotype) y `Democratica Bold.ttf` (Emigre) son
+  fuentes comerciales.
+- Las demás fuentes son SIL OFL 1.1 y requieren incluir el texto de la licencia.
 
 ## Estado del entorno
 

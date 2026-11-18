@@ -2,6 +2,7 @@
 
 from core.ui.ctk_compat import ctk
 from core.ui.audio_manager import reproducir_sonido_error
+from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
 from core.determinantes import operaciones_determinantes as op_det
 from core.ui.tema import (
     FONDO_CALCULADORA,
@@ -95,13 +96,12 @@ class VistaDeterminantes(ctk.CTkToplevel):
             text_color=TEXTO_CLARO,
             font=("Segoe UI", 14, "bold"),
         ).pack(anchor="w", padx=10, pady=(6, 0))
-        self.texto_eficiencia = ctk.CTkTextbox(
-            self.panel_eficiencia,
-            height=82,
-            font=("Consolas", 12),
-            **estilo_consola_resultado(),
+        contenedor_eficiencia, self.texto_eficiencia, self.zoom_eficiencia = (
+            crear_consola_resultados(
+                self.panel_eficiencia, tamano=12, wrap="word", height=82
+            )
         )
-        self.texto_eficiencia.pack(fill="x", padx=8, pady=6)
+        contenedor_eficiencia.pack(fill="x", padx=8, pady=6)
 
         self.panel_resultado = ctk.CTkFrame(self, **estilo_panel_contenedor())
         self.panel_resultado.pack(fill="both", padx=15, pady=(6, 14))
@@ -132,13 +132,10 @@ class VistaDeterminantes(ctk.CTkToplevel):
             command=self.calcular,
         )
         self.btn_calcular.pack(side="left")
-        self.texto_resultado = ctk.CTkTextbox(
-            self.panel_resultado,
-            height=210,
-            font=("Consolas", 12),
-            **estilo_consola_resultado(),
+        contenedor_resultado, self.texto_resultado, self.zoom_resultado = (
+            crear_consola_resultados(self.panel_resultado, tamano=12, height=210)
         )
-        self.texto_resultado.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+        contenedor_resultado.pack(fill="both", expand=True, padx=8, pady=(0, 8))
         self.mostrar_resultado("Genere la matriz, ingrese sus valores y presione «Calcular».")
 
     def generar_matriz(self):
@@ -260,12 +257,8 @@ class VistaDeterminantes(ctk.CTkToplevel):
         self.mostrar_resultado("Campos limpios.")
 
     def _escribir_eficiencia(self, texto):
-        self.texto_eficiencia.configure(state="normal")
-        self.texto_eficiencia.delete("1.0", "end")
-        self.texto_eficiencia.insert("1.0", texto)
-        self.texto_eficiencia.configure(state="disabled")
+        escribir_consola(self.texto_eficiencia, texto)
 
     def mostrar_resultado(self, texto):
         reproducir_sonido_error(self, texto)
-        self.texto_resultado.delete("1.0", "end")
-        self.texto_resultado.insert("1.0", texto)
+        escribir_consola(self.texto_resultado, texto)

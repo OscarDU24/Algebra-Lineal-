@@ -2,8 +2,11 @@
 # CALCULADORA DE MATRICES Y VECTORES - FIA UAM
 # ============================================================
 
+import logging
+
 from core.ui.ctk_compat import ctk
 from core.ui.audio_manager import reproducir_sonido_error
+from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
 
 from core.matriciales import conversionesMatriciales as conv
 from core.matriciales import operacionesMatriciales as op
@@ -26,6 +29,8 @@ from core.ui.tema import (
 # ============================================================
 # CONFIGURACION DE LA INTERFAZ
 # ============================================================
+
+_registro = logging.getLogger("heyalgb.ui.matricial")
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
@@ -293,11 +298,14 @@ class VistaMatricial(ctk.CTkToplevel):
         # ----------------------------------------------------
         # RESULTADO
         # ----------------------------------------------------
-        self.texto_resultado = ctk.CTkTextbox(
-            self.frame_inferior, height=180, **estilo_consola_resultado()
+        contenedor_resultado, self.texto_resultado, self.zoom_resultado = (
+            crear_consola_resultados(self.frame_inferior, tamano=12, height=180)
         )
-        self.texto_resultado.grid(
-            row=1, column=0, columnspan=6,
+        # Una columna extra con peso permite que la consola ocupe todo el ancho
+        # sin estirar los controles de la fila superior.
+        self.frame_inferior.grid_columnconfigure(6, weight=1)
+        contenedor_resultado.grid(
+            row=1, column=0, columnspan=7,
             sticky="nsew", padx=10, pady=10
         )
 
@@ -948,28 +956,43 @@ class VistaMatricial(ctk.CTkToplevel):
 
         self.mostrar_resultado("\n".join(salida))
 
+    def _abrir_secundaria(self, constructor, nombre):
+        """Abre una herramienta secundaria y oculta esta ventana solo si se creó.
+
+        Antes se ocultaba esta ventana primero: si la herramienta fallaba al
+        construirse, no quedaba ninguna ventana visible (el Dashboard también
+        está oculto).
+        """
+        try:
+            ventana = constructor(self)
+        except Exception:
+            _registro.exception("No se pudo abrir la herramienta %s", nombre)
+            self.deiconify()
+            self.mostrar_resultado(
+                f"Error: No se pudo abrir «{nombre}». Revise los datos e "
+                "inténtelo de nuevo; si el problema continúa, reinicie la calculadora."
+            )
+            return None
+        self.withdraw()
+        return ventana
+
     def abrir_tabla_intercambio(self):
         """Abre el modelo de Leontief desde el módulo matricial."""
-
-        self.withdraw()
         from core.ui.vista_intercambio import VistaIntercambio
 
-        VistaIntercambio(self)
+        self._abrir_secundaria(VistaIntercambio, "Tabla de Intercambio")
 
     def abrir_flujo_red(self):
         """Abre el análisis de flujo de red desde el módulo matricial."""
-
-        self.withdraw()
         from core.ui.vista_flujo_red import VistaFlujoRed
 
-        VistaFlujoRed(self)
+        self._abrir_secundaria(VistaFlujoRed, "Flujo de Red")
 
     def abrir_particiones(self):
         """Abre las operaciones por bloques desde el módulo matricial."""
-        self.withdraw()
         from core.ui.particiones_gui import VistaParticiones
 
-        VistaParticiones(self)
+        self._abrir_secundaria(VistaParticiones, "Matrices Particionadas")
 
     # ========================================================
     # ACCION PRINCIPAL
@@ -1022,8 +1045,13 @@ class VistaMatricial(ctk.CTkToplevel):
 
         except ValueError as error:
             self.mostrar_resultado("Error: " + str(error))
-        except Exception as error:
-            self.mostrar_resultado("Ocurrió un error:\n" + str(error))
+        except Exception:
+            # El detalle técnico va al registro; el estudiante recibe un mensaje claro.
+            _registro.exception("Fallo inesperado en la operación %r", operacion)
+            self.mostrar_resultado(
+                "Error: Ocurrió un problema inesperado al calcular. Revise que "
+                "todos los campos tengan números válidos e inténtelo de nuevo."
+            )
 
     # ========================================================
     # MOSTRAR RESULTADO / LIMPIAR
@@ -1031,8 +1059,7 @@ class VistaMatricial(ctk.CTkToplevel):
 
     def mostrar_resultado(self, texto):
         reproducir_sonido_error(self, texto)
-        self.texto_resultado.delete("1.0", "end")
-        self.texto_resultado.insert("1.0", texto)
+        escribir_consola(self.texto_resultado, texto)
 
     def limpiar(self):
         self.entry_filas.delete(0, "end")

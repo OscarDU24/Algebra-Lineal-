@@ -1,5 +1,7 @@
 from fractions import Fraction
 
+from core.lineal.exactitud import es_cero, es_matriz_exacta, matriz_a_fracciones
+
 TOLERANCIA_INVERSA = 1e-10
 
 
@@ -9,10 +11,19 @@ def invertir_matriz_gauss_jordan(matriz, devolver_pasos=False):
         raise ValueError("La matriz debe ser cuadrada y no estar vacía.")
 
     dimension = len(matriz)
+    # Con fracciones (y sin floats) la inversa se calcula de forma exacta: la
+    # identidad también es racional y un pivote es nulo solo si vale 0.
+    exacta = es_matriz_exacta(matriz)
+    if exacta:
+        filas_a = matriz_a_fracciones(matriz)
+        uno, cero = Fraction(1), Fraction(0)
+    else:
+        filas_a = [list(fila) for fila in matriz]
+        uno, cero = 1.0, 0.0
     # Las operaciones se aplican a [A | I]; al convertir A en I, el bloque derecho queda como A^-1.
     aumentada = [
-        list(fila) + [1.0 if fila_indice == columna else 0.0 for columna in range(dimension)]
-        for fila_indice, fila in enumerate(matriz)
+        fila + [uno if fila_indice == columna else cero for columna in range(dimension)]
+        for fila_indice, fila in enumerate(filas_a)
     ]
     pasos = [({"tipo": "inicial"}, [fila[:] for fila in aumentada])]
 
@@ -22,7 +33,7 @@ def invertir_matriz_gauss_jordan(matriz, devolver_pasos=False):
             range(columna, dimension),
             key=lambda indice: abs(aumentada[indice][columna])
         )
-        if abs(aumentada[fila_pivote][columna]) < TOLERANCIA_INVERSA:
+        if es_cero(aumentada[fila_pivote][columna], exacta, TOLERANCIA_INVERSA):
             # Una columna sin pivote utilizable indica que A es singular.
             raise ValueError(
                 "La matriz A no es invertible; no se puede calcular su inversa."
@@ -61,8 +72,8 @@ def invertir_matriz_gauss_jordan(matriz, devolver_pasos=False):
             if indice_fila == columna:
                 continue
             factor = aumentada[indice_fila][columna]
-            if abs(factor) < TOLERANCIA_INVERSA:
-                aumentada[indice_fila][columna] = 0.0
+            if es_cero(factor, exacta, TOLERANCIA_INVERSA):
+                aumentada[indice_fila][columna] = cero
                 continue
 
             # Anular la columna pivote en las demás filas, incluida la parte derecha de [A | I].
@@ -124,7 +135,8 @@ def multiplicar_matrices(matriz_a, matriz_b):
     for fila_a in range(filas_a):
         fila_resultado = []
         for columna_b in range(columnas_b):
-            suma = 0.0
+            # Iniciar en 0 entero conserva Fraction cuando los datos son exactos.
+            suma = 0
             for indice in range(columnas_a):
                 suma += matriz_a[fila_a][indice] * matriz_b[indice][columna_b]
             fila_resultado.append(suma)
@@ -146,9 +158,14 @@ def enrutar_resolucion_matricial(
     matriz_A,
     vector_b=None,
     formato_fracciones=False,
-    metodo="gauss_jordan"
+    metodo="gauss_jordan",
+    formatear=None,
 ):
-    """Selecciona entre inversa de A (b=None) y resolución de Ax=b."""
+    """Selecciona entre inversa de A (b=None) y resolución de Ax=b.
+
+    ``formatear`` (opcional) da formato a los números de las descripciones de
+    los pasos para que coincidan con el formato elegido en la vista.
+    """
     if vector_b is None:
         # Sin términos independientes, este modo devuelve la matriz inversa y su traza.
         matriz_inversa, pasos = invertir_matriz_gauss_jordan(
@@ -177,7 +194,8 @@ def enrutar_resolucion_matricial(
     ]
     matriz_resultado, pasos, pivotes = eliminacion_por_filas(
         matriz_aumentada,
-        modo=metodo
+        modo=metodo,
+        formatear=formatear,
     )
     clasificacion = clasificar_sistema(matriz_resultado, pivotes)
     solucion = None
@@ -190,7 +208,8 @@ def enrutar_resolucion_matricial(
         else:
             solucion, pasos_despeje = sustitucion_hacia_atras_detallada(
                 matriz_resultado,
-                cantidad_variables
+                cantidad_variables,
+                formatear=formatear,
             )
 
     return {
@@ -219,7 +238,7 @@ def sustitucion_hacia_atras(matriz_ref, n):
     return x
 
 
-def sustitucion_hacia_atras_detallada(matriz_ref, n):
+def sustitucion_hacia_atras_detallada(matriz_ref, n, formatear=None):
     """
     Resuelve el sistema por sustitución hacia atrás y genera una traza 
     explicativa del despeje paso a paso para la interfaz gráfica.
@@ -243,6 +262,9 @@ def sustitucion_hacia_atras_detallada(matriz_ref, n):
             if "." in s:
                 s = s.rstrip("0").rstrip(".")
             return s
+
+    if formatear is not None:
+        format_val = formatear
 
     for i in range(n - 1, -1, -1):
         pivote = matriz_ref[i][i]

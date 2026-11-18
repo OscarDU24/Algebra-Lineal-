@@ -9,6 +9,7 @@ from core.lineal.solucion import invertir_matriz_gauss_jordan
 from core.matriciales import particiones_logica as logica
 from core.matriciales import visualizacionMatriciales as vis
 from core.ui.audio_manager import reproducir_sonido_error
+from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
 from core.ui.ctk_compat import ctk
 from core.ui.tema import (
     FONDO_CALCULADORA,
@@ -129,13 +130,10 @@ class VistaParticiones(ctk.CTkToplevel):
             command=self.calcular,
         ).pack(side="left")
 
-        self.texto_resultado = ctk.CTkTextbox(
-            self,
-            height=250,
-            font=("Consolas", 12),
-            **estilo_consola_resultado(),
+        contenedor_resultado, self.texto_resultado, self.zoom_resultado = (
+            crear_consola_resultados(self, tamano=12, height=250)
         )
-        self.texto_resultado.pack(fill="both", padx=15, pady=(4, 14))
+        contenedor_resultado.pack(fill="both", padx=15, pady=(4, 14))
         self.cambiar_operacion(self.OPERACIONES[0])
 
     def _crear_controles_matriz(self, nombre, columna):
@@ -405,5 +403,4 @@ class VistaParticiones(ctk.CTkToplevel):
 
     def mostrar_resultado(self, texto):
         reproducir_sonido_error(self, texto)
-        self.texto_resultado.delete("1.0", "end")
-        self.texto_resultado.insert("1.0", texto)
+        escribir_consola(self.texto_resultado, texto)

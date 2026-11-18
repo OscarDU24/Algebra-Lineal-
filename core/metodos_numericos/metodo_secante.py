@@ -5,6 +5,10 @@ from core.metodos_numericos.biseccion import (
     _crear_funcion,
     _es_finito,
 )
+from core.metodos_numericos.newton_raphson import (
+    ESTADO_RESIDUO_SIN_SIGNO,
+    verificar_cambio_de_signo,
+)
 
 COLUMNAS_TABLA = (
     "Iteración",
@@ -155,9 +159,12 @@ def resolver_secante(funcion, x_anterior, x_actual, tolerancia, max_iteraciones)
         )
 
         if residuo <= tol:
-            convergio = True
-            estado = "Tolerancia por residuo alcanzada"
             x_actual = x_siguiente
+            if verificar_cambio_de_signo(evaluar, x_siguiente, delta_x):
+                convergio = True
+                estado = "Tolerancia por residuo alcanzada"
+            else:
+                estado = ESTADO_RESIDUO_SIN_SIGNO
             break
         if x_siguiente == x_actual:
             estado = "Estancamiento: la aproximación dejó de cambiar"

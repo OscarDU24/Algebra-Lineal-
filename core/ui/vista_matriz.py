@@ -1,5 +1,6 @@
 from core.ui.ctk_compat import ctk
 from core.ui.audio_manager import reproducir_sonido_error
+from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
 from prettytable import PrettyTable, HRuleStyle, VRuleStyle
 
 from core.lineal import conversiones as conv
@@ -161,8 +162,10 @@ class VistaMatriz(ctk.CTkToplevel):
         )
         self.btn_resolver.pack(side="left")
 
-        self.txt_resultados = ctk.CTkTextbox(self.frame_inf, font=("Courier New", 12), **estilo_consola_resultado())
-        self.txt_resultados.pack(pady=10, padx=10, fill="both", expand=True)
+        contenedor_resultados, self.txt_resultados, self.zoom_resultados = (
+            crear_consola_resultados(self.frame_inf, tamano=12)
+        )
+        contenedor_resultados.pack(pady=10, padx=10, fill="both", expand=True)
         self._escribir_en_visor("Ingrese los coeficientes en la matriz y presione 'Resolver Sistema'...")
 
     def generar_cuadricula_matriz(self, valores_matriz=None):
@@ -278,10 +281,9 @@ class VistaMatriz(ctk.CTkToplevel):
                 val_str = entry.get().strip()
                 if not val_str:
                     raise ValueError(f"La casilla en la fila {i + 1}, columna {j + 1} está vacía.")
-                try:
-                    val_num = conv.convertir_a_decimal(val_str)
-                except ValueError:
-                    raise ValueError(f"El valor '{val_str}' en la fila {i + 1}, columna {j + 1} no es válido.")
+                # Se lee como fracción exacta (1/3, 0.1, -2) para que todo el
+                # procedimiento sea exacto; el formato elegido solo afecta la salida.
+                val_num = conv.convertir_a_racional(val_str)
                 if val_num is None:
                     raise ValueError(f"El valor '{val_str}' en la fila {i + 1}, columna {j + 1} no es válido.")
                 fila_vals.append(val_num)
@@ -325,12 +327,10 @@ class VistaMatriz(ctk.CTkToplevel):
         self.txt_previsualizacion.configure(state="disabled")
 
     def _formatear_valor(self, valor, formato):
-        """Formatea un número a fracción o decimal sin perder ceros absolutos."""
+        """Formatea un número como fracción exacta o como decimal fiel."""
         if formato == "fr":
             return conv.convertir_a_fraccion(valor)
-        
-        texto = f"{valor:.2f}".rstrip("0").rstrip(".")
-        return texto if texto else "0"
+        return conv.formatear_decimal(valor)
 
     def _matriz_a_string(self, matriz, formato):
         table = PrettyTable()
@@ -383,7 +383,7 @@ class VistaMatriz(ctk.CTkToplevel):
         if tipo == "normalizar":
             return (
                 f"F{operacion['fila'] + 1} = F{operacion['fila'] + 1} / "
-                f"{self._formatear_valor(operacion['pivote'], formato)}"
+                f"({self._formatear_valor(operacion['pivote'], formato)})"
             )
         if tipo == "eliminar":
             return (
@@ -477,10 +477,7 @@ class VistaMatriz(ctk.CTkToplevel):
 
     def _escribir_en_visor(self, texto):
         reproducir_sonido_error(self, texto)
-        self.txt_resultados.configure(state="normal")
-        self.txt_resultados.delete("0.0", "end")
-        self.txt_resultados.insert("0.0", texto)
-        self.txt_resultados.configure(state="disabled")
+        escribir_consola(self.txt_resultados, texto)
 
     def accion_resolver(self):
         metodo_gui = self.opcion_metodo.get()
@@ -569,7 +566,9 @@ class VistaMatriz(ctk.CTkToplevel):
             matriz_a,
             vector_b=vector_b,
             formato_fracciones=formato_fracciones,
-            metodo=modo
+            metodo=modo,
+            # Los pasos usan el mismo formato (fracción o decimal) que la tabla.
+            formatear=lambda valor: self._formatear_valor(valor, formato),
         )
         matriz_resultado = resultado["matriz_resultado"]
         pasos = resultado["pasos"]
@@ -596,7 +595,12 @@ class VistaMatriz(ctk.CTkToplevel):
             salida.append("=========================================================")
             salida.append("   SISTEMA DE ECUACIONES EQUIVALENTE (GAUSS)")
             salida.append("=========================================================")
-            salida.append(imprimir_sistema_ecuaciones(matriz_resultado))
+            salida.append(
+                imprimir_sistema_ecuaciones(
+                    matriz_resultado,
+                    lambda valor: self._formatear_valor(valor, formato),
+                )
+            )
             salida.append("")
         elif modo == "gauss_jordan":
             salida.append("=========================================================")

@@ -4,6 +4,7 @@ from tkinter import TclError
 
 from core.metodos_numericos import regla_falsa
 from core.ui.audio_manager import reproducir_sonido_error
+from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
 from core.ui.ctk_compat import ctk
 from core.ui.teclado_matematico import (
     abrir_teclado_matematico,
@@ -114,13 +115,10 @@ class VistaReglaFalsa(ctk.CTkFrame):
             text_color=TEXTO_CLARO,
             font=("Segoe UI", 14, "bold"),
         ).pack(anchor="w", padx=10, pady=(6, 2))
-        self.texto_salida = ctk.CTkTextbox(
-            salida,
-            font=("Consolas", 11),
-            wrap="none",
-            **estilo_consola_resultado(),
+        contenedor_salida, self.texto_salida, self.zoom_salida = (
+            crear_consola_resultados(salida, tamano=11)
         )
-        self.texto_salida.pack(fill="both", expand=True, padx=8, pady=(0, 7))
+        contenedor_salida.pack(fill="both", expand=True, padx=8, pady=(0, 7))
         self._mostrar(
             "Ingrese f(x), los extremos a y b, la tolerancia porcentual de Ea "
             "y el máximo de iteraciones. Use «Explorar gráfica» para orientar "
@@ -203,5 +201,4 @@ class VistaReglaFalsa(ctk.CTkFrame):
     def _mostrar(self, texto):
         if texto.startswith("ERROR:"):
             reproducir_sonido_error(self, texto)
-        self.texto_salida.delete("1.0", "end")
-        self.texto_salida.insert("1.0", texto)
+        escribir_consola(self.texto_salida, texto)

@@ -1,5 +1,6 @@
 from core.ui.ctk_compat import ctk
 from core.ui.audio_manager import reproducir_sonido_error
+from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
 from core.matriciales import visualizacionMatriciales as vis
 from core.vectores import conversionesVectores as conv
 from core.vectores import flujo_red
@@ -64,8 +65,10 @@ class VistaFlujoRed(ctk.CTkToplevel):
             self, label_text="Ramas y balances de conservación", **estilo_panel_contenedor()
         )
         self.area_datos.pack(fill="both", expand=True, padx=15, pady=5)
-        self.texto_resultado = ctk.CTkTextbox(self, height=220, **estilo_consola_resultado())
-        self.texto_resultado.pack(fill="both", padx=15, pady=12)
+        contenedor_resultado, self.texto_resultado, self.zoom_resultado = (
+            crear_consola_resultados(self, tamano=12, height=220)
+        )
+        contenedor_resultado.pack(fill="both", padx=15, pady=12)
 
     def _limpiar_area(self):
         for widget in self.area_datos.winfo_children():
@@ -260,5 +263,4 @@ class VistaFlujoRed(ctk.CTkToplevel):
 
     def mostrar_resultado(self, texto):
         reproducir_sonido_error(self, texto)
-        self.texto_resultado.delete("1.0", "end")
-        self.texto_resultado.insert("1.0", texto)
+        escribir_consola(self.texto_resultado, texto)

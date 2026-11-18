@@ -19,7 +19,8 @@ class Dashboard:
         self.root.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
         
         # El canvas permite conservar las transparencias del borde decorativo.
-        self.root.title("Calculadora de Álgebra Lineal - FIA UAM")
+        # Mismo título que asigna main.py, para que la ventana no cambie de nombre.
+        self.root.title("HeyAlgb · Álgebra Lineal")
 
         # ==========================================
         # INYECCIÓN DEL FONDO DECORATIVO (CAPA 0)

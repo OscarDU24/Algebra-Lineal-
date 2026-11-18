@@ -3,6 +3,7 @@
 from core.metodos_numericos import operaciones_errores as op_errores
 from core.metodos_numericos import verificacion_matriz
 from core.ui.audio_manager import reproducir_sonido_error
+from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
 from core.ui.ctk_compat import ctk
 from core.ui.tema import (
     FONDO_CALCULADORA,
@@ -46,14 +47,12 @@ class VistaErrores(ctk.CTkFrame):
         self._crear_pestana_float()
         self._crear_pestana_verificacion()
 
-    def _crear_salida(self, master, alto=160):
-        salida = ctk.CTkTextbox(
-            master,
-            height=alto,
-            font=("Consolas", 12),
-            **estilo_consola_resultado(),
+    def _crear_salida(self, master, alto=160, wrap="word"):
+        contenedor, salida, zoom = crear_consola_resultados(
+            master, tamano=12, wrap=wrap, height=alto
         )
-        salida.pack(fill="both", expand=True, padx=8, pady=8)
+        contenedor.pack(fill="both", expand=True, padx=8, pady=8)
+        salida.zoom = zoom
         return salida
 
     def _crear_pestana_errores(self):
@@ -188,7 +187,7 @@ class VistaErrores(ctk.CTkFrame):
             **estilo_boton_secundario(),
         ).pack(side="left")
         self.salida_verificacion = self._crear_salida(
-            self.pestana_verificacion, 250
+            self.pestana_verificacion, 250, wrap="none"
         )
         self._mostrar(
             self.salida_verificacion,
@@ -312,5 +311,4 @@ class VistaErrores(ctk.CTkFrame):
 
     def _mostrar(self, textbox, texto):
         reproducir_sonido_error(self, texto)
-        textbox.delete("1.0", "end")
-        textbox.insert("1.0", texto)
+        escribir_consola(textbox, texto)

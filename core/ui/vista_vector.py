@@ -5,6 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")
 
 from core.ui.ctk_compat import ctk
 from core.ui.audio_manager import reproducir_sonido_error
+from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
 from core.vectores import conversionesVectores as conv
 from core.vectores import eliminacionVectores as ev
 from core.ui.tema import (
@@ -255,11 +256,11 @@ class VistaVector(ctk.CTkToplevel):
             side="left"
         )
 
-        self.txt_resultados = ctk.CTkTextbox(
-            self.frame_inf, font=("Courier New", 12), **estilo_consola_resultado()
+        contenedor_resultados, self.txt_resultados, self.zoom_resultados = (
+            crear_consola_resultados(self.frame_inf, tamano=12)
         )
 
-        self.txt_resultados.pack(
+        contenedor_resultados.pack(
             pady=10,
             padx=10,
             fill="both",

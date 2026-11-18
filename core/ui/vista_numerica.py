@@ -4,6 +4,7 @@
 
 from core.ui.ctk_compat import ctk
 from core.ui.audio_manager import reproducir_sonido_error
+from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
 from core.sistemas_numericos import operaciones_numericas as op_num
 from core.ui.tema import (
     ACENTO,
@@ -243,13 +244,14 @@ class VistaSistemasNumericos(ctk.CTkToplevel):
             frame, text="Procedimiento y resultado:", font=("Segoe UI", 13, "bold"), text_color=TEXTO_CLARO
         ).pack(anchor="w", padx=10, pady=(10, 0))
 
-        self.texto_resultado = ctk.CTkTextbox(frame, height=180, font=("Consolas", 14), **estilo_consola_resultado())
-        self.texto_resultado.pack(fill="both", expand=True, padx=10, pady=10)
+        contenedor_resultado, self.texto_resultado, self.zoom_resultado = (
+            crear_consola_resultados(frame, tamano=14, wrap="word", height=180)
+        )
+        contenedor_resultado.pack(fill="both", expand=True, padx=10, pady=10)
 
     def mostrar_resultado(self, texto):
         reproducir_sonido_error(self, texto)
-        self.texto_resultado.delete("1.0", "end")
-        self.texto_resultado.insert("1.0", texto)
+        escribir_consola(self.texto_resultado, texto)
 
     # ========================================================
     # EJECUCIÓN DE CADA MÓDULO

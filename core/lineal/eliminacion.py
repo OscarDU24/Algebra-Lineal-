@@ -1,10 +1,11 @@
 from fractions import Fraction
+from .exactitud import es_cero, es_matriz_exacta, es_uno, matriz_a_fracciones
 from .visualizacion import copiar_matriz
 
 TOLERANCIA = 1e-9
 
 
-def eliminacion_por_filas(matriz_original, modo="escalonado"):
+def eliminacion_por_filas(matriz_original, modo="escalonado", formatear=None):
     """
     Realiza eliminación por filas sobre una matriz aumentada.
 
@@ -15,16 +16,23 @@ def eliminacion_por_filas(matriz_original, modo="escalonado"):
 
     El algoritmo funciona con matrices cuadradas y rectangulares.
     Las columnas que no poseen pivote corresponden a variables libres.
+
+    ``formatear`` (opcional) convierte los factores de cada paso en texto, para
+    que la descripción use el mismo formato que la vista (fracción o decimal).
     """
 
-    matriz = copiar_matriz(matriz_original)
+    # Con fracciones (y sin floats) se trabaja de forma exacta: un valor es cero
+    # solo si es exactamente cero. Con floats se usa la tolerancia TOLERANCIA.
+    is_fraction = es_matriz_exacta(matriz_original)
+    matriz = (
+        matriz_a_fracciones(matriz_original)
+        if is_fraction
+        else copiar_matriz(matriz_original)
+    )
 
     filas = len(matriz)
     columnas = len(matriz[0])
     variables = columnas - 1
-
-    # Detectar si estamos trabajando con fracciones
-    is_fraction = any(isinstance(val, Fraction) for row in matriz for val in row)
 
     def format_val(val):
         """Función auxiliar para formatear fracciones o decimales limpiamente."""
@@ -39,6 +47,9 @@ def eliminacion_por_filas(matriz_original, modo="escalonado"):
             if "." in s:
                 s = s.rstrip("0").rstrip(".")
             return s
+
+    if formatear is not None:
+        format_val = formatear
 
     pasos = [
         ("Matriz aumentada inicial", copiar_matriz(matriz))
@@ -62,16 +73,13 @@ def eliminacion_por_filas(matriz_original, modo="escalonado"):
         fila_max = fila_pivote
 
         for r in range(fila_pivote + 1, filas):
-            # Comparación segura considerando Fracciones o Floats
-            val_r = abs(matriz[r][col]) if not is_fraction else abs(float(matriz[r][col]))
-            val_max = abs(matriz[fila_max][col]) if not is_fraction else abs(float(matriz[fila_max][col]))
-            if val_r > val_max:
+            # Fraction admite abs() y comparación exacta sin pasar por float.
+            if abs(matriz[r][col]) > abs(matriz[fila_max][col]):
                 fila_max = r
 
         # Si la columna no posee un pivote diferente de cero,
         # se pasa a la siguiente columna.
-        val_piv_check = abs(matriz[fila_max][col]) if not is_fraction else abs(float(matriz[fila_max][col]))
-        if val_piv_check < TOLERANCIA:
+        if es_cero(matriz[fila_max][col], is_fraction, TOLERANCIA):
             continue
 
         # ---------------------------------------------------------
@@ -104,8 +112,7 @@ def eliminacion_por_filas(matriz_original, modo="escalonado"):
             # Eliminación únicamente debajo del pivote.
             for r in range(fila_pivote + 1, filas):
 
-                val_check = abs(matriz[r][col]) if not is_fraction else abs(float(matriz[r][col]))
-                if val_check < TOLERANCIA:
+                if es_cero(matriz[r][col], is_fraction, TOLERANCIA):
                     continue
 
                 factor = (
@@ -121,8 +128,7 @@ def eliminacion_por_filas(matriz_original, modo="escalonado"):
                     )
 
                 # Limpieza de errores numéricos.
-                val_clean = abs(matriz[r][col]) if not is_fraction else abs(float(matriz[r][col]))
-                if val_clean < TOLERANCIA:
+                if es_cero(matriz[r][col], is_fraction, TOLERANCIA):
                     matriz[r][col] = Fraction(0) if is_fraction else 0.0
 
                 pasos.append(
@@ -140,8 +146,7 @@ def eliminacion_por_filas(matriz_original, modo="escalonado"):
         elif modo == "gauss":
 
             # Normalizar el pivote para convertirlo en 1.
-            val_piv_num = float(valor_pivote) if is_fraction else valor_pivote
-            if abs(val_piv_num - 1.0) > TOLERANCIA:
+            if not es_uno(valor_pivote, is_fraction, TOLERANCIA):
 
                 for c in range(col, columnas):
 
@@ -151,7 +156,7 @@ def eliminacion_por_filas(matriz_original, modo="escalonado"):
                     (
                         f"F{fila_pivote + 1} = "
                         f"F{fila_pivote + 1} / "
-                        f"{format_val(valor_pivote)}",
+                        f"({format_val(valor_pivote)})",
                         copiar_matriz(matriz)
                     )
                 )
@@ -160,9 +165,7 @@ def eliminacion_por_filas(matriz_original, modo="escalonado"):
             for r in range(fila_pivote + 1, filas):
 
                 factor = matriz[r][col]
-                fact_num = float(factor) if is_fraction else factor
-
-                if abs(fact_num) < TOLERANCIA:
+                if es_cero(factor, is_fraction, TOLERANCIA):
                     continue
 
                 for c in range(col, columnas):
@@ -172,8 +175,7 @@ def eliminacion_por_filas(matriz_original, modo="escalonado"):
                         matriz[fila_pivote][c]
                     )
 
-                val_clean = abs(matriz[r][col]) if not is_fraction else abs(float(matriz[r][col]))
-                if val_clean < TOLERANCIA:
+                if es_cero(matriz[r][col], is_fraction, TOLERANCIA):
                     matriz[r][col] = Fraction(0) if is_fraction else 0.0
 
                 pasos.append(
@@ -191,8 +193,7 @@ def eliminacion_por_filas(matriz_original, modo="escalonado"):
         elif modo == "gauss_jordan":
 
             # Normalizar el pivote para convertirlo en 1.
-            val_piv_num = float(valor_pivote) if is_fraction else valor_pivote
-            if abs(val_piv_num - 1.0) > TOLERANCIA:
+            if not es_uno(valor_pivote, is_fraction, TOLERANCIA):
 
                 for c in range(col, columnas):
 
@@ -202,7 +203,7 @@ def eliminacion_por_filas(matriz_original, modo="escalonado"):
                     (
                         f"F{fila_pivote + 1} = "
                         f"F{fila_pivote + 1} / "
-                        f"{format_val(valor_pivote)}",
+                        f"({format_val(valor_pivote)})",
                         copiar_matriz(matriz)
                     )
                 )
@@ -214,9 +215,7 @@ def eliminacion_por_filas(matriz_original, modo="escalonado"):
                     continue
 
                 factor = matriz[r][col]
-                fact_num = float(factor) if is_fraction else factor
-
-                if abs(fact_num) < TOLERANCIA:
+                if es_cero(factor, is_fraction, TOLERANCIA):
                     continue
 
                 for c in range(col, columnas):
@@ -226,8 +225,7 @@ def eliminacion_por_filas(matriz_original, modo="escalonado"):
                         matriz[fila_pivote][c]
                     )
 
-                val_clean = abs(matriz[r][col]) if not is_fraction else abs(float(matriz[r][col]))
-                if val_clean < TOLERANCIA:
+                if es_cero(matriz[r][col], is_fraction, TOLERANCIA):
                     matriz[r][col] = Fraction(0) if is_fraction else 0.0
 
                 pasos.append(
@@ -257,8 +255,7 @@ def eliminacion_por_filas(matriz_original, modo="escalonado"):
     for i in range(filas):
 
         for j in range(columnas):
-            val_clean = abs(matriz[i][j]) if not is_fraction else abs(float(matriz[i][j]))
-            if val_clean < TOLERANCIA:
+            if es_cero(matriz[i][j], is_fraction, TOLERANCIA):
                 matriz[i][j] = Fraction(0) if is_fraction else 0.0
 
     return matriz, pasos, columnas_pivote

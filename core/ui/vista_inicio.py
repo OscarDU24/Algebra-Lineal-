@@ -56,6 +56,7 @@ class VistaInicio:
         self.var_musica = tk.BooleanVar(value=self.audio.musica_habilitada)
         self.ventana_ayuda = None
         self._resize_job = None
+        self._wipe_job = None
         self._salto_generation = 0
         self._wipe_activo = False
         self._glyph_photos = {}
@@ -119,6 +120,14 @@ class VistaInicio:
 
     def _al_destruir_frame(self, event):
         if event.widget is self.frame:
+            for atributo in ("_wipe_job", "_resize_job"):
+                trabajo = getattr(self, atributo, None)
+                if trabajo is not None:
+                    try:
+                        self.root.after_cancel(trabajo)
+                    except tk.TclError:
+                        pass
+                    setattr(self, atributo, None)
             self._liberar_fuentes()
 
     def _crear_contenido(self):
@@ -833,10 +842,12 @@ class VistaInicio:
             self.contenido.coords(item, *puntos)
             self.contenido.itemconfigure(item, state="normal")
             self.contenido.tag_raise(item)
+        # Se guarda el identificador para cancelarlo si el inicio se destruye
+        # (por ejemplo, al cerrar la aplicación a mitad de la transición).
         if paso >= 14:
-            self.root.after(1, self._iniciar)
+            self._wipe_job = self.root.after(1, self._iniciar)
         elif paso < pasos_totales:
-            self.root.after(14, lambda: self._animar_wipe(paso + 1))
+            self._wipe_job = self.root.after(14, lambda: self._animar_wipe(paso + 1))
 
     def _alternar_musica(self):
         self.audio.establecer_musica_habilitada(self.var_musica.get())

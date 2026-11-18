@@ -18,6 +18,36 @@ COLUMNAS_TABLA = (
 )
 PASO_RELATIVO_DERIVADA = 1e-5
 FORMULA_DERIVADA = "f'(x) ≈ [f(x+h) - f(x-h)] / (2h)"
+ESTADO_RESIDUO_SIN_SIGNO = (
+    "Residuo menor que la tolerancia, pero sin cambio de signo verificado "
+    "alrededor de la aproximación: puede ser una raíz múltiple o una función "
+    "que solo se acerca a 0 (por ejemplo, exp(x) cuando x → -∞)"
+)
+
+
+def verificar_cambio_de_signo(evaluar, x, paso):
+    """Comprueba que f(x) = 0 o que f cambia de signo cerca de x.
+
+    Un residuo |f(x)| pequeño no basta para afirmar que x está cerca de una
+    raíz: exp(x) tiene residuo diminuto en x = -19 y no tiene raíces. Se busca
+    un cambio de signo en [x - h, x + h] y [x - 10h, x + 10h], con h al menos
+    del tamaño del último paso del método.
+    """
+    try:
+        if evaluar(x) == 0:
+            return True
+    except ValueError:
+        return False
+    h = max(abs(paso), 1e-12 * max(1.0, abs(x)))
+    for factor in (1, 10):
+        try:
+            izquierda = evaluar(x - factor * h)
+            derecha = evaluar(x + factor * h)
+        except ValueError:
+            continue
+        if izquierda == 0 or derecha == 0 or (izquierda < 0) != (derecha < 0):
+            return True
+    return False
 
 
 def _derivada_numerica(evaluar, x):
@@ -117,7 +147,11 @@ def resolver_newton_raphson(
         return _resultado(
             raiz=x_actual,
             convergio=True,
-            estado="Raíz exacta en x0",
+            estado=(
+                "Raíz exacta en x0"
+                if f_x == 0
+                else "Tolerancia por residuo alcanzada en x0"
+            ),
             iteraciones=0,
             tolerancia=tol,
             tabla=[],
@@ -182,9 +216,12 @@ def resolver_newton_raphson(
         ])
 
         if residuo <= tol:
-            convergio = True
-            estado = "Tolerancia por residuo alcanzada"
             x_actual = x_siguiente
+            if verificar_cambio_de_signo(evaluar, x_siguiente, delta_x):
+                convergio = True
+                estado = "Tolerancia por residuo alcanzada"
+            else:
+                estado = ESTADO_RESIDUO_SIN_SIGNO
             break
         if delta_x <= tol:
             convergio = True

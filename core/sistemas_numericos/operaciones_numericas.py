@@ -1,4 +1,7 @@
+from decimal import Decimal, InvalidOperation, localcontext
+
 PRECISION_DECIMALES = 8
+MAXIMO_DIGITOS_ENTEROS = 300
 
 # Sistemas numéricos habilitados para este programa (nombre -> base)
 SISTEMAS = {
@@ -135,11 +138,27 @@ def convertir_decimal_a_base(numero, base, nombre_base, precision=PRECISION_DECI
         pasos.append(f"Resultado Final en Decimal: {numero}")
         return str(numero), "\n".join(pasos)
 
-    negativo = numero < 0
-    numero = abs(numero)
+    if isinstance(numero, float):
+        # Se usa el decimal que Python imprime para el float, no su binario.
+        numero = Decimal(repr(numero))
 
-    parte_entera = int(numero)
-    parte_frac = numero - parte_entera
+    # Con Decimal, abs(), la resta y las multiplicaciones por la base son
+    # exactas solo si la precisión alcanza para todos los dígitos del número.
+    contexto = localcontext()
+    if isinstance(numero, Decimal):
+        contexto = localcontext(prec=max(28, len(numero.as_tuple().digits) + 2 * precision + 10))
+    with contexto:
+        negativo = numero < 0
+        numero = abs(numero)
+        parte_entera = int(numero)
+        parte_frac = numero - parte_entera
+        return _completar_conversion(
+            pasos, negativo, parte_entera, parte_frac, base, nombre_base, precision
+        )
+
+
+def _completar_conversion(pasos, negativo, parte_entera, parte_frac, base, nombre_base, precision):
+    """Divisiones sucesivas (parte entera) y multiplicaciones (parte fraccionaria)."""
 
     # --- Divisiones sucesivas para la parte entera ---
     grupos_enteros = []
@@ -197,19 +216,36 @@ def convertir_decimal_a_base(numero, base, nombre_base, precision=PRECISION_DECI
 
 
 def parsear_decimal(cadena):
-    """Valida y convierte el texto ingresado por el usuario a un número decimal (int o float)."""
+    """Convierte el texto del usuario a un número exacto: int o Decimal.
+
+    No se usa float porque redondearía los enteros mayores que 2**53 y los
+    decimales con muchas cifras; la conversión mostraría otro número.
+    """
     cadena = cadena.strip()
     if cadena == '':
         raise ValueError("Debes ingresar un número decimal para convertir.")
     try:
-        valor = float(cadena)
-    except ValueError:
-        raise ValueError(f"'{cadena}' no es un número decimal válido.")
-    if valor != valor or valor in (float("inf"), float("-inf")):
+        valor = Decimal(cadena)
+    except InvalidOperation:
+        raise ValueError(f"'{cadena}' no es un número decimal válido.") from None
+    if not valor.is_finite():
         raise ValueError(f"'{cadena}' debe ser un número decimal finito.")
-    if valor == int(valor):
-        valor = int(valor)
-    return valor
+    if valor != 0 and valor.adjusted() >= MAXIMO_DIGITOS_ENTEROS:
+        raise ValueError(
+            f"El número es demasiado grande: admite hasta {MAXIMO_DIGITOS_ENTEROS} "
+            "dígitos en la parte entera."
+        )
+    if valor != 0 and -valor.adjusted() > MAXIMO_DIGITOS_ENTEROS:
+        raise ValueError(
+            "El número tiene demasiados ceros después del punto decimal; "
+            f"admite hasta {MAXIMO_DIGITOS_ENTEROS} decimales."
+        )
+    if valor == valor.to_integral_value():
+        return int(valor)
+    # normalize() quita ceros finales ("45.750" -> 45.75); la precisión se amplía
+    # para que no redondee números con más de 28 cifras.
+    with localcontext(prec=len(valor.as_tuple().digits) + 5):
+        return valor.normalize()
 
 # ==========================================================
 # Motor lógico (backend) de la Calculadora Romana bidireccional

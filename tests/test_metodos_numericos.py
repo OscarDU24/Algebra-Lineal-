@@ -168,7 +168,7 @@ class BiseccionTests(unittest.TestCase):
             ("x", -1e308, 1e308, 20, "ancho del rango"),
             ("x", -1, 1, 2, "entre 3 y 5000"),
             ("__import__('os')", -1, 1, 20, "permitida"),
-            ("sin", -1, 1, 20, "no permitidas"),
+            ("sin", -1, 1, 20, "con paréntesis"),
         ]
         for funcion, minimo, maximo, muestras, mensaje in casos:
             with self.subTest(funcion=funcion, minimo=minimo, maximo=maximo):
@@ -235,7 +235,7 @@ class ReglaFalsaTests(unittest.TestCase):
             ("x", float("inf"), 2, 1e-5, 10, "finito"),
             ("x", 1, 2, 1e-5, 0, "entre 1 y 100000"),
             ("x", 1, 2, 1e-5, 2.5, "número entero"),
-            ("__import__('os')", 1, 2, 1e-5, 10, "permitidas"),
+            ("__import__('os')", 1, 2, 1e-5, 10, "no permitida"),
         ]
         for funcion, a, b, tol, max_iteraciones, mensaje in casos:
             with self.subTest(funcion=funcion, max_iteraciones=max_iteraciones):
