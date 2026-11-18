@@ -1,6 +1,13 @@
 from core.ui.ctk_compat import ctk
 from core.ui.audio_manager import reproducir_sonido_error
 from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
+from core.ui.navegacion import (
+    confirmar_reemplazo,
+    escribir_campo,
+    instalar_navegacion,
+    marcar_error_campo,
+    rellenar,
+)
 from prettytable import PrettyTable, HRuleStyle, VRuleStyle
 
 from core.lineal import conversiones as conv
@@ -54,6 +61,27 @@ class VistaMatriz(ctk.CTkToplevel):
         self.crear_frame_inferior()
 
         self.generar_cuadricula_matriz()
+        instalar_navegacion(self, "matriz", al_cargar_ejemplo=self.cargar_ejemplo)
+
+    def cargar_ejemplo(self):
+        """Carga un sistema 3×3 de ejemplo; no ejecuta el cálculo."""
+        ejemplo = [["2", "1", "-1", "8"], ["-3", "-1", "2", "-11"], ["-2", "1", "2", "-3"]]
+        modo_inversa = self.opcion_metodo.get() == "Matriz pura (A⁻¹)"
+        if modo_inversa and not self.incluir_b_variable.get():
+            ejemplo = [fila[:3] for fila in ejemplo]
+        actuales = [entrada.get() for fila in self.matriz_entries for entrada in fila]
+        if not confirmar_reemplazo(self, actuales, [v for fila in ejemplo for v in fila]):
+            return False
+        escribir_campo(self.entry_m, "3")
+        escribir_campo(self.entry_n, "3")
+        self.generar_cuadricula_matriz()
+        rellenar(self.matriz_entries, ejemplo)
+        self.actualizar_previsualizacion()
+        self._escribir_en_visor(
+            "Ejemplo cargado: 2x + y − z = 8, −3x − y + 2z = −11, −2x + y + 2z = −3.\n"
+            "Elija el método y pulse el botón de cálculo."
+        )
+        return True
 
     def al_cerrar(self):
         """Muestra el Dashboard nuevamente antes de destruir esta ventana."""
@@ -85,7 +113,7 @@ class VistaMatriz(ctk.CTkToplevel):
         btn_generar = ctk.CTkButton(self.frame_sup, text="Generar Matriz", **estilo_boton_secundario(), command=self.generar_cuadricula_matriz)
         btn_generar.pack(side="left", padx=15)
 
-        btn_limpiar = ctk.CTkButton(self.frame_sup, text="Limpiar Valores", **estilo_boton_secundario(), command=self.limpiar_entradas)
+        btn_limpiar = ctk.CTkButton(self.frame_sup, text="Limpiar entradas", **estilo_boton_secundario(), command=self.limpiar_entradas)
         btn_limpiar.pack(side="left", padx=5)
 
     def crear_frame_central(self):
@@ -280,11 +308,13 @@ class VistaMatriz(ctk.CTkToplevel):
             for j, entry in enumerate(fila_entries):
                 val_str = entry.get().strip()
                 if not val_str:
+                    marcar_error_campo(entry)
                     raise ValueError(f"La casilla en la fila {i + 1}, columna {j + 1} está vacía.")
                 # Se lee como fracción exacta (1/3, 0.1, -2) para que todo el
                 # procedimiento sea exacto; el formato elegido solo afecta la salida.
                 val_num = conv.convertir_a_racional(val_str)
                 if val_num is None:
+                    marcar_error_campo(entry)
                     raise ValueError(f"El valor '{val_str}' en la fila {i + 1}, columna {j + 1} no es válido.")
                 fila_vals.append(val_num)
             matriz.append(fila_vals)

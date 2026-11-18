@@ -5,6 +5,13 @@
 from core.ui.ctk_compat import ctk
 from core.ui.audio_manager import reproducir_sonido_error
 from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
+from core.ui.navegacion import (
+    confirmar_reemplazo,
+    escribir_campo,
+    instalar_navegacion,
+    marcar_error_campo,
+    rellenar,
+)
 # Importamos la lógica pura (ajusta la ruta si es necesario)
 from core.sistemas import operaciones_sistemas as op_sis
 from core.ui.tema import (
@@ -42,6 +49,33 @@ class VistaSistemas(ctk.CTkToplevel):
         
         # Generar cuadrícula inicial
         self.generar_cuadricula()
+        instalar_navegacion(self, "sistemas", al_cargar_ejemplo=self.cargar_ejemplo)
+
+    def cargar_ejemplo(self):
+        """Carga x + 2y = 5, 3x + 4y = 6 (A y b); no ejecuta el cálculo."""
+        matriz = [["1", "2"], ["3", "4"]]
+        vector_b = ["5", "6"]
+        actuales = [e.get() for fila in self.entries_A for e in fila] + [e.get() for e in self.entries_b]
+        es_sistema = self.modo_actual.get() == "Sistema (Ax = b)"
+        ejemplo = [v for fila in matriz for v in fila] + (vector_b if es_sistema else [])
+        if not confirmar_reemplazo(self, actuales, ejemplo):
+            return False
+        escribir_campo(self.entry_filas, "2")
+        escribir_campo(self.entry_columnas, "2")
+        self.generar_cuadricula()
+        rellenar(self.entries_A, matriz)
+        if es_sistema:
+            rellenar([[e] for e in self.entries_b], [[v] for v in vector_b])
+        self.actualizar_previsualizacion()
+        self.mostrar_resultado(
+            "Ejemplo cargado: x + 2y = 5, 3x + 4y = 6. Pulse «Calcular y Analizar»."
+        )
+        return True
+
+    def limpiar_entradas(self):
+        for entrada in [e for fila in self.entries_A for e in fila] + list(self.entries_b):
+            entrada.delete(0, "end")
+        self.actualizar_previsualizacion()
 
     def al_cerrar(self):
         if self.master_dashboard is not None:
@@ -262,7 +296,7 @@ class VistaSistemas(ctk.CTkToplevel):
         boton_calcular = ctk.CTkButton(botones_frame, text="Calcular y Analizar", **estilo_boton_principal(), command=self.ejecutar_calculo)
         boton_calcular.grid(row=0, column=0, padx=10)
 
-        boton_limpiar = ctk.CTkButton(botones_frame, text="Limpiar Resultados", **estilo_boton_secundario(), command=lambda: self.mostrar_resultado(""))
+        boton_limpiar = ctk.CTkButton(botones_frame, text="Limpiar entradas", **estilo_boton_secundario(), command=self.limpiar_entradas)
         boton_limpiar.grid(row=0, column=1, padx=10)
 
         contenedor_resultado, self.texto_resultado, self.zoom_resultado = (

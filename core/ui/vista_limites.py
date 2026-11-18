@@ -5,6 +5,13 @@
 from core.ui.ctk_compat import ctk
 from core.ui.audio_manager import reproducir_sonido_error
 from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
+from core.ui.navegacion import (
+    confirmar_reemplazo,
+    escribir_campo,
+    instalar_navegacion,
+    marcar_error_campo,
+    rellenar,
+)
 # Importamos la lógica pura (ajusta la ruta si es necesario)
 from core.limites import operaciones_limites as op_lim
 from core.ui.tema import (
@@ -34,6 +41,24 @@ class VistaLimites(ctk.CTkToplevel):
         # Generar Interfaz
         self.crear_frame_superior()
         self.crear_frame_inferior()
+        instalar_navegacion(self, "limites", al_cargar_ejemplo=self.cargar_ejemplo)
+
+    def cargar_ejemplo(self):
+        """Carga lím sin(x)/x cuando x → 0; no ejecuta el cálculo."""
+        ejemplo = ["sin(x)/x", "0"]
+        actuales = [self.entry_fx.get(), self.entry_c.get()]
+        if actuales != ["(x**2 - 1)/(x - 1)", "1"] and not confirmar_reemplazo(self, actuales, ejemplo):
+            return False
+        escribir_campo(self.entry_fx, ejemplo[0])
+        escribir_campo(self.entry_c, ejemplo[1])
+        self.direccion_var.set("bilateral")
+        self.mostrar_resultado("Ejemplo cargado: lím sin(x)/x cuando x → 0. Pulse «Evaluar Límite».")
+        return True
+
+    def limpiar_entradas(self):
+        self.entry_fx.delete(0, "end")
+        self.entry_c.delete(0, "end")
+        self.entry_fx.focus_set()
 
     def al_cerrar(self):
         if self.master_dashboard is not None:
@@ -101,7 +126,7 @@ class VistaLimites(ctk.CTkToplevel):
         boton_calcular = ctk.CTkButton(botones_frame, text="Evaluar Límite", **estilo_boton_principal(), command=self.ejecutar_calculo)
         boton_calcular.grid(row=0, column=0, padx=10)
 
-        boton_limpiar = ctk.CTkButton(botones_frame, text="Limpiar Consola", **estilo_boton_secundario(), command=lambda: self.mostrar_resultado(""))
+        boton_limpiar = ctk.CTkButton(botones_frame, text="Limpiar entradas", **estilo_boton_secundario(), command=self.limpiar_entradas)
         boton_limpiar.grid(row=0, column=1, padx=10)
 
         contenedor_resultado, self.texto_resultado, self.zoom_resultado = (
@@ -118,7 +143,10 @@ class VistaLimites(ctk.CTkToplevel):
         direccion = self.direccion_var.get()
 
         if not funcion or not punto:
-            self.mostrar_resultado("Error: Debes ingresar tanto la función como el punto de evaluación.")
+            vacio = self.entry_fx if not funcion else self.entry_c
+            nombre = "la función f(x)" if not funcion else "el punto c"
+            self.mostrar_resultado(f"Error: ⚠ Falta {nombre}. Escríbalo en el campo resaltado.")
+            marcar_error_campo(vacio)
             return
 
         # Llamar al evaluador numérico propio

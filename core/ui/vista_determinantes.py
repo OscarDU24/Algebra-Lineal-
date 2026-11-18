@@ -3,6 +3,13 @@
 from core.ui.ctk_compat import ctk
 from core.ui.audio_manager import reproducir_sonido_error
 from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
+from core.ui.navegacion import (
+    confirmar_reemplazo,
+    escribir_campo,
+    instalar_navegacion,
+    marcar_error_campo,
+    rellenar,
+)
 from core.determinantes import operaciones_determinantes as op_det
 from core.ui.tema import (
     FONDO_CALCULADORA,
@@ -30,6 +37,20 @@ class VistaDeterminantes(ctk.CTkToplevel):
         self.entradas_matriz = []
         self.crear_interfaz()
         self.generar_matriz()
+        instalar_navegacion(self, "determinantes", al_cargar_ejemplo=self.cargar_ejemplo)
+
+    def cargar_ejemplo(self):
+        """Carga una matriz 3×3 (det = 24); no ejecuta el cálculo."""
+        ejemplo = [["2", "-1", "0"], ["1", "3", "2"], ["0", "1", "4"]]
+        actuales = [e.get() for fila in self.entradas_matriz for e in fila]
+        if not confirmar_reemplazo(self, actuales, [v for fila in ejemplo for v in fila]):
+            return False
+        escribir_campo(self.entrada_orden, "3")
+        self.generar_matriz()
+        rellenar(self.entradas_matriz, ejemplo)
+        self.actualizar_eficiencia()
+        self.mostrar_resultado("Ejemplo cargado: matriz 3×3. Elija el método y pulse «Calcular».")
+        return True
 
     def al_cerrar(self):
         if self.master_dashboard is not None:
@@ -68,7 +89,7 @@ class VistaDeterminantes(ctk.CTkToplevel):
         ).pack(side="left", padx=7)
         ctk.CTkButton(
             controles,
-            text="Limpiar valores",
+            text="Limpiar entradas",
             **estilo_boton_secundario(),
             command=self.limpiar,
         ).pack(side="left", padx=4)
@@ -133,7 +154,7 @@ class VistaDeterminantes(ctk.CTkToplevel):
         )
         self.btn_calcular.pack(side="left")
         contenedor_resultado, self.texto_resultado, self.zoom_resultado = (
-            crear_consola_resultados(self.panel_resultado, tamano=12, height=210)
+            crear_consola_resultados(self.panel_resultado, tamano=12, height=140)
         )
         contenedor_resultado.pack(fill="both", expand=True, padx=8, pady=(0, 8))
         self.mostrar_resultado("Genere la matriz, ingrese sus valores y presione «Calcular».")

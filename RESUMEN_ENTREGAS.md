@@ -1,9 +1,15 @@
 # Resumen de entregas · HeyAlgb
 
-Fecha: 2026-11-18 · Estado: **todo sin commit** en `main`.
+Fecha: 2026-11-18.
 
-No se tocaron los cambios sin commit de otra persona en
-`core/ui/vista_metodos_abiertos.py` y `core/ui/vista_grafica_biseccion.py`.
+Estado:
+- Entregas 0 a 6: confirmadas en `main` (commit `a5997bf`).
+- Entregas 7 a 10 (etapa final de UX): rama `pulido-ux-final`, **sin commit ni push**.
+
+En las entregas 0 a 6 no se tocaron los cambios de otra persona en
+`core/ui/vista_metodos_abiertos.py` y `core/ui/vista_grafica_biseccion.py`. En la
+entrega 7 solo se cambió la interfaz de Métodos Abiertos (consola común y destino
+x0/x1), sin tocar su lógica.
 El detalle técnico y la verificación de cada entrega están en
 [DIAGNOSTICO_AUDITORIA.md](DIAGNOSTICO_AUDITORIA.md).
 
@@ -16,6 +22,10 @@ El detalle técnico y la verificación de cada entrega están en
 | 4 | Zoom en las consolas de resultados | 128 OK |
 | 5 | Pulido de comportamiento y estabilidad | 136 OK |
 | 6 | Documentación y licencias | 136 OK |
+| 7 | Navegación coherente (Volver, X, aviso de cambios) | 151 OK (7–10) |
+| 8 | Ayuda contextual y «Cargar ejemplo» | |
+| 9 | Guía de bienvenida y preferencias | |
+| 10 | Copiar, foco, errores por campo, audio y tamaño de ventanas | |
 
 ---
 
@@ -164,6 +174,90 @@ El detalle técnico y la verificación de cada entrega están en
 - Las afirmaciones falsas «no se usan NumPy ni SciPy», «no hay pruebas automatizadas» y «SciPy contrasta la bisección».
 
 ---
+
+---
+
+## Etapa final de UX (entregas 7 a 10) · rama `pulido-ux-final`
+
+Alcance: solo experiencia de usuario. Los módulos matemáticos (`core/lineal`,
+`limites`, `metodos_numericos`, `sistemas`, `sistemas_numericos`, `determinantes`,
+`matriciales` y `vectores`) no tienen ningún cambio respecto de `main`.
+
+### Entrega 7 · Navegación coherente
+
+**Añadido**
+- `core/ui/navegacion.py`, con `instalar_navegacion`:
+  - Barra con «← Volver», «? Ayuda» y «Cargar ejemplo».
+  - «Volver» y la X usan el mismo camino.
+  - `GuardiaCambios` pide confirmación solo si el usuario escribió datos que siguen en pantalla.
+  - Borde de foco en los campos.
+  - Ajuste del tamaño de la ventana a su contenido.
+- Instalado en las 11 ventanas de calculadora. Leontief, Flujo de Red y Particiones vuelven a Ecuaciones matriciales.
+
+**Aplicado**
+- Al volver se cierra la ayuda abierta, y la ventana de Métodos Numéricos también cierra sus auxiliares (gráfica y teclado), como antes.
+- Las tareas `after()` nuevas se cancelan al destruir la ventana.
+
+### Entrega 8 · Ayuda contextual y ejemplos
+
+**Añadido**
+- `core/ui/ayuda.py`: contenido de las 15 herramientas (para qué sirve, datos, formatos verificados contra el código, ejemplo, restricciones, salida y atajos).
+  - Una sola ventana de ayuda por herramienta, que se cierra con «Cerrar» o Esc.
+  - Funciona sobre ventanas modales (Particiones).
+- «Cargar ejemplo» en Matrices, Sistemas, Límites, Sistemas numéricos, Determinantes, Bisección, Regula Falsi y Métodos Abiertos.
+  - No calcula.
+  - Pide confirmación si hay otros datos.
+  - Usa la misma validación que el ingreso manual.
+- Los resultados de los ejemplos se comprobaron con el código: (2, 3, −1), det = 24 y 45.75 → 101101.11.
+
+**Aplicado (solo nombres de botones)**
+- «Limpiar Valores» / «Borrar» → «Limpiar entradas».
+- «Limpiar Consola» y «Limpiar Resultados» (Límites, Sistemas) → «Limpiar entradas»; ahora limpian los campos, porque la consola ya tiene su propio «Limpiar resultados».
+- Ecuaciones matriciales: «Limpiar» → «Limpiar todo».
+
+### Entrega 9 · Bienvenida y preferencias
+
+**Añadido**
+- `core/ui/bienvenida.py`: guía de 4 pasos con Anterior, Siguiente, Omitir, Finalizar, «No mostrar al iniciar», Esc y flechas.
+  - Se programa 300 ms después de crear el Dashboard, sin interferir con la portada.
+  - Se abre de nuevo desde el menú Ayuda.
+- `core/ui/preferencias.py`: archivo `%APPDATA%\HeyAlgb\preferencias.json` (o `HEYALGB_CONFIG_DIR`).
+  - Escritura atómica.
+  - Si el archivo falta o está dañado, se usan los valores predeterminados y se registra un aviso.
+- Menú Ayuda del Dashboard: «Guía de bienvenida» y «Cómo usar HeyAlgb y atajos de teclado».
+
+### Entrega 10 · Comodidad y accesibilidad
+
+**Añadido / aplicado**
+- **Consolas:**
+  - «Copiar resultados», con el aviso «✓ Copiado» o «Nada que copiar» durante 1.8 s y sin ventana modal.
+  - «Limpiar resultados».
+  - Etiqueta «Zoom (clic en % = 100 %)».
+  - Copiar y limpiar no cambian el zoom ni recalculan.
+- **Métodos Abiertos:** usa la consola común. Al cambiar a Newton, el destino del clic en la gráfica vuelve a x0 (antes podía escribir en el campo oculto x1).
+- **Errores por campo:**
+  - Límites: el campo vacío recibe el foco, se marca en ámbar y la consola muestra un mensaje con «⚠».
+  - Matrices: la casilla vacía o inválida recibe el foco y se marca.
+  - Los colores nuevos `COLOR_FOCO` y `COLOR_ADVERTENCIA` están en `tema.py`.
+- **Dashboard:**
+  - Las tarjetas se alcanzan con Tab, muestran un borde rojo y se abren con Enter.
+  - Nuevo control «Efectos de sonido» (`AudioManager.establecer_efectos_habilitados`).
+  - La música y los efectos se guardan en las preferencias, también desde la portada.
+- **Tamaño de ventanas:** se agrandan hasta su contenido sin pasar del tamaño de la pantalla. A 100 % de escala, Sistemas, Sistemas numéricos y Determinantes recortaban controles. Las consolas de Determinantes y Sistemas numéricos piden menos altura mínima.
+
+**No añadido (con motivo)**
+- **Separar «resultado» y «procedimiento» al copiar:** el texto no tiene una marca fiable para hacerlo.
+- **Botón Cancelar:** no hay cálculos cancelables; todos son síncronos y no se introdujeron hilos.
+- **Bloqueo de pulsaciones repetidas:** como el cálculo es síncrono, un doble clic solo repite el mismo cálculo; no hay estados intermedios que corromper.
+
+**Pruebas añadidas**
+- `tests/test_ux_navegacion.py` (15 casos): preferencias (archivo ausente, dañado o con tipos incorrectos, y ubicación fuera del repositorio), contenido completo de la ayuda, ejemplos contra el código, Volver con y sin cambios, teclas de navegación, ayuda única, Cargar ejemplo, error por campo, copiar y limpiar sin afectar el zoom, recorrido de la bienvenida y silencio de efectos.
+
+### Pendientes y hallazgos para el equipo
+
+- **Escalado de Windows al 150 %:** en una pantalla de 1080 p, el contenido de la mayoría de las ventanas mide más que el alto disponible. Las áreas de datos ya tienen scroll, pero los controles inferiores pueden quedar fuera. Resolverlo requiere poner el contenido de cada vista en un contenedor con desplazamiento: es un cambio mayor, que se propone como tarea aparte.
+- **Sin probar a mano:** lector de pantalla, teclado numérico y las ventanas de confirmación con un usuario real.
+- **Sin límite de dimensiones:** ninguna calculadora limita el tamaño máximo de las matrices (n grande crea muchísimos campos). No es un fallo matemático; se documenta y no se cambió.
 
 ## Decisiones que quedan para el equipo
 

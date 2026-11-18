@@ -5,6 +5,13 @@ from tkinter import TclError
 from core.metodos_numericos import regla_falsa
 from core.ui.audio_manager import reproducir_sonido_error
 from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
+from core.ui.navegacion import (
+    confirmar_reemplazo,
+    escribir_campo,
+    instalar_navegacion,
+    marcar_error_campo,
+    rellenar,
+)
 from core.ui.ctk_compat import ctk
 from core.ui.teclado_matematico import (
     abrir_teclado_matematico,
@@ -102,7 +109,7 @@ class VistaReglaFalsa(ctk.CTkFrame):
         ).pack(side="left", padx=(0, 8))
         ctk.CTkButton(
             acciones,
-            text="Borrar",
+            text="Limpiar entradas",
             command=self.borrar,
             **estilo_boton_secundario(),
         ).pack(side="left")
@@ -191,6 +198,18 @@ class VistaReglaFalsa(ctk.CTkFrame):
             except TclError:
                 pass
             self._ventana_grafica = None
+
+    def cargar_ejemplo(self):
+        """Carga f(x) = e^(-x) - x en [0, 1]; no ejecuta el método."""
+        ejemplo = {"a": "0", "b": "1", "tolerancia": "0.00001", "max_iteraciones": "100"}
+        actuales = [self.funcion_var.get()] + [self.entradas[c].get() for c in ejemplo]
+        if not confirmar_reemplazo(self, actuales, ["e^(-x) - x", *ejemplo.values()]):
+            return False
+        self.funcion_var.set("e^(-x) - x")
+        for clave, valor in ejemplo.items():
+            escribir_campo(self.entradas[clave], valor)
+        self._mostrar("Ejemplo cargado: e^(-x) - x en [0, 1]. Pulse «Resolver».")
+        return True
 
     def borrar(self):
         self.funcion_var.set("")

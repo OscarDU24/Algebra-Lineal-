@@ -115,8 +115,44 @@ a 200 % en pasos de 10:
 
 El zoom solo afecta a esa consola: no cambia las entradas ni otras ventanas, y no vuelve
 a calcular. Se conserva mientras la ventana está abierta (también al cambiar de panel en
-Métodos Numéricos) y vuelve a 100 % al cerrarla. Por ahora, la consola de Métodos
-Abiertos no tiene zoom.
+Métodos Numéricos) y vuelve a 100 % al cerrarla.
+
+Sobre cada consola también están **Copiar resultados**, que copia todo el texto y
+muestra «✓ Copiado» unos segundos, y **Limpiar resultados**, que borra solo la
+consola. Ninguno de los dos recalcula ni cambia el zoom.
+
+### Navegación, ayuda y ejemplos
+
+- Cada calculadora tiene arriba una barra con **← Volver** (al menú, o a Ecuaciones
+  matriciales desde Leontief, Flujo de Red y Particiones), **? Ayuda** y, donde aporta
+  valor, **Cargar ejemplo**.
+- «Volver» y la X de la ventana hacen lo mismo. Si el usuario escribió datos que siguen
+  en pantalla, se pide confirmación; si no hay cambios, se sale sin preguntar.
+- **? Ayuda** abre una sola ventana por herramienta. Explica para qué sirve, qué datos
+  introducir, los formatos admitidos, un ejemplo, las restricciones, cómo leer la
+  salida y los atajos de teclado. Se cierra con «Cerrar» o Esc. El contenido está en
+  `core/ui/ayuda.py`.
+- **Cargar ejemplo** llena los campos con un caso válido, pero no calcula. Si ya había
+  otros datos, pide confirmación antes de reemplazarlos. Está disponible en Matrices,
+  Sistemas, Límites, Sistemas numéricos, Determinantes, Bisección, Regula Falsi y
+  Métodos Abiertos.
+- Los botones de limpieza usan nombres consistentes: «Limpiar entradas», «Limpiar
+  resultados» (en la consola) y «Limpiar todo» (Ecuaciones matriciales).
+- Al pulsar Tab, el campo activo se resalta con un borde rojo. Si falta un dato o es
+  inválido, el campo se marca en ámbar, recibe el foco y la consola explica el
+  problema con «⚠».
+
+### Bienvenida y preferencias
+
+- La primera vez que aparece el Dashboard en cada sesión se muestra una guía de 4
+  pasos (Anterior, Siguiente, Omitir, Finalizar y «No mostrar al iniciar»). Se puede
+  abrir de nuevo desde **Ayuda › Guía de bienvenida** en el menú del Dashboard.
+- En el Dashboard, «Música de fondo» y «Efectos de sonido» activan o silencian el audio
+  de forma independiente.
+- Las preferencias se guardan en `%APPDATA%\HeyAlgb\preferencias.json`, nunca dentro
+  del repositorio. Si el archivo falta o está dañado, la aplicación inicia con los
+  valores predeterminados. Para pruebas se puede usar otra carpeta con la variable de
+  entorno `HEYALGB_CONFIG_DIR`.
 
 Las calculadoras se abren desde el Dashboard en ventanas secundarias. Mientras el
 usuario captura datos, las vistas de matrices, vectores, ecuaciones matriciales y

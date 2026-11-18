@@ -851,6 +851,9 @@ class VistaInicio:
 
     def _alternar_musica(self):
         self.audio.establecer_musica_habilitada(self.var_musica.get())
+        from core.ui import preferencias
+
+        preferencias.guardar(musica_habilitada=bool(self.var_musica.get()))
 
     def _iniciar(self):
         if self.ventana_ayuda is not None and self.ventana_ayuda.winfo_exists():

@@ -5,6 +5,13 @@ from tkinter import TclError
 from core.metodos_numericos import biseccion
 from core.ui.audio_manager import reproducir_sonido_error
 from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
+from core.ui.navegacion import (
+    confirmar_reemplazo,
+    escribir_campo,
+    instalar_navegacion,
+    marcar_error_campo,
+    rellenar,
+)
 from core.ui.ctk_compat import ctk
 from core.ui.tema import (
     FONDO_CALCULADORA,
@@ -103,7 +110,7 @@ class VistaBiseccion(ctk.CTkFrame):
         ).pack(side="left", padx=(0, 8))
         ctk.CTkButton(
             acciones,
-            text="Borrar",
+            text="Limpiar entradas",
             command=self.borrar,
             **estilo_boton_secundario(),
         ).pack(side="left")
@@ -181,6 +188,18 @@ class VistaBiseccion(ctk.CTkFrame):
             except TclError:
                 pass
             self._ventana_grafica = None
+
+    def cargar_ejemplo(self):
+        """Carga f(x) = x^3 - x - 2 en [1, 2]; no ejecuta el método."""
+        ejemplo = {"a": "1", "b": "2", "tolerancia": "1e-6"}
+        actuales = [self.funcion_var.get()] + [self.entradas[c].get() for c in ejemplo]
+        if not confirmar_reemplazo(self, actuales, ["x^3 - x - 2", *ejemplo.values()]):
+            return False
+        self.funcion_var.set("x^3 - x - 2")
+        for clave, valor in ejemplo.items():
+            escribir_campo(self.entradas[clave], valor)
+        self._mostrar("Ejemplo cargado: x^3 - x - 2 en [1, 2]. Pulse «Biseccionar».")
+        return True
 
     def borrar(self):
         self.funcion_var.set("")

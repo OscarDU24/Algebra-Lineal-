@@ -5,6 +5,13 @@
 from core.ui.ctk_compat import ctk
 from core.ui.audio_manager import reproducir_sonido_error
 from core.ui.zoom_resultados import crear_consola_resultados, escribir_consola
+from core.ui.navegacion import (
+    confirmar_reemplazo,
+    escribir_campo,
+    instalar_navegacion,
+    marcar_error_campo,
+    rellenar,
+)
 from core.sistemas_numericos import operaciones_numericas as op_num
 from core.ui.tema import (
     ACENTO,
@@ -36,6 +43,30 @@ class VistaSistemasNumericos(ctk.CTkToplevel):
         self.crear_encabezado()
         self.crear_tabs()
         self.crear_consola()
+        instalar_navegacion(self, "numerica", al_cargar_ejemplo=self.cargar_ejemplo)
+
+    def cargar_ejemplo(self):
+        """Carga un ejemplo en la pestaña visible; no ejecuta la conversión."""
+        pestana = self.tabs.get()
+        if pestana.startswith("Decimal"):
+            campo, valor = self.entry_decimal, "45.75"
+        elif pestana.startswith("Otra base"):
+            campo, valor = self.entry_origen, "1011.01"
+        else:
+            campo, valor = self.entry_numero_romano, "1994"
+        if not confirmar_reemplazo(self, [campo.get()], [valor]):
+            return False
+        if pestana.startswith("Decimal"):
+            self.selector_destino.set("Binario")
+        elif pestana.startswith("Otra base"):
+            self.selector_origen.set("Binario")
+            self.al_cambiar_origen("Binario")
+        else:
+            self.selector_modo_romano.set("Arábigo → Romano")
+            self.al_cambiar_modo_romano("Arábigo → Romano")
+        escribir_campo(campo, valor)
+        self.mostrar_resultado(f"Ejemplo cargado: {valor}. Pulse el botón de conversión de esta pestaña.")
+        return True
 
     def al_cerrar(self):
         if self.master_dashboard is not None:
@@ -245,7 +276,7 @@ class VistaSistemasNumericos(ctk.CTkToplevel):
         ).pack(anchor="w", padx=10, pady=(10, 0))
 
         contenedor_resultado, self.texto_resultado, self.zoom_resultado = (
-            crear_consola_resultados(frame, tamano=14, wrap="word", height=180)
+            crear_consola_resultados(frame, tamano=14, wrap="word", height=130)
         )
         contenedor_resultado.pack(fill="both", expand=True, padx=10, pady=10)
 
