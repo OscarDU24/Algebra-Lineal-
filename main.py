@@ -51,25 +51,43 @@ def main():
             print(f"No se pudo cargar el icono de Windows: {error}")
 
     # Las preferencias viven en la carpeta de configuración del usuario; si el
-    # archivo falta o está dañado se usan los valores predeterminados.
+    # archivo falta o está dañado se usan los valores predeterminados.9
     preferencias_usuario = preferencias.cargar()
     audio = AudioManager()
+    audio.establecer_volumen_musica(preferencias_usuario["volumen_musica"] / 100)
+    audio.establecer_volumen_efectos(preferencias_usuario["volumen_efectos"] / 100)
     audio.musica_habilitada = preferencias_usuario["musica_habilitada"]
     audio.establecer_efectos_habilitados(preferencias_usuario["efectos_habilitados"])
     root.audio_manager = audio
     audio.instalar_sonidos_interfaz(root)
     dashboard = {"vista": None}
+    bienvenida_mostrada = {"valor": False}
+
+    def mostrar_dashboard(iniciar_recorrido=False):
+        dashboard["vista"] = Dashboard(root, audio, al_volver_inicio=mostrar_portada)
+        if iniciar_recorrido:
+            dashboard["vista"].iniciar_recorrido()
 
     def iniciar_dashboard():
-        dashboard["vista"] = Dashboard(root, audio)
-        # La guía se programa después de la transición de portada.
-        mostrar_bienvenida_si_corresponde(root)
+        if not bienvenida_mostrada["valor"]:
+            bienvenida_mostrada["valor"] = True
+            guia = mostrar_bienvenida_si_corresponde(
+                root,
+                al_comenzar=lambda: mostrar_dashboard(iniciar_recorrido=True),
+                al_omitir=mostrar_dashboard,
+            )
+            if guia is not None:
+                return
+        mostrar_dashboard()
+
+    def mostrar_portada():
+        VistaInicio(root, audio, iniciar_dashboard)
 
     def cerrar_aplicacion():
         audio.cerrar()
         root.destroy()
 
-    VistaInicio(root, audio, iniciar_dashboard)
+    mostrar_portada()
     root.protocol("WM_DELETE_WINDOW", cerrar_aplicacion)
     root.mainloop()
     audio.cerrar()

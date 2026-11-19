@@ -14,6 +14,7 @@ from core.ui.tema import (
     TEXTO_CLARO,
     estilo_panel_contenedor,
 )
+from core.ui import preferencias
 
 
 class VistaInicio:
@@ -38,15 +39,45 @@ class VistaInicio:
         ("Diego Gómez", "Diego_Kitagawa.png"),
         ("Carlos Aguirre", "Charly_Sakura.png"),
     )
+    PROFESOR = ("Profesor Iván Argüello Martinez", "Argüello_Sojiro.png")
 
     MODULOS = [
-        ("Matrices individuales", "Resuelve sistemas lineales por eliminación o mediante matriz inversa."),
-        ("Operaciones vectoriales", "Suma, resta, escala vectores y explora combinaciones lineales."),
-        ("Ecuaciones matriciales", "Practica productos matriz-vector, propiedades y sistemas Ax=b."),
-        ("Sistemas e independencia", "Analiza sistemas lineales y relaciones entre vectores."),
-        ("Límites", "Evalúa límites y continuidad con el módulo de cálculo."),
-        ("Sistemas numéricos", "Convierte entre bases y entre números arábigos y romanos."),
-        ("Determinantes y Factorización LU", "Calcula determinantes y resuelve sistemas Ax=b mediante LU."),
+        (
+            "Matrices individuales",
+            "Resuelve sistemas lineales por eliminación o mediante matriz inversa.",
+            "MatrIndvICON.png",
+        ),
+        (
+            "Operaciones vectoriales",
+            "Suma, resta, escala vectores y explora combinaciones lineales.",
+            "EcVectorialesCON.png",
+        ),
+        (
+            "Ecuaciones matriciales",
+            "Practica productos matriz-vector, propiedades y sistemas Ax=b.",
+            "EcMatriciaIesCON.png",
+        ),
+        (
+            "Sistemas e independencia",
+            "Analiza sistemas lineales y relaciones entre vectores.",
+            "EcLinealICON.png",
+        ),
+        ("Límites", "Evalúa límites y continuidad con el módulo de cálculo.", "LimitesICON.png"),
+        (
+            "Sistemas numéricos",
+            "Convierte entre bases y entre números arábigos y romanos.",
+            "SisNumICON.png",
+        ),
+        (
+            "Determinantes y Factorización LU",
+            "Calcula determinantes y resuelve sistemas Ax=b mediante LU.",
+            "DeterminantesICON.png",
+        ),
+        (
+            "Métodos Numéricos",
+            "Explora métodos iterativos para aproximar raíces y analizar errores.",
+            "metNumericosICON.png",
+        ),
     ]
 
     def __init__(self, root, audio_manager, al_iniciar):
@@ -54,6 +85,17 @@ class VistaInicio:
         self.audio = audio_manager
         self.al_iniciar = al_iniciar
         self.var_musica = tk.BooleanVar(value=self.audio.musica_habilitada)
+        self.var_efectos = tk.BooleanVar(value=self.audio.efectos_habilitados)
+        self.var_volumen_musica = tk.IntVar(
+            value=round(self.audio.volumen_musica * 100)
+        )
+        self.var_volumen_efectos = tk.IntVar(
+            value=round(self.audio.volumen_efectos * 100)
+        )
+        self.controles_audio = {}
+        self.controles_volumen = {}
+        self._audio_en_foco = None
+        self._volumen_arrastrado = None
         self.ventana_ayuda = None
         self._resize_job = None
         self._wipe_job = None
@@ -81,6 +123,8 @@ class VistaInicio:
         for nombre, archivo in self.INTEGRANTES:
             with Image.open(carpeta_assets / archivo) as avatar:
                 self.integrantes_originales.append((nombre, avatar.convert("RGBA")))
+        with Image.open(carpeta_assets / self.PROFESOR[1]) as avatar:
+            self.profesor_original = avatar.convert("RGBA")
 
         self.frame = tk.Frame(root, bg="#141414")
         self.frame.pack(fill="both", expand=True)
@@ -167,6 +211,30 @@ class VistaInicio:
         self.logo_uam_item = self.contenido.create_image(
             0, 0, image=self.logo_uam_photo, anchor="center"
         )
+        self.profesor_photo = ImageTk.PhotoImage(
+            Image.new("RGBA", (1, 1), (0, 0, 0, 0))
+        )
+        self.profesor_fondo_item = self.contenido.create_rectangle(
+            0,
+            0,
+            1,
+            1,
+            fill="#c8c8c8",
+            outline="#fe0000",
+            width=2,
+        )
+        self.profesor_item = self.contenido.create_image(
+            0, 0, image=self.profesor_photo, anchor="center"
+        )
+        self.profesor_nombre_item = self.contenido.create_text(
+            0,
+            0,
+            text=self.PROFESOR[0].replace(" Argüello ", "\nArgüello "),
+            anchor="w",
+            justify="left",
+            fill=TEXTO_CLARO,
+            font=("Helvetica Now Display", 12, "bold"),
+        )
 
         self.creditos = []
         for nombre, imagen in self.integrantes_originales:
@@ -197,16 +265,15 @@ class VistaInicio:
                 }
             )
 
-        self.switch_musica = ctk.CTkSwitch(
-            self.contenido,
-            text="Música de fondo",
-            variable=self.var_musica,
-            command=self._alternar_musica,
-            text_color=TEXTO_CLARO,
-            progress_color=ACENTO,
+        self._crear_control_audio("musica", "Música de fondo", self.var_musica, 20, 18)
+        self._crear_control_audio("efectos", "Efectos de sonido", self.var_efectos, 20, 46)
+        self._crear_control_volumen("musica", self.var_volumen_musica)
+        self._crear_control_volumen("efectos", self.var_volumen_efectos)
+        self.contenido.bind(
+            "<B1-Motion>", self._ajustar_volumen_arrastrado, add="+"
         )
-        self.musica_item = self.contenido.create_window(
-            0, 0, window=self.switch_musica, anchor="ne"
+        self.contenido.bind(
+            "<ButtonRelease-1>", self._terminar_ajuste_volumen, add="+"
         )
 
         self.opciones = []
@@ -402,21 +469,62 @@ class VistaInicio:
         ancho_bloque = tamano_uam + espacio_identidad + ancho_texto
         inicio_bloque = ancho * 0.74 - ancho_bloque / 2
         inicio_identidad = inicio_bloque + tamano_uam / 2
-        centro_y_identidad = alto * 0.85
+        x_texto_identidad = (
+            inicio_identidad + tamano_uam / 2 + espacio_identidad
+        )
+        centro_y_identidad = alto * 0.79
         self.contenido.coords(
             self.logo_uam_item,
-            inicio_identidad,
-            centro_y_identidad,
+            inicio_identidad + max(8, ancho * 0.015),
+            alto * 0.84 - max(10, alto * 0.025),
         )
         self.contenido.coords(
             self.facultad_item,
-            inicio_identidad + tamano_uam / 2 + espacio_identidad,
+            x_texto_identidad,
             centro_y_identidad,
         )
         self.contenido.itemconfigure(
             self.facultad_item,
             width=ancho_texto,
-            font=("Helvetica Now Display", max(18, int(27 * escala)), "bold"),
+            font=("Helvetica Now Display", max(15, int(23 * escala)), "bold"),
+        )
+        tamano_profesor = max(64, min(82, int(100 * escala)))
+        self.profesor_photo = ImageTk.PhotoImage(
+            self.profesor_original.resize(
+                (tamano_profesor, tamano_profesor), Image.Resampling.LANCZOS
+            )
+        )
+        x_logo_uam, y_logo_uam = self.contenido.coords(self.logo_uam_item)
+        centro_x_profesor = x_logo_uam
+        centro_y_profesor = (
+            y_logo_uam
+            + tamano_uam / 2
+            + tamano_profesor / 2
+            + max(8, 10 * escala)
+        )
+        mitad_profesor = tamano_profesor / 2 + 3
+        self.contenido.coords(
+            self.profesor_fondo_item,
+            centro_x_profesor - mitad_profesor,
+            centro_y_profesor - mitad_profesor,
+            centro_x_profesor + mitad_profesor,
+            centro_y_profesor + mitad_profesor,
+        )
+        self.contenido.itemconfigure(
+            self.profesor_item, image=self.profesor_photo
+        )
+        self.contenido.coords(
+            self.profesor_item, centro_x_profesor, centro_y_profesor
+        )
+        self.contenido.coords(
+            self.profesor_nombre_item,
+            x_texto_identidad,
+            centro_y_profesor,
+        )
+        self.contenido.itemconfigure(
+            self.profesor_nombre_item,
+            width=ancho_texto,
+            font=("Helvetica Now Display", max(15, int(21 * escala)), "bold"),
         )
 
         escala_ancho = ancho / 1192
@@ -468,8 +576,7 @@ class VistaInicio:
                 box_mode="none",
                 max_width=ancho_tarjeta_credito - 4,
             )
-        self.contenido.coords(self.musica_item, ancho - 18, 16)
-
+        self._posicionar_controles_audio(ancho, alto)
     def _fuente_pillow(self, archivo, tamano):
         clave = (str(archivo), tamano)
         if clave not in self._font_cache:
@@ -785,6 +892,43 @@ class VistaInicio:
     def _al_presionar_tecla(self, event):
         if self._wipe_activo:
             return "break"
+        controles_audio = (
+            "musica",
+            "volumen_musica",
+            "efectos",
+            "volumen_efectos",
+        )
+        if event.keysym == "Tab" and controles_audio:
+            if self._audio_en_foco is None:
+                self._audio_en_foco = controles_audio[0]
+            elif self._audio_en_foco == controles_audio[-1]:
+                self._audio_en_foco = None
+            else:
+                indice = controles_audio.index(self._audio_en_foco)
+                self._audio_en_foco = controles_audio[indice + 1]
+            self._actualizar_indicadores_foco_audio()
+            return "break"
+        if (
+            self._audio_en_foco in ("volumen_musica", "volumen_efectos")
+            and event.keysym in ("Left", "Right")
+        ):
+            clave = self._audio_en_foco.removeprefix("volumen_")
+            incremento = 5 if event.keysym == "Right" else -5
+            actual = self.controles_volumen[clave]["variable"].get()
+            self._establecer_volumen(clave, actual + incremento)
+            return "break"
+        if (
+            self._audio_en_foco is not None
+            and event.keysym in ("Return", "KP_Enter", "space")
+        ):
+            if self._audio_en_foco in self.controles_audio:
+                comando = (
+                    self._alternar_musica
+                    if self._audio_en_foco == "musica"
+                    else self._alternar_efectos
+                )
+                comando()
+                return "break"
         if event.keysym in ("Down", "Up"):
             actual = self.opcion_activa if self.opcion_activa is not None else -1
             desplazamiento = 1 if event.keysym == "Down" else -1
@@ -806,9 +950,17 @@ class VistaInicio:
                 self.mostrar_ayuda()
             return "break"
         if event.keysym == "Escape":
+            self._audio_en_foco = None
+            self._actualizar_indicadores_foco_audio()
             self._seleccionar_opcion(None)
             return "break"
         return None
+
+    def _actualizar_indicadores_foco_audio(self):
+        for clave in self.controles_audio:
+            self._actualizar_control_audio(clave)
+        for clave in self.controles_volumen:
+            self._actualizar_control_volumen(clave)
 
     def _iniciar_con_wipe(self):
         if self._wipe_activo:
@@ -850,10 +1002,230 @@ class VistaInicio:
             self._wipe_job = self.root.after(14, lambda: self._animar_wipe(paso + 1))
 
     def _alternar_musica(self):
+        self.var_musica.set(not self.var_musica.get())
         self.audio.establecer_musica_habilitada(self.var_musica.get())
-        from core.ui import preferencias
-
         preferencias.guardar(musica_habilitada=bool(self.var_musica.get()))
+        self._actualizar_control_audio("musica")
+
+    def _alternar_efectos(self):
+        self.var_efectos.set(not self.var_efectos.get())
+        self.audio.establecer_efectos_habilitados(self.var_efectos.get())
+        preferencias.guardar(efectos_habilitados=bool(self.var_efectos.get()))
+        self._actualizar_control_audio("efectos")
+
+    def _crear_control_audio(self, clave, texto, variable, x, y):
+        etiqueta = f"control_audio_{clave}"
+        pista = self.contenido.create_oval(
+            x, y, x + 32, y + 18,
+            fill="#4a4a4a",
+            outline="#ffffff",
+            width=1,
+            tags=(etiqueta,),
+        )
+        perilla = self.contenido.create_oval(
+            x + 2, y + 2, x + 16, y + 16,
+            fill="#ffffff",
+            outline="#111111",
+            tags=(etiqueta,),
+        )
+        texto_item = self.contenido.create_text(
+            x + 40,
+            y + 9,
+            text=texto,
+            anchor="w",
+            fill=TEXTO_CLARO,
+            font=("Segoe UI", 11, "bold"),
+            tags=(etiqueta,),
+        )
+        self.controles_audio[clave] = {
+            "clave": clave,
+            "variable": variable,
+            "pista": pista,
+            "perilla": perilla,
+            "texto": texto_item,
+            "x": x,
+            "y": y,
+        }
+        comando = self._alternar_musica if clave == "musica" else self._alternar_efectos
+        self.contenido.tag_bind(
+            etiqueta,
+            "<Button-1>",
+            lambda _event: (self.contenido.focus_set(), comando()),
+        )
+        self.contenido.tag_bind(
+            etiqueta, "<Enter>", lambda _event: self.contenido.configure(cursor="hand2")
+        )
+        self.contenido.tag_bind(
+            etiqueta, "<Leave>", lambda _event: self.contenido.configure(cursor="")
+        )
+        self._actualizar_control_audio(clave)
+
+    def _crear_control_volumen(self, clave, variable):
+        etiqueta = f"control_volumen_{clave}"
+        pista = self.contenido.create_line(
+            0, 0, 180, 0,
+            fill="#777777",
+            width=5,
+            capstyle=tk.ROUND,
+            tags=(etiqueta,),
+        )
+        nivel = self.contenido.create_line(
+            0, 0, 0, 0,
+            fill=ACENTO,
+            width=5,
+            capstyle=tk.ROUND,
+            tags=(etiqueta,),
+        )
+        perilla = self.contenido.create_oval(
+            0, 0, 12, 12,
+            fill="#ffffff",
+            outline="#111111",
+            width=1,
+            tags=(etiqueta,),
+        )
+        valor = self.contenido.create_text(
+            0,
+            0,
+            anchor="e",
+            fill=TEXTO_CLARO,
+            font=("Segoe UI", 10, "bold"),
+            tags=(etiqueta,),
+        )
+        self.controles_volumen[clave] = {
+            "variable": variable,
+            "pista": pista,
+            "nivel": nivel,
+            "perilla": perilla,
+            "valor": valor,
+            "x": 0,
+            "y": 0,
+            "ancho": 180,
+        }
+        self.contenido.tag_bind(
+            etiqueta,
+            "<Button-1>",
+            lambda evento, nombre=clave: self._iniciar_ajuste_volumen(
+                nombre, evento
+            ),
+        )
+        self.contenido.tag_bind(
+            etiqueta, "<Enter>", lambda _evento: self.contenido.configure(cursor="hand2")
+        )
+        self.contenido.tag_bind(
+            etiqueta, "<Leave>", lambda _evento: self.contenido.configure(cursor="")
+        )
+        self._actualizar_control_volumen(clave)
+
+    def _posicionar_controles_audio(self, ancho, alto):
+        x = max(20, ancho - 235)
+        y_musica = int(alto * 0.10)
+        y_efectos = int(alto * 0.174)
+        for clave, y in (("musica", y_musica), ("efectos", y_efectos)):
+            control = self.controles_audio[clave]
+            control["x"], control["y"] = x, y
+            self.contenido.coords(control["pista"], x, y, x + 32, y + 18)
+            self.contenido.coords(
+                control["perilla"],
+                x + 2,
+                y + 2,
+                x + 16,
+                y + 16,
+            )
+            self.contenido.coords(control["texto"], x + 40, y + 9)
+
+        for clave, y in (
+            ("musica", y_musica + 27),
+            ("efectos", y_efectos + 27),
+        ):
+            volumen = self.controles_volumen[clave]
+            volumen["x"] = x + 2
+            volumen["y"] = y
+            volumen["ancho"] = 176
+            self._actualizar_control_volumen(clave)
+
+    def _iniciar_ajuste_volumen(self, clave, evento):
+        self._volumen_arrastrado = clave
+        self._audio_en_foco = f"volumen_{clave}"
+        self._actualizar_volumen_desde_x(clave, evento.x, persistir=False)
+        return "break"
+
+    def _ajustar_volumen_arrastrado(self, evento):
+        if self._volumen_arrastrado is None:
+            return
+        self._actualizar_volumen_desde_x(
+            self._volumen_arrastrado, evento.x, persistir=False
+        )
+
+    def _terminar_ajuste_volumen(self, _evento):
+        if self._volumen_arrastrado is not None:
+            clave = self._volumen_arrastrado
+            campo = f"volumen_{clave}"
+            valor = self.controles_volumen[clave]["variable"].get()
+            preferencias.guardar(**{campo: valor})
+        self._volumen_arrastrado = None
+
+    def _actualizar_volumen_desde_x(self, clave, x, persistir=True):
+        control = self.controles_volumen[clave]
+        proporcion = (x - control["x"]) / control["ancho"]
+        valor = max(0, min(100, round(proporcion * 100)))
+        self._establecer_volumen(clave, valor, persistir)
+
+    def _establecer_volumen(self, clave, valor, persistir=True):
+        valor = max(0, min(100, int(valor)))
+        control = self.controles_volumen[clave]
+        control["variable"].set(valor)
+        if clave == "musica":
+            self.audio.establecer_volumen_musica(valor / 100)
+            if persistir:
+                preferencias.guardar(volumen_musica=valor)
+        else:
+            self.audio.establecer_volumen_efectos(valor / 100)
+            if persistir:
+                preferencias.guardar(volumen_efectos=valor)
+        self._actualizar_control_volumen(clave)
+
+    def _actualizar_control_volumen(self, clave):
+        control = self.controles_volumen[clave]
+        valor = control["variable"].get()
+        inicio = control["x"]
+        y = control["y"]
+        fin = inicio + control["ancho"] * valor / 100
+        self.contenido.coords(
+            control["pista"], inicio, y, inicio + control["ancho"], y
+        )
+        self.contenido.coords(control["nivel"], inicio, y, fin, y)
+        self.contenido.coords(
+            control["perilla"], fin - 6, y - 6, fin + 6, y + 6
+        )
+        self.contenido.coords(
+            control["valor"], inicio + control["ancho"] + 28, y
+        )
+        self.contenido.itemconfigure(control["valor"], text=f"{valor}%")
+        seleccionado = self._audio_en_foco == f"volumen_{clave}"
+        self.contenido.itemconfigure(
+            control["perilla"],
+            outline=ACENTO if seleccionado else "#111111",
+            width=2 if seleccionado else 1,
+        )
+
+    def _actualizar_control_audio(self, clave):
+        control = self.controles_audio[clave]
+        habilitado = control["variable"].get()
+        x, y = control["x"], control["y"]
+        self.contenido.itemconfigure(
+            control["pista"],
+            fill=ACENTO if habilitado else "#4a4a4a",
+            outline=ACENTO if self._audio_en_foco == clave else "#ffffff",
+            width=2 if self._audio_en_foco == clave else 1,
+        )
+        desplazamiento = 16 if habilitado else 2
+        self.contenido.coords(
+            control["perilla"],
+            x + desplazamiento,
+            y + 2,
+            x + desplazamiento + 14,
+            y + 16,
+        )
 
     def _iniciar(self):
         if self.ventana_ayuda is not None and self.ventana_ayuda.winfo_exists():
@@ -908,11 +1280,13 @@ class VistaInicio:
             wraplength=850,
         ).pack(anchor="w", padx=14, pady=(14, 18))
 
-        for nombre, descripcion in self.MODULOS:
+        ventana._iconos_modulos = []
+        carpeta_assets = Path(__file__).resolve().parents[1] / "assets"
+        for nombre, descripcion, archivo_icono in self.MODULOS:
             modulo = ctk.CTkFrame(contenido, **estilo_panel_contenedor())
             modulo.pack(fill="x", padx=10, pady=6)
             modulo.grid_columnconfigure(1, weight=1)
-            ctk.CTkFrame(
+            marco_icono = ctk.CTkFrame(
                 modulo,
                 width=110,
                 height=76,
@@ -920,13 +1294,28 @@ class VistaInicio:
                 corner_radius=0,
                 border_width=1,
                 border_color=ACENTO,
-            ).grid(row=0, column=0, rowspan=2, padx=12, pady=10)
+            )
+            marco_icono.grid(row=0, column=0, rowspan=2, padx=12, pady=10)
+            marco_icono.grid_propagate(False)
+            ruta_icono = carpeta_assets / archivo_icono
+            with Image.open(ruta_icono) as imagen:
+                imagen_icono = ImageOps.contain(
+                    imagen.convert("RGBA"),
+                    (94, 68),
+                    method=Image.Resampling.LANCZOS,
+                )
+            foto_icono = ctk.CTkImage(
+                light_image=imagen_icono,
+                dark_image=imagen_icono,
+                size=imagen_icono.size,
+            )
+            ventana._iconos_modulos.append(foto_icono)
             ctk.CTkLabel(
-                modulo,
-                text="Captura pendiente",
-                text_color="#bdbdbd",
-                font=("Segoe UI", 10),
-            ).grid(row=0, column=0, rowspan=2)
+                marco_icono,
+                image=foto_icono,
+                text="",
+                fg_color="#202020",
+            ).pack(expand=True)
             ctk.CTkLabel(
                 modulo,
                 text=nombre,
@@ -953,7 +1342,7 @@ class VistaInicio:
         ).pack(anchor="w", padx=14, pady=(10, 4))
         ctk.CTkLabel(
             equipo,
-            text="Integrante 1    ·    Integrante 2    ·    Integrante 3    ·    Integrante 4",
+            text="    ·    ".join(nombre for nombre, _archivo in self.INTEGRANTES),
             text_color=TEXTO_CLARO,
             wraplength=850,
         ).pack(anchor="w", padx=14, pady=(0, 12))

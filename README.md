@@ -144,11 +144,20 @@ consola. Ninguno de los dos recalcula ni cambia el zoom.
 
 ### Bienvenida y preferencias
 
-- La primera vez que aparece el Dashboard en cada sesión se muestra una guía de 4
-  pasos (Anterior, Siguiente, Omitir, Finalizar y «No mostrar al iniciar»). Se puede
-  abrir de nuevo desde **Ayuda › Guía de bienvenida** en el menú del Dashboard.
+- Después de la portada, la bienvenida aparece integrada en la ventana principal.
+  Permite comenzar un recorrido práctico o ir directamente al Dashboard, y conserva
+  la preferencia «No mostrar al iniciar».
+- El recorrido opcional usa la herramienta real de Bisección con el Ej. 1. Señala la
+  tarjeta, el selector de ejemplos, los campos, el cálculo y la salida, y permite
+  probar Copiar, zoom y Volver. No reemplaza la ayuda específica de los demás módulos.
+- Se puede abrir de nuevo desde **Ayuda › Guía de bienvenida** en el Dashboard.
 - En el Dashboard, «Música de fondo» y «Efectos de sonido» activan o silencian el audio
   de forma independiente.
+- La portada permite ajustar por separado el volumen de la música (50 % inicial) y
+  los efectos (45 % inicial); los niveles elegidos se conservan entre sesiones.
+- Ambos controles están disponibles también en la portada. El Dashboard conserva el
+  último módulo utilizado entre sesiones y permite volver a la portada sin cerrar la
+  aplicación.
 - Las preferencias se guardan en `%APPDATA%\HeyAlgb\preferencias.json`, nunca dentro
   del repositorio. Si el archivo falta o está dañado, la aplicación inicia con los
   valores predeterminados. Para pruebas se puede usar otra carpeta con la variable de

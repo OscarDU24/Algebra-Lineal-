@@ -125,6 +125,17 @@ class VistaGraficaBiseccion(ctk.CTkToplevel):
         )
         self._estilizar_ejes()
 
+        self.nota_muestreo = ctk.CTkLabel(
+            self,
+            text=(
+                "Nota: los intervalos sugeridos por muestreo son aproximados; "
+                "la gráfica no garantiza detectar todas las raíces."
+            ),
+            text_color=TEXTO_CLARO,
+            wraplength=850,
+        )
+        self.nota_muestreo.pack(fill="x", padx=18, pady=(0, 5))
+
         self.estado = ctk.CTkLabel(
             self,
             text=(

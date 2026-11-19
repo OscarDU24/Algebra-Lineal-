@@ -20,7 +20,11 @@ PREDETERMINADAS = {
     "mostrar_bienvenida": True,
     "musica_habilitada": True,
     "efectos_habilitados": True,
+    "ultimo_modulo_utilizado": "Ninguno",
+    "volumen_musica": 50,
+    "volumen_efectos": 45,
 }
+CLAVES_VOLUMEN = {"volumen_musica", "volumen_efectos"}
 
 _registro = logging.getLogger("heyalgb.preferencias")
 
@@ -55,18 +59,32 @@ def cargar():
         return preferencias
     for clave, valor_predeterminado in PREDETERMINADAS.items():
         valor = datos.get(clave, valor_predeterminado)
-        # Solo se aceptan valores del mismo tipo que el predeterminado.
-        if isinstance(valor, type(valor_predeterminado)):
-            preferencias[clave] = valor
+        if type(valor) is not type(valor_predeterminado):
+            continue
+        if clave in CLAVES_VOLUMEN and not 0 <= valor <= 100:
+            _registro.warning(
+                "Volumen fuera de rango para %s en %s; se usa el valor predeterminado.",
+                clave,
+                ruta,
+            )
+            continue
+        preferencias[clave] = valor
     return preferencias
 
 
 def guardar(**cambios):
     """Combina y guarda los cambios. Devuelve True si se escribieron."""
     preferencias = cargar()
-    preferencias.update(
-        {clave: valor for clave, valor in cambios.items() if clave in PREDETERMINADAS}
-    )
+    for clave, valor in cambios.items():
+        if clave not in PREDETERMINADAS:
+            continue
+        if type(valor) is not type(PREDETERMINADAS[clave]):
+            _registro.warning("Se ignoró un valor con tipo inválido para %s.", clave)
+            continue
+        if clave in CLAVES_VOLUMEN and not 0 <= valor <= 100:
+            _registro.warning("Se ignoró un volumen fuera de rango para %s.", clave)
+            continue
+        preferencias[clave] = valor
     ruta = ruta_preferencias()
     try:
         ruta.parent.mkdir(parents=True, exist_ok=True)

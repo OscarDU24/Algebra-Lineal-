@@ -10,6 +10,10 @@ from core.ui.navegacion import (
 )
 from prettytable import PrettyTable, HRuleStyle, VRuleStyle
 
+from core.determinantes.operaciones_determinantes import (
+    determinante_lu_a_string,
+    determinante_lu_valor,
+)
 from core.lineal import conversiones as conv
 from core.lineal.solucion import (
     enrutar_resolucion_matricial,
@@ -30,6 +34,15 @@ from core.ui.tema import (
     estilo_menu_desplegable,
     estilo_panel_contenedor,
 )
+
+
+def _formatear_resultado_matriz_singular(reporte_determinante):
+    return "\n".join([
+        "DETERMINANTE Y EXISTENCIA DE LA INVERSA",
+        reporte_determinante,
+        "Conclusión: det(A) = 0; A es singular y no existe A⁻¹.",
+    ])
+
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
@@ -430,6 +443,8 @@ class VistaMatriz(ctk.CTkToplevel):
         pasos,
         producto_verificacion,
         formato,
+        determinante,
+        reporte_determinante,
         vector_b=None,
         vector_solucion=None,
         producto_solucion=None
@@ -439,6 +454,13 @@ class VistaMatriz(ctk.CTkToplevel):
             "=========================================================",
             "          CÁLCULO DE LA MATRIZ INVERSA (A⁻¹)",
             "=========================================================",
+            "",
+            "DETERMINANTE Y EXISTENCIA DE LA INVERSA",
+            reporte_determinante,
+            (
+                f"Como det(A) = {self._formatear_valor(determinante, formato)} ≠ 0, "
+                "A es invertible y existe A⁻¹."
+            ),
             "",
             "Matriz original A de coeficientes recibida con éxito.",
             "Procesando reducción por Gauss-Jordan en [A | I]...",
@@ -540,6 +562,21 @@ class VistaMatriz(ctk.CTkToplevel):
                 # La cuadrícula puede ser [A] o [A | b]; separar ambos datos antes de invertir.
                 matriz_a = [fila[:n] for fila in matriz_original]
                 vector_b = [fila[n] for fila in matriz_original] if incluir_b else None
+                determinante = determinante_lu_valor(matriz_a)
+                formato_determinante = (
+                    "Fracciones" if formato_fracciones else "Decimales"
+                )
+                reporte_determinante = determinante_lu_a_string(
+                    matriz_a,
+                    formato_determinante,
+                )
+                if determinante == 0:
+                    self._escribir_en_visor(
+                        _formatear_resultado_matriz_singular(
+                            reporte_determinante
+                        )
+                    )
+                    return
                 # La inversión siempre recibe solo A; b se usa después en el producto A^-1 b.
                 resultado = enrutar_resolucion_matricial(
                     matriz_a,
@@ -567,6 +604,8 @@ class VistaMatriz(ctk.CTkToplevel):
                     resultado["pasos"],
                     producto_verificacion,
                     formato,
+                    determinante,
+                    reporte_determinante,
                     vector_b=vector_b,
                     vector_solucion=vector_solucion,
                     producto_solucion=producto_solucion

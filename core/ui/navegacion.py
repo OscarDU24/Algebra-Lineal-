@@ -1,4 +1,4 @@
-"""Barra común de navegación de las calculadoras: Volver, Ayuda y Cargar ejemplo.
+"""Barra común de navegación: Volver, Ayuda y Cargar ejemplo.
 
 ``instalar_navegacion(ventana, ...)`` se llama al final del constructor de cada
 ventana. No es un sistema general de navegación: cada ventana conserva su
@@ -22,6 +22,7 @@ from core.ui.tema import (
     COLOR_ADVERTENCIA,
     COLOR_FOCO,
     estilo_boton_secundario,
+    estilo_menu_desplegable,
 )
 
 _TECLAS_SIN_CAMBIO = {
@@ -156,11 +157,14 @@ def instalar_navegacion(
     clave_ayuda,
     texto_volver="← Volver al menú",
     al_cargar_ejemplo=None,
+    opciones_ejemplo=None,
+    al_seleccionar_ejemplo=None,
 ):
     """Añade la barra «Volver · Ayuda · Cargar ejemplo» arriba de la ventana.
 
     ``clave_ayuda`` es una clave de ``core.ui.ayuda.CONTENIDO`` o una función
     sin argumentos que la devuelve (para ventanas con varios paneles).
+    ``opciones_ejemplo`` sustituye el botón de ejemplo por un menú desplegable.
     """
     guardia = GuardiaCambios(ventana)
     ventana._guardia_cambios = guardia
@@ -169,14 +173,15 @@ def instalar_navegacion(
 
     def volver():
         if estado["cerrando"]:
-            return
+            return False
         if not guardia.confirmar_descartar("volver"):
-            return
+            return False
         estado["cerrando"] = True
         from core.ui.ayuda import cerrar_ayuda
 
         cerrar_ayuda(ventana)
         cerrar_original()
+        return True
 
     ventana.volver = volver
     ventana.protocol("WM_DELETE_WINDOW", volver)
@@ -194,6 +199,7 @@ def instalar_navegacion(
     estilo = dict(estilo_boton_secundario(), height=30)
     boton_volver = ctk.CTkButton(barra, text=texto_volver, command=volver, **estilo)
     boton_volver.pack(side="left")
+    barra.boton_volver = boton_volver
     # Sonido de cambio de interfaz, igual que las tarjetas del Dashboard.
     boton_volver._heyalg_efecto_clic = "interfaces"
 
@@ -203,10 +209,46 @@ def instalar_navegacion(
         clave = clave_ayuda() if callable(clave_ayuda) else clave_ayuda
         mostrar_ayuda(ventana, clave)
 
-    ctk.CTkButton(barra, text="? Ayuda", width=90, command=abrir_ayuda, **estilo).pack(
-        side="right"
+    boton_ayuda = ctk.CTkButton(
+        barra, text="? Ayuda", width=90, command=abrir_ayuda, **estilo
     )
-    if al_cargar_ejemplo is not None:
+    boton_ayuda.pack(side="right")
+    barra.boton_ayuda = boton_ayuda
+    if opciones_ejemplo is not None:
+        if al_seleccionar_ejemplo is None:
+            raise ValueError(
+                "Se requiere una acción para seleccionar un ejemplo."
+            )
+
+        estilo_selector = estilo_menu_desplegable()
+        estilo_selector.pop("border_width", None)
+        estilo_selector.pop("border_color", None)
+        selector_ejemplo = None
+
+        def seleccionar_ejemplo(opcion):
+            if al_seleccionar_ejemplo(opcion) is False:
+                selector_ejemplo.set("Cargar ejemplo...")
+                return
+            if getattr(ventana, "_no_marcar_ejemplo_como_cambio", False):
+                guardia.modificada = False
+                ventana._no_marcar_ejemplo_como_cambio = False
+            else:
+                guardia.marcar_modificada()
+
+        selector_ejemplo = ctk.CTkOptionMenu(
+            barra,
+            values=list(opciones_ejemplo),
+            variable=ctk.StringVar(value="Cargar ejemplo..."),
+            command=seleccionar_ejemplo,
+            width=220,
+            height=30,
+            font=("Arial", 11, "bold"),
+            **estilo_selector,
+        )
+        selector_ejemplo.pack(side="right", padx=(0, 8))
+        ventana._selector_ejemplo = selector_ejemplo
+        barra.selector_ejemplo = selector_ejemplo
+    elif al_cargar_ejemplo is not None:
         def cargar_ejemplo():
             if al_cargar_ejemplo() is not False:
                 guardia.marcar_modificada()

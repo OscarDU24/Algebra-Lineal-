@@ -14,6 +14,7 @@ from core.ui.navegacion import (
 )
 from core.ui.ctk_compat import ctk
 from core.ui.tema import (
+    ACENTO,
     FONDO_CALCULADORA,
     TEXTO_CLARO,
     estilo_boton_principal,
@@ -31,7 +32,12 @@ class VistaBiseccion(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
         self.configure(fg_color=FONDO_CALCULADORA)
+        self._reporte_academico = None
         self._ventana_grafica = None
+        self._al_resolver_completado = None
+        self._al_copiar_completado = None
+        self._al_zoom_cambiado = None
+        self._resaltados = {}
         self._crear_interfaz()
 
     def _crear_interfaz(self):
@@ -54,12 +60,12 @@ class VistaBiseccion(ctk.CTkFrame):
             wraplength=950,
         ).pack(anchor="w", padx=12, pady=(0, 8))
 
-        entradas = ctk.CTkFrame(self, **estilo_panel_contenedor())
-        entradas.pack(fill="x", padx=15, pady=5)
-        entradas.grid_columnconfigure(0, weight=2)
-        entradas.grid_columnconfigure(1, weight=1)
-        entradas.grid_columnconfigure(2, weight=1)
-        entradas.grid_columnconfigure(3, weight=1)
+        self.marco_entradas = ctk.CTkFrame(self, **estilo_panel_contenedor())
+        self.marco_entradas.pack(fill="x", padx=15, pady=5)
+        self.marco_entradas.grid_columnconfigure(0, weight=2)
+        self.marco_entradas.grid_columnconfigure(1, weight=1)
+        self.marco_entradas.grid_columnconfigure(2, weight=1)
+        self.marco_entradas.grid_columnconfigure(3, weight=1)
 
         campos = (
             ("Función f(x)", "funcion", "x² - x - 1", 300),
@@ -71,14 +77,14 @@ class VistaBiseccion(ctk.CTkFrame):
         self.funcion_var = ctk.StringVar(value=campos[0][2])
         for columna, (etiqueta, clave, valor, ancho) in enumerate(campos):
             ctk.CTkLabel(
-                entradas,
+                self.marco_entradas,
                 text=etiqueta,
                 text_color=TEXTO_CLARO,
             ).grid(row=0, column=columna, padx=8, pady=(8, 3), sticky="w")
             opciones = {"width": ancho, "font": ("Consolas", 12)}
             if clave == "funcion":
                 opciones["textvariable"] = self.funcion_var
-            campo = ctk.CTkEntry(entradas, **opciones)
+            campo = ctk.CTkEntry(self.marco_entradas, **opciones)
             campo.grid(
                 row=1, column=columna, padx=8, pady=(0, 9), sticky="ew"
             )
@@ -88,32 +94,36 @@ class VistaBiseccion(ctk.CTkFrame):
 
         acciones = ctk.CTkFrame(self, fg_color="transparent")
         acciones.pack(fill="x", padx=15, pady=4)
-        ctk.CTkButton(
+        self.boton_teclado = ctk.CTkButton(
             acciones,
             text="Teclado matemático",
             command=lambda: abrir_teclado_matematico(
                 self, self.entradas["funcion"]
             ),
             **estilo_boton_secundario(),
-        ).pack(side="left", padx=(0, 8))
-        ctk.CTkButton(
+        )
+        self.boton_teclado.pack(side="left", padx=(0, 8))
+        self.boton_grafica = ctk.CTkButton(
             acciones,
             text="Explorar gráfica",
             command=self.abrir_grafica,
             **estilo_boton_secundario(),
-        ).pack(side="left", padx=(0, 8))
-        ctk.CTkButton(
+        )
+        self.boton_grafica.pack(side="left", padx=(0, 8))
+        self.boton_resolver = ctk.CTkButton(
             acciones,
             text="Biseccionar",
             command=self.resolver,
             **estilo_boton_principal(),
-        ).pack(side="left", padx=(0, 8))
-        ctk.CTkButton(
+        )
+        self.boton_resolver.pack(side="left", padx=(0, 8))
+        self.boton_limpiar = ctk.CTkButton(
             acciones,
             text="Limpiar entradas",
             command=self.borrar,
             **estilo_boton_secundario(),
-        ).pack(side="left")
+        )
+        self.boton_limpiar.pack(side="left")
 
         salida = ctk.CTkFrame(self, **estilo_panel_contenedor())
         salida.pack(fill="both", expand=True, padx=15, pady=(4, 12))
@@ -123,10 +133,19 @@ class VistaBiseccion(ctk.CTkFrame):
             text_color=TEXTO_CLARO,
             font=("Segoe UI", 14, "bold"),
         ).pack(anchor="w", padx=10, pady=(6, 2))
-        contenedor_salida, self.texto_salida, self.zoom_salida = (
-            crear_consola_resultados(salida, tamano=11)
+        self.contenedor_salida, self.texto_salida, self.zoom_salida = (
+            crear_consola_resultados(
+                salida,
+                tamano=11,
+                formateador_copia=self._formatear_reporte_copiado,
+                al_copiar=self._notificar_copia,
+            )
         )
-        contenedor_salida.pack(fill="both", expand=True, padx=8, pady=(0, 7))
+        self.contenedor_salida.pack(fill="both", expand=True, padx=8, pady=(0, 7))
+        self.boton_copiar = self.contenedor_salida.barra.boton_copiar
+        self.controles_zoom = self.contenedor_salida.controles_zoom
+        self.boton_zoom_mas = self.controles_zoom.boton_mas
+        self.zoom_salida.agregar_observador(self._notificar_zoom)
         self._mostrar(
             "Ingrese f(x), los extremos manuales a y b, y una tolerancia "
             "positiva. La gráfica solo sirve como apoyo visual."
@@ -167,17 +186,57 @@ class VistaBiseccion(ctk.CTkFrame):
             self._mostrar(f"ERROR: {error}")
             return
 
+        formula = (
+            "x_r = (a + b) / 2; si f(a)·f(x_r) < 0, conservar [a, x_r]; "
+            "en otro caso, conservar [x_r, b]."
+        )
+        criterio = resultado["criterio_paro"]
+        if criterio == "ancho del intervalo":
+            criterio_visible = (
+                "Ancho del intervalo b - a < tolerancia. La parada no exige "
+                "|f(x_r)| < tolerancia; el residuo puede ser ligeramente mayor."
+            )
+        elif criterio in ("raíz exacta", "raíz en un extremo"):
+            criterio_visible = "Raíz exacta: f(x_r) = 0."
+        else:
+            criterio_visible = criterio
+        residuo = abs(resultado["f_raiz"])
+        tabla = biseccion.formatear_tabla(resultado)
         salida = [
             f"Intervalo manual: [{extremo_a:.12g}, {extremo_b:.12g}]",
             f"Raíz aproximada: {resultado['raiz']:.12g}",
-            f"|f(raíz)| (residuo): {abs(resultado['f_raiz']):.6g}",
+            f"|f(raíz)| (residuo): {residuo:.10e}",
             f"Iteraciones realizadas: {resultado['iteraciones']}",
             f"Iteraciones teóricas mínimas: {resultado['iteraciones_teoricas']}",
-            f"Criterio de paro: {resultado['criterio_paro']}",
+            f"Fórmula iterativa: {formula}",
+            f"Criterio de parada: {criterio_visible}",
             "",
-            biseccion.formatear_tabla(resultado),
+            tabla,
         ]
-        self._mostrar("\n".join(salida))
+        reporte = "\n".join(
+            [
+                "Método seleccionado: Bisección",
+                "Justificación de elección e intervalo/valores iniciales: "
+                "[Completar por el estudiante]",
+                (
+                    "Datos iniciales: "
+                    f"f(x) = {self.funcion_var.get()}; a = "
+                    f"{self.entradas['a'].get()}; b = "
+                    f"{self.entradas['b'].get()}; tolerancia = "
+                    f"{self.entradas['tolerancia'].get()}."
+                ),
+                f"Fórmula iterativa: {formula}",
+                f"Criterio de parada: {criterio_visible}",
+                f"Tabla de iteraciones:\n{tabla}",
+                (
+                    f"Aproximación final: x ≈ {resultado['raiz']:.12g} | "
+                    f"Residuo |f(x)|: {residuo:.10e}"
+                ),
+            ]
+        )
+        self._mostrar("\n".join(salida), reporte)
+        if self._al_resolver_completado is not None:
+            self._al_resolver_completado(resultado)
 
     def al_ocultar(self):
         cerrar_teclado_matematico(self)
@@ -210,7 +269,31 @@ class VistaBiseccion(ctk.CTkFrame):
             "y la tolerancia."
         )
 
-    def _mostrar(self, texto):
+    def _formatear_reporte_copiado(self, texto):
+        return self._reporte_academico if self._reporte_academico is not None else texto
+
+    def _notificar_copia(self):
+        if self._al_copiar_completado is not None:
+            self._al_copiar_completado()
+
+    def _notificar_zoom(self, nivel):
+        if self._al_zoom_cambiado is not None:
+            self._al_zoom_cambiado(nivel)
+
+    def resaltar_borde(self, widget, clave, activo):
+        if activo:
+            if clave not in self._resaltados:
+                self._resaltados[clave] = (
+                    widget.cget("border_color"),
+                    widget.cget("border_width"),
+                )
+            widget.configure(border_color=ACENTO, border_width=4)
+        elif clave in self._resaltados:
+            color, ancho = self._resaltados.pop(clave)
+            widget.configure(border_color=color, border_width=ancho)
+
+    def _mostrar(self, texto, reporte=None):
+        self._reporte_academico = reporte
         if texto.startswith("ERROR:"):
             reproducir_sonido_error(self, texto)
         escribir_consola(self.texto_salida, texto)

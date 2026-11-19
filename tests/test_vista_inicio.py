@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 
 from PIL import Image
 
@@ -16,6 +17,18 @@ class VistaInicioTests(unittest.TestCase):
                 ("Carlos Aguirre", "Charly_Sakura.png"),
             ),
         )
+        self.assertEqual(
+            VistaInicio.PROFESOR,
+            ("Profesor Iván Argüello Martinez", "Argüello_Sojiro.png"),
+        )
+
+    def test_ayuda_reutiliza_iconos_existentes_para_todos_los_modulos(self):
+        carpeta_assets = Path(__file__).resolve().parents[1] / "core" / "assets"
+
+        self.assertEqual(len(VistaInicio.MODULOS), 8)
+        for _nombre, _descripcion, archivo_icono in VistaInicio.MODULOS:
+            with self.subTest(icono=archivo_icono):
+                self.assertTrue((carpeta_assets / archivo_icono).is_file())
 
     def test_fondo_cover_llena_el_tamano_solicitado_y_recorta_al_centro(self):
         imagen = Image.new("RGB", (8, 4))

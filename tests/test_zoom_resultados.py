@@ -49,6 +49,22 @@ class ZoomResultadosTests(unittest.TestCase):
         self.assertEqual(self.zoom.fuente.cget("family"), "Consolas")
         self.assertEqual(self.texto.cget("wrap"), "none")
 
+    def test_boton_copiar_aplica_formato_opcional_sin_activar_otras_consolas(self):
+        contenedor, texto, _zoom = zr.crear_consola_resultados(
+            self.root,
+            formateador_copia=lambda contenido: f"Reporte académico\n{contenido}",
+        )
+        contenedor.pack(fill="both", expand=True)
+        zr.escribir_consola(texto, "Resultado y tabla")
+
+        contenedor.barra.copiar()
+
+        self.assertEqual(
+            self.root.clipboard_get(),
+            "Reporte académico\nResultado y tabla",
+        )
+        contenedor.destroy()
+
     def test_limites_y_pasos(self):
         for _ in range(20):
             self.zoom.aumentar()

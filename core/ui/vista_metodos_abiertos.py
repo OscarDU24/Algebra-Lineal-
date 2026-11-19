@@ -2,6 +2,7 @@
 
 from tkinter import TclError
 
+from core.metodos_numericos.biseccion import _crear_funcion
 from core.metodos_numericos import metodo_secante
 from core.metodos_numericos import newton_raphson
 from core.ui.audio_manager import reproducir_sonido_error
@@ -24,6 +25,7 @@ class VistaMetodosAbiertos(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
         self.configure(fg_color=FONDO_CALCULADORA)
+        self._reporte_academico = None
         self._rango_grafica = (-10.0, 10.0)
         self.funcion_var = ctk.StringVar(value="x³ - x - 2")
         self.metodo_var = ctk.StringVar(value="newton")
@@ -162,7 +164,11 @@ class VistaMetodosAbiertos(ctk.CTkFrame):
             font=("Segoe UI", 14, "bold"),
         ).pack(anchor="w", padx=10, pady=(6, 2))
         contenedor_salida, self.texto_salida, self.zoom_salida = (
-            crear_consola_resultados(salida, tamano=11)
+            crear_consola_resultados(
+                salida,
+                tamano=11,
+                formateador_copia=self._formatear_reporte_copiado,
+            )
         )
         contenedor_salida.pack(fill="both", expand=True, padx=8, pady=(0, 7))
         self._mostrar(
@@ -254,13 +260,34 @@ class VistaMetodosAbiertos(ctk.CTkFrame):
         ):
             x_minimo, x_maximo = resultado["rango_analizado"]
             self.boton_forzar.pack(side="left", padx=(8, 0))
+            criterio = self._criterio_parada_visible(resultado)
+            tabla = newton_raphson.formatear_tabla(resultado)
+            formula = "x_(n+1) = x_n - f(x_n) / f'(x_n)."
+            datos = (
+                f"f(x) = {self.funcion_var.get()}; x0 = "
+                f"{self.entradas['x0'].get()}; tolerancia = "
+                f"{self.entradas['tolerancia'].get()}; máximo de iteraciones = "
+                f"{self.entradas['max_iteraciones'].get()}."
+            )
+            reporte = self._crear_reporte_academico(
+                "Newton-Raphson",
+                datos,
+                formula,
+                criterio,
+                tabla,
+                None,
+                None,
+            )
             self._mostrar(
                 f"{resultado['estado']} "
                 f"[{x_minimo:g}, {x_maximo:g}]. "
                 "El muestreo no demuestra que no existan raíces reales fuera "
                 "de este rango y puede omitir raíces tangenciales o muy cercanas. "
                 "Amplíe el rango en la gráfica o pulse «Forzar cálculo» para "
-                "intentar Newton-Raphson con el x0 actual. Iteraciones: 0."
+                "intentar Newton-Raphson con el x0 actual. Iteraciones: 0.\n"
+                f"Fórmula iterativa: {formula}\n"
+                f"Criterio de parada: {criterio}\n\n{tabla}",
+                reporte,
             )
             return
 
@@ -287,7 +314,13 @@ class VistaMetodosAbiertos(ctk.CTkFrame):
             derivada_info = [
                 "Derivada calculada: no requerida; x0 ya satisface la tolerancia."
             ]
+        formula = "x_(n+1) = x_n - f(x_n) / f'(x_n)."
+        criterio = self._criterio_parada_visible(resultado)
+        aproximacion = resultado["raiz"]
+        residuo = self._residuo_final(resultado, self.funcion_var.get())
         salida = [
+            f"Fórmula iterativa: {formula}",
+            f"Criterio de parada: {criterio}",
             *(
                 [
                     "Aviso: cálculo forzado; el preanálisis no detectó raíces "
@@ -309,6 +342,10 @@ class VistaMetodosAbiertos(ctk.CTkFrame):
                 "Última aproximación (no convergida): "
                 f"{resultado['raiz']:.12g}"
             )
+        salida.append(
+            "|f(x)| (residuo final): "
+            + ("No disponible" if residuo is None else f"{residuo:.10e}")
+        )
         salida.extend(
             [
                 f"Tolerancia: {resultado['tolerancia']:.6g}",
@@ -316,9 +353,31 @@ class VistaMetodosAbiertos(ctk.CTkFrame):
                 newton_raphson.formatear_tabla(resultado),
             ]
         )
-        self._mostrar("\n".join(salida))
+        datos = (
+            f"f(x) = {self.funcion_var.get()}; x0 = "
+            f"{self.entradas['x0'].get()}; tolerancia = "
+            f"{self.entradas['tolerancia'].get()}; máximo de iteraciones = "
+            f"{self.entradas['max_iteraciones'].get()}."
+        )
+        reporte = self._crear_reporte_academico(
+            "Newton-Raphson",
+            datos,
+            formula,
+            criterio,
+            newton_raphson.formatear_tabla(resultado),
+            aproximacion,
+            residuo,
+        )
+        self._mostrar("\n".join(salida), reporte)
 
     def _mostrar_resultado_secante(self, resultado):
+        formula = (
+            "x_(n+1) = x_n - f(x_n)·(x_n - x_(n-1)) / "
+            "(f(x_n) - f(x_(n-1)))."
+        )
+        criterio = self._criterio_parada_visible(resultado)
+        aproximacion = resultado["raiz"]
+        residuo = self._residuo_final(resultado, self.funcion_var.get())
         procedimiento = []
         for indice, paso in enumerate(
             resultado["procedimiento_secante"],
@@ -366,14 +425,120 @@ class VistaMetodosAbiertos(ctk.CTkFrame):
         salida.extend(
             [
                 f"Tolerancia: {resultado['tolerancia']:.6g}",
+                f"Criterio de parada: {criterio}",
+                (
+                    "|f(x)| (residuo final): "
+                    + ("No disponible" if residuo is None else f"{residuo:.10e}")
+                ),
                 "",
+                f"Fórmula iterativa: {formula}",
                 "Procedimiento de la secante:",
                 "\n".join(procedimiento) if procedimiento else "No se requirieron iteraciones.",
                 "",
                 metodo_secante.formatear_tabla(resultado),
             ]
         )
-        self._mostrar("\n".join(salida))
+        datos = (
+            f"f(x) = {self.funcion_var.get()}; x0 = "
+            f"{self.entradas['x0'].get()}; x1 = "
+            f"{self.entradas['x1'].get()}; tolerancia = "
+            f"{self.entradas['tolerancia'].get()}; máximo de iteraciones = "
+            f"{self.entradas['max_iteraciones'].get()}."
+        )
+        reporte = self._crear_reporte_academico(
+            "Secante",
+            datos,
+            formula,
+            criterio,
+            metodo_secante.formatear_tabla(resultado),
+            aproximacion,
+            residuo,
+        )
+        self._mostrar("\n".join(salida), reporte)
+
+    @staticmethod
+    def _criterio_parada_visible(resultado):
+        estado = resultado["estado"]
+        tolerancia = resultado["tolerancia"]
+        if estado == "Raíz exacta en x0":
+            return "Raíz exacta en x0: |f(x0)| = 0."
+        if estado == "Tolerancia por residuo alcanzada en x0":
+            return f"Residuo inicial |f(x0)| ≤ tolerancia ({tolerancia:.10g})."
+        if estado in ("Raíz aproximada en x0", "Raíz aproximada en x1"):
+            punto = estado.rsplit(" ", 1)[-1]
+            return (
+                f"Residuo inicial |f({punto})| ≤ tolerancia "
+                f"({tolerancia:.10g})."
+            )
+        if estado == "Tolerancia por residuo alcanzada":
+            return (
+                f"Residuo |f(x_(n+1))| ≤ tolerancia ({tolerancia:.10g}) "
+                "y se verificó un cambio de signo local."
+            )
+        if "Residuo menor que la tolerancia" in estado:
+            return (
+                f"Residuo |f(x_(n+1))| ≤ tolerancia ({tolerancia:.10g}), "
+                "pero no se verificó un cambio de signo local; no se declara "
+                "convergencia."
+            )
+        if estado == "Tolerancia por cambio entre aproximaciones alcanzada":
+            return (
+                f"Cambio entre aproximaciones |x_(n+1) - x_n| ≤ "
+                f"tolerancia ({tolerancia:.10g})."
+            )
+        if estado.startswith("Detención preventiva"):
+            return (
+                "Detención preventiva antes de iterar: el muestreo gráfico "
+                "no detectó cruces ni ceros; esto no demuestra que no existan raíces."
+            )
+        if estado.startswith("Estancamiento"):
+            return "Estancamiento: la aproximación dejó de cambiar."
+        return (
+            f"No se alcanzó la tolerancia; detenido por: {estado}."
+        )
+
+    @staticmethod
+    def _residuo_final(resultado, funcion):
+        aproximacion = resultado["raiz"]
+        if aproximacion is None:
+            return None
+        if resultado["tabla"]:
+            return abs(resultado["tabla"][-1][-1])
+        return abs(_crear_funcion(funcion)(aproximacion))
+
+    @staticmethod
+    def _crear_reporte_academico(
+        metodo,
+        datos,
+        formula,
+        criterio,
+        tabla,
+        aproximacion,
+        residuo,
+    ):
+        aproximacion_texto = (
+            "No determinada"
+            if aproximacion is None
+            else f"x ≈ {aproximacion:.12g}"
+        )
+        residuo_texto = (
+            "No disponible" if residuo is None else f"{residuo:.10e}"
+        )
+        return "\n".join(
+            [
+                f"Método seleccionado: {metodo}",
+                "Justificación de elección e intervalo/valores iniciales: "
+                "[Completar por el estudiante]",
+                f"Datos iniciales: {datos}",
+                f"Fórmula iterativa: {formula}",
+                f"Criterio de parada: {criterio}",
+                f"Tabla de iteraciones:\n{tabla}",
+                (
+                    f"Aproximación final: {aproximacion_texto} | "
+                    f"Residuo |f(x)|: {residuo_texto}"
+                ),
+            ]
+        )
 
     @staticmethod
     def _formatear_procedimiento_derivada(procedimientos):
@@ -433,7 +598,11 @@ class VistaMetodosAbiertos(ctk.CTkFrame):
                 pass
             self._ventana_grafica = None
 
-    def _mostrar(self, texto):
+    def _formatear_reporte_copiado(self, texto):
+        return self._reporte_academico if self._reporte_academico is not None else texto
+
+    def _mostrar(self, texto, reporte=None):
+        self._reporte_academico = reporte
         if texto.startswith("ERROR:"):
             reproducir_sonido_error(self, texto)
         escribir_consola(self.texto_salida, texto)

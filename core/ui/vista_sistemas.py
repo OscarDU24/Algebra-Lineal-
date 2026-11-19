@@ -208,7 +208,11 @@ class VistaSistemas(ctk.CTkToplevel):
 
         # Generar etiquetas de columnas
         for j in range(columnas):
-            etiqueta_texto = f"x{j+1}" if modo == "Sistema (Ax = b)" else f"v{j+1}"
+            etiqueta_texto = (
+                op_sis.nombre_variable(j)
+                if modo == "Sistema (Ax = b)"
+                else f"v{j+1}"
+            )
             ctk.CTkLabel(self.frame_entradas, text=etiqueta_texto, font=("Arial", 12, "bold")).grid(row=0, column=j, padx=5, pady=5)
         
         if modo == "Sistema (Ax = b)":
@@ -243,12 +247,11 @@ class VistaSistemas(ctk.CTkToplevel):
             return
 
         lineas = []
-        nombres = ["x", "y", "z"]
         for indice, fila_entries in enumerate(self.entries_A):
             terminos = []
             for columna, entry in enumerate(fila_entries):
                 coeficiente = entry.get().strip() or "_"
-                variable = nombres[columna] if columna < len(nombres) else f"x{columna + 1}"
+                variable = op_sis.nombre_variable(columna)
                 try:
                     coeficiente_numero = float(coeficiente)
                 except ValueError:
@@ -330,17 +333,16 @@ class VistaSistemas(ctk.CTkToplevel):
                         raise ValueError("Se encontraron valores no válidos en el vector b.")
                     vector_b.append(val)
                 
-                metodo = self.selector_metodo_sistema.get()
-                if metodo == "Factorización LU":
-                    resultado = op_sis.resolver_sistema_lu_a_string(
-                        matriz_A, vector_b
-                    )
-                elif metodo == "Regla de Cramer":
-                    resultado = op_sis.resolver_sistema_cramer_a_string(
-                        matriz_A, vector_b
-                    )
-                else:
-                    resultado = op_sis.resolver_sistema(matriz_A, vector_b)
+                metodo_seleccionado = self.selector_metodo_sistema.get()
+                metodo = {
+                    "Factorización LU": "lu",
+                    "Regla de Cramer": "cramer",
+                }.get(metodo_seleccionado, "gauss_jordan")
+                resultado = op_sis.resolver_sistema_detallado_a_string(
+                    matriz_A,
+                    vector_b,
+                    metodo=metodo,
+                )
                 self.mostrar_resultado(resultado)
 
             else:

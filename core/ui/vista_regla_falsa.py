@@ -33,6 +33,7 @@ class VistaReglaFalsa(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
         self.configure(fg_color=FONDO_CALCULADORA)
+        self._reporte_academico = None
         self.funcion_var = ctk.StringVar(value="e⁻ᵡ - x")
         self._ventana_grafica = None
         self._crear_interfaz()
@@ -123,7 +124,11 @@ class VistaReglaFalsa(ctk.CTkFrame):
             font=("Segoe UI", 14, "bold"),
         ).pack(anchor="w", padx=10, pady=(6, 2))
         contenedor_salida, self.texto_salida, self.zoom_salida = (
-            crear_consola_resultados(salida, tamano=11)
+            crear_consola_resultados(
+                salida,
+                tamano=11,
+                formateador_copia=self._formatear_reporte_copiado,
+            )
         )
         contenedor_salida.pack(fill="both", expand=True, padx=8, pady=(0, 7))
         self._mostrar(
@@ -162,6 +167,33 @@ class VistaReglaFalsa(ctk.CTkFrame):
             self._mostrar(f"ERROR: {error}")
             return
 
+        formula = (
+            "c = a - f(a)·(b - a) / (f(b) - f(a)); "
+            "conservar el subintervalo con cambio de signo."
+        )
+        if resultado["estado"] == "Raíz exacta encontrada":
+            criterio_visible = "Raíz exacta: f(c) = 0."
+        elif resultado["convergio"]:
+            criterio_visible = (
+                "Error relativo aproximado porcentual Ea ≤ tolerancia Ea "
+                f"({resultado['tolerancia_porcentual']:.10g} %)."
+            )
+        else:
+            criterio_visible = (
+                "No se alcanzó la tolerancia; detenido por: "
+                f"{resultado['estado']}."
+            )
+        aproximacion = (
+            resultado["raiz"]
+            if resultado["convergio"]
+            else resultado["aproximacion"]
+        )
+        residuo = (
+            None
+            if resultado["f_aproximacion"] is None
+            else abs(resultado["f_aproximacion"])
+        )
+        tabla = regla_falsa.formatear_tabla(resultado)
         salida = [
             f"Estado: {resultado['estado']}",
             f"Convergió: {'Sí' if resultado['convergio'] else 'No'}",
@@ -176,18 +208,46 @@ class VistaReglaFalsa(ctk.CTkFrame):
             )
         if resultado["f_aproximacion"] is not None:
             salida.append(
-                "|f(aproximación)|: "
-                f"{abs(resultado['f_aproximacion']):.6g}"
+                f"|f(aproximación)| (residuo): {residuo:.10e}"
             )
         salida.extend(
             [
-                f"Criterio: {resultado['criterio_paro']}",
-                f"Tolerancia Ea: {resultado['tolerancia_porcentual']:.6g}%",
+                f"Fórmula iterativa: {formula}",
+                f"Criterio de parada: {criterio_visible}",
+                f"Tolerancia Ea: {resultado['tolerancia_porcentual']:.10g}%",
                 "",
-                regla_falsa.formatear_tabla(resultado),
+                tabla,
             ]
         )
-        self._mostrar("\n".join(salida))
+        residuo_texto = (
+            "No disponible" if residuo is None else f"{residuo:.10e}"
+        )
+        aproximacion_texto = (
+            "No determinada" if aproximacion is None else f"{aproximacion:.12g}"
+        )
+        reporte = "\n".join(
+            [
+                "Método seleccionado: Regula Falsi",
+                "Justificación de elección e intervalo/valores iniciales: "
+                "[Completar por el estudiante]",
+                (
+                    "Datos iniciales: "
+                    f"f(x) = {self.funcion_var.get()}; a = "
+                    f"{self.entradas['a'].get()}; b = "
+                    f"{self.entradas['b'].get()}; tolerancia Ea = "
+                    f"{self.entradas['tolerancia'].get()} %; máximo de "
+                    f"iteraciones = {self.entradas['max_iteraciones'].get()}."
+                ),
+                f"Fórmula iterativa: {formula}",
+                f"Criterio de parada: {criterio_visible}",
+                f"Tabla de iteraciones:\n{tabla}",
+                (
+                    f"Aproximación final: {aproximacion_texto} | "
+                    f"Residuo |f(x)|: {residuo_texto}"
+                ),
+            ]
+        )
+        self._mostrar("\n".join(salida), reporte)
 
     def al_ocultar(self):
         cerrar_teclado_matematico(self)
@@ -217,7 +277,11 @@ class VistaReglaFalsa(ctk.CTkFrame):
             self.entradas[clave].delete(0, "end")
         self._mostrar("Campos borrados. Ingrese los datos para resolver.")
 
-    def _mostrar(self, texto):
+    def _formatear_reporte_copiado(self, texto):
+        return self._reporte_academico if self._reporte_academico is not None else texto
+
+    def _mostrar(self, texto, reporte=None):
+        self._reporte_academico = reporte
         if texto.startswith("ERROR:"):
             reproducir_sonido_error(self, texto)
         escribir_consola(self.texto_salida, texto)

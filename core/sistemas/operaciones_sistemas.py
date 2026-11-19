@@ -11,6 +11,43 @@ from core.determinantes.operaciones_determinantes import (
     _matriz_a_string,
     _validar_matriz,
 )
+from core.lineal.solucion import (
+    enrutar_resolucion_matricial,
+    multiplicar_matriz_por_vector,
+)
+from core.lineal.verificacion import verificar_solucion
+
+
+_NOMBRES_VARIABLES = ("x", "y", "z", "w")
+
+
+def nombre_variable(indice):
+    """Devuelve nombres convencionales para las primeras cuatro incógnitas."""
+    if indice < len(_NOMBRES_VARIABLES):
+        return _NOMBRES_VARIABLES[indice]
+    return f"x{indice + 1}"
+
+
+def _formatear_valor_sistema(valor):
+    if isinstance(valor, Fraction):
+        return str(valor.numerator) if valor.denominator == 1 else str(valor)
+    if isinstance(valor, float):
+        texto = f"{valor:.10g}"
+        return "0" if texto in ("-0", "-0.0") else texto
+    return str(valor)
+
+
+def _matriz_sistema_a_string(matriz):
+    return "\n".join(
+        "[ " + "   ".join(_formatear_valor_sistema(valor) for valor in fila) + " ]"
+        for fila in matriz
+    )
+
+
+def _vector_sistema_a_string(vector):
+    return "[ " + "   ".join(
+        _formatear_valor_sistema(valor) for valor in vector
+    ) + " ]"
 
 
 def convertir_a_fraccion(valor):
@@ -167,39 +204,150 @@ def invertir_matriz_a_string(matriz, formato="Decimales"):
 
 
 def resolver_sistema(matriz_A, vector_b):
-    """
-    Resuelve el sistema Ax = b analizando la matriz aumentada.
-    Retorna un texto formateado con el resultado para la consola.
-    """
-    filas = len(matriz_A)
-    cols_A = len(matriz_A[0])
-    
-    # Construir matriz aumentada [A | b]
-    matriz_aumentada = []
-    for i in range(filas):
-        fila = list(matriz_A[i]) + [vector_b[i]]
-        matriz_aumentada.append(fila)
-        
-    M_reducida, pivotes_A = gauss_jordan(matriz_A)
-    M_aum_reducida, pivotes_Aum = gauss_jordan(matriz_aumentada)
-    
-    # Análisis por Rouché-Capelli
-    salida = ["--- ANÁLISIS DEL SISTEMA (Ax = b) ---", ""]
-    
-    if pivotes_A < pivotes_Aum:
-        salida.append("Resultado: SISTEMA INCOMPATIBLE")
-        salida.append("El sistema no tiene solución (las ecuaciones son contradictorias).")
-    elif pivotes_A == cols_A:
-        salida.append("Resultado: SISTEMA COMPATIBLE DETERMINADO")
-        salida.append("El sistema tiene una SOLUCIÓN ÚNICA:")
-        for i in range(cols_A):
-            salida.append(f"x{i+1} = {M_aum_reducida[i][-1]}")
+    """Compatibilidad de la API anterior: resuelve y explica Ax=b por Gauss-Jordan."""
+    return resolver_sistema_detallado_a_string(matriz_A, vector_b)
+
+
+def resolver_sistema_detallado_a_string(matriz_A, vector_b, metodo="gauss_jordan"):
+    """Resuelve Ax=b y presenta matrices, procedimiento, clasificación y verificación."""
+    resultado = enrutar_resolucion_matricial(
+        matriz_A,
+        vector_b,
+        metodo="gauss_jordan",
+        formatear=_formatear_valor_sistema,
+    )
+    cantidad_variables = len(matriz_A[0])
+    matriz_aumentada = resultado["matriz_aumentada"]
+    pivotes = resultado["pivotes"]
+    solucion = resultado["solucion"]
+    _, rango_aumentada = gauss_jordan(matriz_aumentada)
+    rango_a = len(pivotes)
+    sistema_determinado = resultado["clasificacion"] == (
+        "Sistema Consistente Determinado"
+    )
+
+    salida = [
+        "RESOLUCIÓN DEL SISTEMA LINEAL",
+        f"Incógnitas: {', '.join(nombre_variable(i) for i in range(cantidad_variables))}",
+        "",
+        "Forma matricial: A·X = B",
+        "A:",
+        _matriz_sistema_a_string(matriz_A),
+        f"X = [ {'   '.join(nombre_variable(i) for i in range(cantidad_variables))} ]ᵀ",
+        f"B = {_vector_sistema_a_string(vector_b)}",
+        "",
+        "Matriz aumentada inicial [A | B]:",
+        _matriz_sistema_a_string(matriz_aumentada),
+        "",
+    ]
+
+    if len(matriz_A) == cantidad_variables:
+        determinante = determinante_lu_valor(matriz_A)
+        salida.extend([
+            f"det(A) = {_formatear_valor_sistema(determinante)}",
+        ])
+        if determinante != 0:
+            salida.append(
+                "Como det(A) ≠ 0, A es invertible y el sistema tiene solución única."
+            )
+        else:
+            salida.append(
+                "Como det(A) = 0, A no es invertible; los rangos determinan "
+                "si el sistema es incompatible o tiene infinitas soluciones."
+            )
+        salida.append("")
     else:
-        salida.append("Resultado: SISTEMA COMPATIBLE INDETERMINADO")
-        salida.append("El sistema tiene INFINITAS SOLUCIONES.")
-        salida.append(f"Variables principales: {pivotes_A}")
-        salida.append(f"Variables libres: {cols_A - pivotes_A}")
-        
+        salida.extend([
+            "det(A): no está definido porque A no es cuadrada.",
+            "",
+        ])
+
+    if sistema_determinado and metodo in ("lu", "cramer"):
+        if metodo == "lu":
+            salida.extend([
+                "PROCEDIMIENTO POR FACTORIZACIÓN LU",
+                resolver_sistema_lu_a_string(matriz_A, vector_b, "Fracciones"),
+                "",
+            ])
+        else:
+            salida.extend([
+                "PROCEDIMIENTO POR REGLA DE CRAMER",
+                resolver_sistema_cramer_a_string(
+                    matriz_A, vector_b, "Fracciones"
+                ),
+                "",
+            ])
+    else:
+        if metodo in ("lu", "cramer"):
+            salida.append(
+                "El método seleccionado requiere solución única; "
+                "se muestra la clasificación por Gauss-Jordan."
+            )
+        salida.append("PROCEDIMIENTO POR ELIMINACIÓN DE GAUSS-JORDAN")
+        for descripcion, matriz_paso in resultado["pasos"][1:]:
+            salida.extend([
+                f">> {descripcion}",
+                _matriz_sistema_a_string(matriz_paso),
+                "",
+            ])
+
+    salida.extend([
+        "Matriz escalonada reducida de [A | B]:",
+        _matriz_sistema_a_string(resultado["matriz_resultado"]),
+        "",
+        "ANÁLISIS DE EXISTENCIA Y UNICIDAD",
+        f"rango(A) = {rango_a}",
+        f"rango([A | B]) = {rango_aumentada}",
+        f"Clasificación: {resultado['clasificacion']}.",
+    ])
+
+    if sistema_determinado:
+        nombres = [nombre_variable(i) for i in range(cantidad_variables)]
+        salida.extend([
+            "",
+            "SOLUCIÓN ÚNICA:",
+            "X = [ " + "   ".join(nombres) + " ]ᵀ = "
+            + _vector_sistema_a_string(solucion) + "ᵀ",
+        ])
+        salida.extend(
+            f"{nombre} = {_formatear_valor_sistema(valor)}"
+            for nombre, valor in zip(nombres, solucion)
+        )
+        salida.extend(["", "VERIFICACIÓN EN EL SISTEMA ORIGINAL"])
+        producto = multiplicar_matriz_por_vector(matriz_A, solucion)
+        salida.append(f"A·X = {_vector_sistema_a_string(producto)}")
+        salida.append(f"B   = {_vector_sistema_a_string(vector_b)}")
+        for indice, (fila, valor_obtenido, valor_esperado) in enumerate(
+            zip(matriz_A, producto, vector_b),
+            start=1,
+        ):
+            terminos = " + ".join(
+                f"({_formatear_valor_sistema(coeficiente)})"
+                f"({_formatear_valor_sistema(componente)})"
+                for coeficiente, componente in zip(fila, solucion)
+            )
+            salida.append(
+                f"Ecuación {indice}: {terminos} = "
+                f"{_formatear_valor_sistema(valor_obtenido)} = "
+                f"b{indice} ({_formatear_valor_sistema(valor_esperado)})"
+            )
+        verificada = verificar_solucion(matriz_aumentada, solucion)
+        salida.append(
+            "Comprobación exitosa: A·X = B."
+            if verificada
+            else "ERROR: la solución no satisface todas las ecuaciones originales."
+        )
+    elif resultado["clasificacion"] == "Sistema Consistente Indeterminado":
+        libres = sorted(set(range(cantidad_variables)) - set(pivotes))
+        salida.append(
+            "Variables libres: "
+            + ", ".join(nombre_variable(i) for i in libres)
+        )
+    else:
+        salida.append(
+            "El sistema es incompatible: las ecuaciones no tienen una solución común."
+        )
+
     return "\n".join(salida)
 
 

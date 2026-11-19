@@ -31,6 +31,8 @@ class AudioManager:
         )
         self.musica_habilitada = True
         self.efectos_habilitados = True
+        self.volumen_musica = 0.5
+        self.volumen_efectos = 0.45
         self.en_lobby = False
         self.disponible = False
         self._pygame = None
@@ -57,7 +59,9 @@ class AudioManager:
             if not ruta.is_file():
                 continue
             try:
-                self._efectos[nombre] = self._pygame.mixer.Sound(str(ruta))
+                sonido = self._pygame.mixer.Sound(str(ruta))
+                sonido.set_volume(self.volumen_efectos)
+                self._efectos[nombre] = sonido
             except Exception as error:
                 print(f"Audio: no se pudo cargar {archivo} ({error}).")
 
@@ -73,6 +77,7 @@ class AudioManager:
         try:
             self._pygame.mixer.music.stop()
             self._pygame.mixer.music.load(str(ruta))
+            self._pygame.mixer.music.set_volume(self.volumen_musica)
             self._pygame.mixer.music.play(-1)  # -1 reproduce en bucle infinito
         except Exception as error:
             print(f"Audio: no se pudo reproducir BackgroundMusic.mp3 ({error}).")
@@ -104,6 +109,20 @@ class AudioManager:
     def establecer_efectos_habilitados(self, habilitados):
         """Activa o silencia los efectos de sonido (cursor, clic, cálculo, error...)."""
         self.efectos_habilitados = bool(habilitados)
+
+    def establecer_volumen_musica(self, volumen):
+        if not 0 <= volumen <= 1:
+            raise ValueError("El volumen de música debe estar entre 0 y 1.")
+        self.volumen_musica = volumen
+        if self.disponible:
+            self._pygame.mixer.music.set_volume(volumen)
+
+    def establecer_volumen_efectos(self, volumen):
+        if not 0 <= volumen <= 1:
+            raise ValueError("El volumen de efectos debe estar entre 0 y 1.")
+        self.volumen_efectos = volumen
+        for sonido in self._efectos.values():
+            sonido.set_volume(volumen)
 
     def reproducir_efecto(self, nombre):
         """Reproduce un efecto con un filtro anti-spam para el sonido del cursor."""

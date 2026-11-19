@@ -148,22 +148,30 @@ def escribir_consola(textbox, texto):
     textbox.configure(state="disabled")
 
 
-def copiar_consola(textbox):
+def copiar_consola(textbox, formateador=None):
     """Copia todo el contenido de la consola al portapapeles.
 
     Devuelve True si había texto. No modifica la consola ni recalcula nada.
     No se separa «resultado» de «procedimiento»: el texto de cada herramienta
-    no tiene una marca fiable para hacerlo sin cortes frágiles.
+    no tiene una marca fiable para hacerlo sin cortes frágiles. Un formateador
+    opcional permite que una vista prepare una copia distinta de su salida.
     """
     texto = textbox.get("1.0", "end-1c")
     if not texto.strip():
         return False
+    texto_copiado = formateador(texto) if formateador is not None else texto
+    if not isinstance(texto_copiado, str):
+        raise TypeError("El formateador de copia debe devolver texto.")
+    if not texto_copiado.strip():
+        return False
     textbox.clipboard_clear()
-    textbox.clipboard_append(texto)
+    textbox.clipboard_append(texto_copiado)
     return True
 
 
-def _crear_acciones(barra, textbox, limpiable):
+def _crear_acciones(
+    barra, textbox, limpiable, formateador_copia=None, al_copiar=None
+):
     """Botones «Copiar resultados» y «Limpiar resultados» con aviso breve."""
     estilo = dict(estilo_boton_secundario(), height=24, font=("Arial", 12, "bold"))
     aviso = ctk.CTkLabel(barra, text="", text_color=TEXTO_CLARO, font=("Segoe UI", 12))
@@ -190,7 +198,10 @@ def _crear_acciones(barra, textbox, limpiable):
     aviso.bind("<Destroy>", cancelar_aviso, add="+")
 
     def copiar():
-        avisar("✓ Copiado" if copiar_consola(textbox) else "Nada que copiar")
+        copiado = copiar_consola(textbox, formateador_copia)
+        avisar("✓ Copiado" if copiado else "Nada que copiar")
+        if copiado and al_copiar is not None:
+            al_copiar()
 
     boton_copiar = ctk.CTkButton(
         barra, text="Copiar resultados", width=130, command=copiar, **estilo
@@ -215,7 +226,14 @@ def _crear_acciones(barra, textbox, limpiable):
 
 
 def crear_consola_resultados(
-    master, tamano=12, wrap="none", height=None, titulo=None, limpiable=True
+    master,
+    tamano=12,
+    wrap="none",
+    height=None,
+    titulo=None,
+    limpiable=True,
+    formateador_copia=None,
+    al_copiar=None,
 ):
     """Crea una consola monoespaciada de solo lectura con controles de zoom.
 
@@ -242,10 +260,11 @@ def crear_consola_resultados(
     textbox.configure(state="disabled")
     zoom = ZoomConsola(textbox, tamano)
 
-    _crear_acciones(barra, textbox, limpiable)
+    _crear_acciones(barra, textbox, limpiable, formateador_copia, al_copiar)
     contenedor.barra = barra
     controles = crear_controles_zoom(barra, zoom)
     controles.pack(side="right")
+    contenedor.controles_zoom = controles
     return contenedor, textbox, zoom
 
 
